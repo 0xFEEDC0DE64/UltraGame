@@ -2,8 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="Client SDK"
-	ProjectGUID="{09603CC0-928D-4939-83E5-C255291B9466}"
+	Name="Client Episodic"
+	ProjectGUID="{306BEF7B-8A1F-F569-3761-3E05CFD6D683}"
+	RootNamespace="Client Episodic"
 	>
 	<Platforms>
 		<Platform
@@ -15,8 +16,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\Debug_sdk"
-			IntermediateDirectory=".\Debug_sdk"
+			OutputDirectory=".\Debug_episodic"
+			IntermediateDirectory=".\Debug_episodic"
 			ConfigurationType="2"
 			CharacterSet="2"
 			>
@@ -42,10 +43,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories=".\sdk;.\sdk\vgui;..\..\game\shared\sdk;.\;..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\..\vgui2\include;..\..\vgui2\controls;..\..\game\shared;.\game_controls;..\..\game\shared\multiplayer"
-				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;NO_STRING_T;CLIENT_DLL;VECTOR;PROTECTED_THINGS_ENABLE;fopen=dont_use_fopen;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;ENABLE_HTMLWINDOW;SDK_DLL;VERSION_SAFE_STEAM_API_INTERFACES"
+				AdditionalIncludeDirectories=".\hl2;.\hl2\elements;..\..\game\shared\hl2;..\..\game\shared\episodic;..\..\public;.\;..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\..\vgui2\include;..\..\vgui2\controls;..\..\game\shared;.\game_controls"
+				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;NO_STRING_T;CLIENT_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;fopen=dont_use_fopen;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;ENABLE_HTMLWINDOW;HL2_CLIENT_DLL;HL2_EPISODIC;SP_SDK"
 				StringPooling="true"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
@@ -136,8 +136,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release_sdk"
-			IntermediateDirectory=".\Release_sdk"
+			OutputDirectory=".\Release_episodic"
+			IntermediateDirectory=".\Release_episodic"
 			ConfigurationType="2"
 			CharacterSet="2"
 			>
@@ -167,8 +167,8 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories=".\sdk;.\sdk\vgui;..\..\game\shared\sdk;.\;..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\..\vgui2\include;..\..\vgui2\controls;..\..\game\shared;.\game_controls;..\..\game\shared\multiplayer"
-				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;NO_STRING_T;CLIENT_DLL;VECTOR;PROTECTED_THINGS_ENABLE;fopen=dont_use_fopen;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;ENABLE_HTMLWINDOW;SDK_DLL;VERSION_SAFE_STEAM_API_INTERFACES"
+				AdditionalIncludeDirectories=".\hl2;.\hl2\elements;..\..\game\shared\hl2;..\..\game\shared\episodic;..\..\public;.\;..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\..\vgui2\include;..\..\vgui2\controls;..\..\game\shared;.\game_controls"
+				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;NO_STRING_T;CLIENT_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;fopen=dont_use_fopen;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;ENABLE_HTMLWINDOW;HL2_CLIENT_DLL;HL2_EPISODIC;SP_SDK"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -530,6 +530,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hl2\C_Func_Monitor.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\c_func_occluder.cpp"
 				>
 			</File>
@@ -695,6 +699,10 @@
 			</File>
 			<File
 				RelativePath=".\c_vguiscreen.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\hl2\c_waterbullet.cpp"
 				>
 			</File>
 			<File
@@ -1126,15 +1134,11 @@
 				>
 			</File>
 			<File
+				RelativePath=".\hl2\hud_autoaim.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\hud_basechat.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\hud_basedeathnotice.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\hud_basedeathnotice.h"
 				>
 			</File>
 			<File
@@ -1143,6 +1147,10 @@
 			</File>
 			<File
 				RelativePath=".\hud_bitmapnumericdisplay.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\hud_chat.cpp"
 				>
 			</File>
 			<File
@@ -1155,6 +1163,14 @@
 			</File>
 			<File
 				RelativePath=".\hud_element_helper.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\hl2\hud_filmdemo.cpp"
+				>
+			</File>
+			<File
+				RelativePath=".\hl2\hud_hdrdemo.cpp"
 				>
 			</File>
 			<File
@@ -1199,10 +1215,6 @@
 			</File>
 			<File
 				RelativePath=".\hud_vehicle.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\hud_voicestatus.cpp"
 				>
 			</File>
 			<File
@@ -1502,14 +1514,6 @@
 				>
 			</File>
 			<File
-				RelativePath="..\shared\playerclass_info_parse.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\shared\playerclass_info_parse.h"
-				>
-			</File>
-			<File
 				RelativePath="..\shared\point_bonusmaps_accessor.cpp"
 				>
 			</File>
@@ -1547,10 +1551,6 @@
 			</File>
 			<File
 				RelativePath="..\shared\predictableid.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\shared\predicted_viewmodel.cpp"
 				>
 			</File>
 			<File
@@ -2082,6 +2082,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\weapon_parse_default.cpp"
+				>
+			</File>
+			<File
 				RelativePath=".\weapon_selection.cpp"
 				>
 			</File>
@@ -2397,10 +2401,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\game_controls\classmenu.cpp"
-					>
-				</File>
-				<File
 					RelativePath=".\game_controls\ClientScoreBoardDialog.cpp"
 					>
 				</File>
@@ -2438,330 +2438,382 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="SDK"
+				Name="HL2 DLL"
 				>
 				<File
-					RelativePath=".\sdk\c_sdk_env_sparkler.cpp"
+					RelativePath="..\shared\hl2\basehlcombatweapon_shared.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\c_te_firebullets.cpp"
+					RelativePath=".\hl2\c_antlion_dust.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\hl2\c_waterbullet.cpp"
+					RelativePath=".\hl2\c_ar2_explosion.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\clientmode_sdk.cpp"
+					RelativePath=".\hl2\c_barnacle.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\clientmode_sdk.h"
+					RelativePath=".\hl2\c_barney.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_in_main.cpp"
+					RelativePath=".\hl2\c_basehelicopter.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_prediction.cpp"
+					RelativePath=".\hl2\c_basehelicopter.h"
 					>
 				</File>
 				<File
-					RelativePath="..\shared\sdk\sdk_shareddefs.cpp"
+					RelativePath=".\hl2\c_basehlcombatweapon.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\shared\sdk\sdk_shareddefs.h"
+					RelativePath=".\hl2\c_basehlcombatweapon.h"
 					>
 				</File>
 				<File
-					RelativePath="..\shared\sdk\sdk_usermessages.cpp"
-					>
-				</File>
-				<Filter
-					Name="GUI"
-					>
-					<File
-						RelativePath=".\sdk\sdk_backgroundpanel.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_backgroundpanel.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdk_classmenu.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdk_classmenu.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_scoreboard.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_scoreboard.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdk_spectatorgui.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdk_spectatorgui.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdk_teammenu.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdk_teammenu.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdk_textwindow.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdk_textwindow.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdkviewport.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\sdkviewport.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\vgui_rootpanel_sdk.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\vgui\vgui_rootpanel_sdk.h"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="Hud Elements"
-					>
-					<File
-						RelativePath=".\sdk\hud_sdkdeathnotice.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_ammo.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_armor.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_chat.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_chat.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_damage.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_health.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_message.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_stamina.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_stamina.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_targetid.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_hud_weaponselection.cpp"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="Weapons"
-					>
-					<File
-						RelativePath="..\shared\sdk\sdk_basegrenade_projectile.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_basegrenade_projectile.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_fx_impacts.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_fx_shared.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_fx_shared.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_fx_tracers.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_fx_weaponfx.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_weapon_melee.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_weapon_melee.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_weapon_parse.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_weapon_parse.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_basesdkgrenade.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_basesdkgrenade.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_crowbar.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_grenade.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_grenade.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_mp5.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_pistol.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_sdkbase.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_sdkbase.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_shotgun.cpp"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="Rules"
-					>
-					<File
-						RelativePath=".\sdk\c_sdk_team.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\c_sdk_team.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_gamerules.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_gamerules.h"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="Player"
-					>
-					<File
-						RelativePath=".\sdk\c_sdk_player.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\c_sdk_player.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\c_sdk_player_resource.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\c_sdk_player_resource.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_gamemovement.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_player_shared.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_playeranimstate.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_playeranimstate.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_playerclass_info_parse.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_playerclass_info_parse.h"
-						>
-					</File>
-				</Filter>
-			</Filter>
-			<Filter
-				Name="Multiplayer"
-				>
-				<File
-					RelativePath="..\shared\Multiplayer\multiplayer_animstate.cpp"
+					RelativePath=".\hl2\c_basehlplayer.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\shared\Multiplayer\multiplayer_animstate.h"
+					RelativePath=".\hl2\c_basehlplayer.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_citadel_effects.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_corpse.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_corpse.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_env_alyxtemp.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_env_headcrabcanister.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_env_starfield.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_func_tankmortar.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_hl2_playerlocaldata.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_hl2_playerlocaldata.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_info_teleporter_countdown.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\c_npc_advisor.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_npc_antlionguard.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_npc_combinegunship.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_npc_manhack.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\c_npc_puppet.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_npc_rollermine.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_plasma_beam_node.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_prop_combine_ball.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_prop_combine_ball.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\c_prop_scalable.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_rotorwash.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_script_intro.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_strider.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_te_concussiveexplosion.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_te_flare.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_thumper_dust.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_vehicle_airboat.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_vehicle_cannon.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_vehicle_crane.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_vehicle_crane.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\c_vehicle_jeep_episodic.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_vehicle_prisoner_pod.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\c_vort_charge_token.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_weapon__stubs_hl2.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_weapon_crossbow.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\c_weapon_hopwire.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_weapon_physcannon.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\c_weapon_stunstick.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\citadel_effects_shared.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\clientmode_hlnormal.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\clientmode_hlnormal.h"
+					>
+				</File>
+				<File
+					RelativePath=".\death.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\env_headcrabcanister_shared.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\env_headcrabcanister_shared.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\episodic_screenspaceeffects.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\episodic_screenspaceeffects.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\flesh_internal_material_proxy.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\fx_antlion.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\fx_bugbait.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\fx_hl2_impacts.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\fx_hl2_tracers.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl2_clientmode.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl2_gamerules.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl2_gamerules.h"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl2_shareddefs.h"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl2_usermessages.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl_gamemovement.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl_gamemovement.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl_in_main.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl_prediction.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_ammo.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_battery.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_blood.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_credits.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_damageindicator.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_flashlight.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_health.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_locator.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_poisondamageindicator.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hud_posture.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_quickinfo.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_radar.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_radar.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hud_squadstatus.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_suitpower.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_suitpower.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_weaponselection.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hud_zoom.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\episodic\npc_advisor_shared.h"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\script_intro_shared.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\shieldproxy.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\survival_gamerules.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\vgui_rootpanel_hl2.cpp"
 					>
 				</File>
 			</Filter>
@@ -2790,7 +2842,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\lib\public\particles.lib"
+				RelativePath="..\..\lib\public\Particles.lib"
 				>
 			</File>
 			<File
@@ -2819,6 +2871,14 @@
 			</File>
 			<File
 				RelativePath="..\..\lib\public\vstdlib.lib"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Resources"
+			>
+			<File
+				RelativePath=".\client_episodic.vpc"
 				>
 			</File>
 		</Filter>
@@ -3531,6 +3591,10 @@
 			</File>
 			<File
 				RelativePath=".\splinepatch.h"
+				>
+			</File>
+			<File
+				RelativePath=".\statgather.h"
 				>
 			</File>
 			<File
@@ -4578,6 +4642,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\hl2\basehlcombatweapon_shared.h"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\baseparticleentity.h"
 				>
 			</File>
@@ -4699,6 +4767,14 @@
 			</File>
 			<File
 				RelativePath="..\shared\groundlink.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\hl2\hl2_player_shared.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\hl2\hl_movedata.h"
 				>
 			</File>
 			<File
@@ -4978,6 +5054,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\weapon_ifmsteadycam.h"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\tf2\weapon_objectselection.h"
 				>
 			</File>
@@ -4995,10 +5075,6 @@
 			>
 			<File
 				RelativePath=".\game_controls\baseviewport.h"
-				>
-			</File>
-			<File
-				RelativePath=".\game_controls\classmenu.h"
 				>
 			</File>
 			<File

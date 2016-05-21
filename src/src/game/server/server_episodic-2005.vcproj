@@ -2,8 +2,9 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="Server SDK"
-	ProjectGUID="{E8C0FE86-D8E1-4B44-8F76-F2A9A21E9C4F}"
+	Name="Server Episodic"
+	ProjectGUID="{31C796EE-3EE9-54FC-9EF2-AC09ED9C18F5}"
+	RootNamespace="Server Episodic)"
 	>
 	<Platforms>
 		<Platform
@@ -15,8 +16,8 @@
 	<Configurations>
 		<Configuration
 			Name="Debug|Win32"
-			OutputDirectory=".\Debug_sdk"
-			IntermediateDirectory=".\Debug_sdk"
+			OutputDirectory=".\Debug_episodic"
+			IntermediateDirectory=".\Debug_episodic"
 			ConfigurationType="2"
 			CharacterSet="2"
 			>
@@ -42,10 +43,9 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/MP"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;.\;..\..\game\shared;..\..\utils\common;..\..\game\shared\sdk;.\sdk;..\..\game\shared\multiplayer"
-				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;GAME_DLL;VECTOR;PROTECTED_THINGS_ENABLE;fopen=dont_use_fopen;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;SDK_DLL;USES_SAVERESTORE;VERSION_SAFE_STEAM_API_INTERFACES"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;.\;..\..\game\shared;..\..\utils\common;..\..\game\shared\hl2;..\..\game\shared\episodic;.\hl2;.\episodic"
+				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;fopen=dont_use_fopen;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;HL2_DLL;HL2_EPISODIC;SP_SDK;USES_SAVERESTORE"
 				StringPooling="true"
 				MinimalRebuild="true"
 				ExceptionHandling="0"
@@ -134,8 +134,8 @@
 		</Configuration>
 		<Configuration
 			Name="Release|Win32"
-			OutputDirectory=".\Release_sdk"
-			IntermediateDirectory=".\Release_sdk"
+			OutputDirectory=".\Release_episodic"
+			IntermediateDirectory=".\Release_episodic"
 			ConfigurationType="2"
 			CharacterSet="2"
 			>
@@ -165,8 +165,8 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;.\;..\..\game\shared;..\..\utils\common;..\..\game\shared\sdk;.\sdk;..\..\game\shared\multiplayer"
-				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;GAME_DLL;VECTOR;PROTECTED_THINGS_ENABLE;fopen=dont_use_fopen;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;SDK_DLL;USES_SAVERESTORE;VERSION_SAFE_STEAM_API_INTERFACES"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;.\;..\..\game\shared;..\..\utils\common;..\..\game\shared\hl2;..\..\game\shared\episodic;.\hl2;.\episodic"
+				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;GAME_DLL;VECTOR;VERSION_SAFE_STEAM_API_INTERFACES;PROTECTED_THINGS_ENABLE;fopen=dont_use_fopen;sprintf=use_Q_snprintf_instead_of_sprintf;strncpy=use_Q_strncpy_instead;_snprintf=use_Q_snprintf_instead;HL2_DLL;HL2_EPISODIC;SP_SDK;USES_SAVERESTORE"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
@@ -822,6 +822,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\base_gameinterface.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\base_playeranimstate.cpp"
 				>
 			</File>
@@ -1291,10 +1295,6 @@
 			</File>
 			<File
 				RelativePath=".\EntityFlame.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\EntityFlame.h"
 				>
 			</File>
 			<File
@@ -2434,11 +2434,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\shared\playerclass_info_parse.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\shared\playerclass_info_parse.h"
+				RelativePath=".\playerinfomanager.cpp"
 				>
 			</File>
 			<File
@@ -2535,10 +2531,6 @@
 			</File>
 			<File
 				RelativePath="..\shared\predictableid.h"
-				>
-			</File>
-			<File
-				RelativePath="..\shared\predicted_viewmodel.cpp"
 				>
 			</File>
 			<File
@@ -2763,10 +2755,6 @@
 			</File>
 			<File
 				RelativePath="..\shared\scriptevent.h"
-				>
-			</File>
-			<File
-				RelativePath="..\shared\sdk\sdk_player_shared.h"
 				>
 			</File>
 			<File
@@ -3026,6 +3014,10 @@
 				>
 			</File>
 			<File
+				RelativePath="..\shared\hl2\survival_gamerules.cpp"
+				>
+			</File>
+			<File
 				RelativePath="..\shared\takedamageinfo.cpp"
 				>
 			</File>
@@ -3219,6 +3211,10 @@
 			</File>
 			<File
 				RelativePath="..\shared\weapon_parse.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\weapon_parse_default.cpp"
 				>
 			</File>
 			<File
@@ -3433,6 +3429,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\hl2\te_gaussexplosion.cpp"
+					>
+				</File>
+				<File
 					RelativePath=".\te_glassshatter.cpp"
 					>
 				</File>
@@ -3506,240 +3506,976 @@
 				</File>
 			</Filter>
 			<Filter
-				Name="SDK"
+				Name="HL2 DLL"
 				>
 				<File
-					RelativePath=".\sdk\sdk_brushentity.cpp"
+					RelativePath=".\hl2\ai_allymanager.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_client.cpp"
+					RelativePath=".\hl2\ai_behavior_actbusy.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_env_message.cpp"
+					RelativePath=".\hl2\ai_behavior_actbusy.h"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_env_sparkler.cpp"
+					RelativePath=".\episodic\ai_behavior_alyx_injured.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_eventlog.cpp"
+					RelativePath=".\episodic\ai_behavior_alyx_injured.h"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_gameinterface.cpp"
+					RelativePath=".\hl2\ai_behavior_functank.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\shared\sdk\sdk_gamemovement.cpp"
+					RelativePath=".\hl2\ai_behavior_functank.h"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_logicalentity.cpp"
+					RelativePath=".\hl2\ai_behavior_holster.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_modelentity.cpp"
+					RelativePath=".\hl2\ai_behavior_holster.h"
 					>
 				</File>
 				<File
-					RelativePath="..\shared\sdk\sdk_shareddefs.cpp"
+					RelativePath=".\hl2\ai_behavior_operator.cpp"
 					>
 				</File>
 				<File
-					RelativePath="..\shared\sdk\sdk_shareddefs.h"
+					RelativePath=".\hl2\ai_behavior_operator.h"
 					>
 				</File>
 				<File
-					RelativePath="..\shared\sdk\sdk_usermessages.cpp"
+					RelativePath=".\ai_behavior_passenger.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\sdk_vehicle_jeep.cpp"
+					RelativePath=".\ai_behavior_passenger.h"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\te_firebullets.cpp"
+					RelativePath=".\episodic\ai_behavior_passenger_companion.cpp"
 					>
 				</File>
 				<File
-					RelativePath=".\sdk\te_firebullets.h"
+					RelativePath=".\episodic\ai_behavior_passenger_companion.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\ai_behavior_passenger_zombie.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\ai_behavior_passenger_zombie.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\ai_behavior_police.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\ai_behavior_police.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\ai_goal_police.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\ai_goal_police.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\ai_interactions.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\ai_spotlight.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\ai_spotlight.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\antlion_dust.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\antlion_dust.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\antlion_maker.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\antlion_maker.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\ar2_explosion.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\ar2_explosion.h"
+					>
+				</File>
+				<File
+					RelativePath=".\basebludgeonweapon.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\basebludgeonweapon.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\basehlcombatweapon.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\basehlcombatweapon.h"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\basehlcombatweapon_shared.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\basehlcombatweapon_shared.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\cbasehelicopter.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\cbasehelicopter.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\cbasespriteprojectile.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\cbasespriteprojectile.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\citadel_effects.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\citadel_effects_shared.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\combine_mine.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\combine_mine.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\energy_wave.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\env_alyxemp.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\env_alyxemp_shared.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\env_headcrabcanister.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\env_headcrabcanister_shared.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\env_headcrabcanister_shared.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\env_speaker.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\env_starfield.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\ep1_gamestats.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\episodic\ep1_gamestats.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\ep2_gamestats.cpp"
+					>
+					<FileConfiguration
+						Name="Debug|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+					<FileConfiguration
+						Name="Release|Win32"
+						>
+						<Tool
+							Name="VCCLCompilerTool"
+							UsePrecompiledHeader="0"
+						/>
+					</FileConfiguration>
+				</File>
+				<File
+					RelativePath=".\episodic\ep2_gamestats.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\func_bulletshield.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\func_bulletshield.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\Func_Monitor.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\func_recharge.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\func_tank.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\func_tank.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\grenade_ar2.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\grenade_ar2.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\grenade_bugbait.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\grenade_bugbait.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\grenade_frag.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\grenade_frag.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\grenade_spit.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\grenade_spit.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl2_ai_network.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl2_client.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl2_eventlog.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl2_gamerules.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl2_gamerules.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl2_player.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl2_player.h"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl2_player_shared.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl2_playerlocaldata.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl2_playerlocaldata.h"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl2_shareddefs.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl2_triggers.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl2_usermessages.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl_gamemovement.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl_gamemovement.h"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\hl2\hl_movedata.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\hl_playermove.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\info_darknessmode_lightsource.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\info_darknessmode_lightsource.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\info_teleporter_countdown.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\item_ammo.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\item_battery.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\item_dynamic_resupply.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\item_dynamic_resupply.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\item_healthkit.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\item_itemcrate.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\item_suit.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\look_door.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\monster_dummy.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\npc_advisor.cpp"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\episodic\npc_advisor_shared.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_alyx_episodic.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_alyx_episodic.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_antlion.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_antlion.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_antliongrub.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_antlionguard.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_apcdriver.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_attackchopper.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_attackchopper.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_barnacle.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_barnacle.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_barney.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_basescanner.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_basescanner.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_BaseZombie.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_BaseZombie.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_breen.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_bullseye.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_bullseye.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_citizen17.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_citizen17.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_combine.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_combine.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\npc_combine_cannon.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_combinecamera.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_combinedropship.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_combinegunship.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_combines.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_combines.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_cranedriver.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_crow.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_crow.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_dog.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_eli.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_enemyfinder.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_fastzombie.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_fisherman.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_gman.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_headcrab.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_headcrab.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\npc_hunter.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\npc_hunter.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_ichthyosaur.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_kleiner.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_launcher.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\npc_magnusson.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_manhack.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_manhack.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_metropolice.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_metropolice.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_monk.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_mossman.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_playercompanion.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_playercompanion.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_PoisonZombie.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\npc_puppet.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_rollermine.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_rollermine.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_scanner.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_scanner.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_stalker.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_stalker.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_strider.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_strider.h"
+					>
+				</File>
+				<File
+					RelativePath=".\npc_talker.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\npc_talker.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_turret_ceiling.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_turret_floor.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_turret_ground.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_vortigaunt_episodic.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_vortigaunt_episodic.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_zombie.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\npc_zombine.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\point_apc_controller.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\prop_combine_ball.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\prop_combine_ball.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\prop_scalable.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\prop_thumper.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\proto_sniper.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\rotorwash.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\rotorwash.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\script_intro.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\script_intro.h"
+					>
+				</File>
+				<File
+					RelativePath="..\shared\script_intro_shared.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\vehicle_airboat.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\vehicle_apc.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\vehicle_cannon.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\vehicle_crane.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\vehicle_crane.h"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\vehicle_hl2buggy.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\vehicle_hl2buggy.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\vehicle_jeep.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\vehicle_jeep_episodic.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\vehicle_jeep_episodic.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\vehicle_prisoner_pod.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\vehicle_viewcontroller.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_357.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_alyxgun.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_alyxgun.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_annabelle.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_ar2.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_ar2.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_bugbait.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_citizenpackage.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_citizenpackage.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_crossbow.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_crowbar.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_crowbar.h"
+					>
+				</File>
+				<File
+					RelativePath=".\weapon_cubemap.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_frag.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_physcannon.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_physcannon.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_pistol.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_rpg.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_rpg.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_shotgun.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_smg1.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\weapon_striderbuster.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\episodic\weapon_striderbuster.h"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_stunstick.cpp"
+					>
+				</File>
+				<File
+					RelativePath=".\hl2\weapon_stunstick.h"
 					>
 				</File>
 				<Filter
-					Name="Weapons"
+					Name="unused"
 					>
 					<File
-						RelativePath="..\shared\sdk\sdk_basegrenade_projectile.cpp"
+						RelativePath=".\hl2\grenade_beam.cpp"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\sdk_basegrenade_projectile.h"
+						RelativePath=".\hl2\grenade_beam.h"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\sdk_fx_shared.cpp"
+						RelativePath=".\hl2\grenade_homer.cpp"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\sdk_fx_shared.h"
+						RelativePath=".\hl2\grenade_homer.h"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\sdk_weapon_melee.cpp"
+						RelativePath=".\hl2\grenade_pathfollower.cpp"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\sdk_weapon_melee.h"
+						RelativePath=".\hl2\grenade_pathfollower.h"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\sdk_weapon_parse.cpp"
+						RelativePath=".\hl2\npc_missiledefense.cpp"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\sdk_weapon_parse.h"
+						RelativePath=".\hl2\vehicle_apc.cpp"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\weapon_basesdkgrenade.cpp"
+						RelativePath=".\hl2\weapon_cguard.cpp"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\weapon_basesdkgrenade.h"
+						RelativePath=".\hl2\weapon_flaregun.cpp"
 						>
 					</File>
 					<File
-						RelativePath="..\shared\sdk\weapon_crowbar.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_grenade.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_grenade.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_mp5.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_pistol.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_sdkbase.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_sdkbase.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\weapon_shotgun.cpp"
+						RelativePath=".\hl2\weapon_flaregun.h"
 						>
 					</File>
 				</Filter>
-				<Filter
-					Name="Rules"
-					>
-					<File
-						RelativePath="..\shared\sdk\sdk_gamerules.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_gamerules.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_team.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_team.h"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="Player"
-					>
-					<File
-						RelativePath=".\sdk\sdk_player.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_player.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_player_resource.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_player_resource.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_player_shared.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_playeranimstate.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_playeranimstate.h"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_playerclass_info_parse.cpp"
-						>
-					</File>
-					<File
-						RelativePath="..\shared\sdk\sdk_playerclass_info_parse.h"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_playermove.cpp"
-						>
-					</File>
-				</Filter>
-				<Filter
-					Name="PerfBots"
-					>
-					<File
-						RelativePath=".\sdk\sdk_bot_temp.cpp"
-						>
-					</File>
-					<File
-						RelativePath=".\sdk\sdk_bot_temp.h"
-						>
-					</File>
-				</Filter>
-			</Filter>
-			<Filter
-				Name="Multiplayer"
-				>
-				<File
-					RelativePath="..\shared\multiplayer\multiplayer_animstate.cpp"
-					>
-				</File>
-				<File
-					RelativePath="..\shared\multiplayer\multiplayer_animstate.h"
-					>
-				</File>
-			</Filter>
-			<Filter
-				Name="PluginInterface"
-				>
-				<File
-					RelativePath=".\playerinfomanager.cpp"
-					>
-				</File>
 			</Filter>
 		</Filter>
 		<Filter
@@ -3758,7 +4494,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\lib\public\particles.lib"
+				RelativePath="..\..\lib\public\Particles.lib"
 				>
 			</File>
 			<File
@@ -3783,6 +4519,14 @@
 			</File>
 			<File
 				RelativePath="..\..\lib\public\vstdlib.lib"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Resources"
+			>
+			<File
+				RelativePath=".\server_episodic.vpc"
 				>
 			</File>
 		</Filter>
@@ -4035,6 +4779,10 @@
 			</File>
 			<File
 				RelativePath="..\shared\groundlink.h"
+				>
+			</File>
+			<File
+				RelativePath="..\shared\hl2\hl2_vehicle_radar.h"
 				>
 			</File>
 			<File
