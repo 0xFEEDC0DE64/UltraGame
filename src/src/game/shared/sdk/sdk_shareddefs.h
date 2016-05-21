@@ -31,12 +31,12 @@
 //
 // Do your players have stamina? - this is a pre-requisite for sprinting, if you define sprinting, and don't uncomment this, it will be included anyway.
 // define SDK_USE_STAMINA
-//#define SDK_USE_STAMINA
+#define SDK_USE_STAMINA
 
 //
 // Are your players able to sprint?
 // define SDK_USE_SPRINTING
-//#define SDK_USE_SPRINTING
+#define SDK_USE_SPRINTING
 
 //Tony; stamina is a pre-requisite to sprinting, if you don't declare stamina but you do declare sprinting
 //stamina needs to be included.
