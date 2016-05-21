@@ -31,7 +31,7 @@
 //
 // Do your players have stamina? - this is a pre-requisite for sprinting, if you define sprinting, and don't uncomment this, it will be included anyway.
 // define SDK_USE_STAMINA
-//#define SDK_USE_STAMINA
+#define SDK_USE_STAMINA
 
 //
 // Are your players able to sprint?
