@@ -47,7 +47,7 @@
 //
 // Can your players go prone?
 // define SDK_USE_PRONE
-//#define SDK_USE_PRONE
+#define SDK_USE_PRONE
 
 //=====================
 // EXTRA WEAPON OPTIONS
