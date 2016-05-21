@@ -66,7 +66,7 @@
 //
 // Do you want your players to be able to shoot while jumping?
 // define SDK_SHOOT_WHILE_JUMPING
-//#define SDK_SHOOT_WHILE_JUMPING
+#define SDK_SHOOT_WHILE_JUMPING
 
 
 
