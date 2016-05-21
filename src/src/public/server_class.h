@@ -85,7 +85,6 @@ class CBaseNetworkable;
 #define DECLARE_SERVERCLASS()									\
 	public:														\
 		virtual ServerClass* GetServerClass();					\
-		virtual char const* GetClassName();						\
 		static SendTable *m_pClassSendTable;					\
 		template <typename T> friend int ServerClassInit(T *);	\
 		virtual int YouForgotToImplementOrDeclareServerClass();	\
@@ -136,7 +135,6 @@ class CBaseNetworkable;
 		&sendTable::g_SendTable\
 	); \
 	\
-	char const*	DLLClassName::GetClassName() {return #DLLClassName;}\
 	ServerClass* DLLClassName::GetServerClass() {return &g_##DLLClassName##_ClassReg;} \
 	SendTable *DLLClassName::m_pClassSendTable = &sendTable::g_SendTable;\
 	int DLLClassName::YouForgotToImplementOrDeclareServerClass() {return 0;}

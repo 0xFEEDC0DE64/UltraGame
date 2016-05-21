@@ -12,6 +12,7 @@
 #endif
 
 #include <maya/MPxCommand.h>
+#include <maya/MPxDeformerNode.h>
 #include <maya/MPxDragAndDropBehavior.h>
 #include <maya/MPxFileTranslator.h>
 #include <maya/MPxLocatorNode.h>
@@ -21,6 +22,10 @@
 #include <maya/MPxTransform.h>
 #include <maya/MPxTransformationMatrix.h>
 #include <maya/MSyntax.h>
+
+#if MAYA_API_VERSION >= 200800
+#include <maya/MPxImageFile.h>
+#endif //MAYA_API_VERSION >= 200800
 
 //-----------------------------------------------------------------------------
 //
@@ -61,6 +66,7 @@ public:
 		kShaderNode,
 		kTransform,
 		kLocatorNode,
+		kImageFile,
 		// Insert new ones above here
 		kUnknown
 	};
@@ -665,6 +671,165 @@ private:
 	}
 };
 
+#if MAYA_API_VERSION >= 200800
+//=============================================================================
+//
+// Base class for Valve Maya Image File Types ( CVsMayaMPxImageFile )
+//
+//============================================================================
+class CVsMayaMPxImageFile : public MPxImageFile
+{
+public:
+	virtual const MString &GetName() const = 0;
+
+protected:
+	static MStatus Register(
+		MFnPlugin &pluginFn,
+		const MString &name,
+		MCreatorFunction creatorFunction,
+		const MStringArray &extensions );
+
+	static MStatus Deregister(
+		MFnPlugin &pluginFn,
+		const MString &name );
+};
+
+
+//-----------------------------------------------------------------------------
+//
+// Decorator class for Valve Maya Image Files ( CVsMayaMPxImageFileDecorator )
+//
+//-----------------------------------------------------------------------------
+template < class T >
+class CVsMayaMPxImageFileDecorator : public T
+{
+public:
+	static const MString &Name() { return s_name; };
+
+	virtual const MString &GetName() const { return Name(); };
+
+	virtual const MString &GetDesc() const { return s_desc; };
+
+	static CVsMayaMPxFactoryBase::Type GetType()
+	{
+		return CVsMayaMPxFactoryBase::kImageFile;
+	}
+
+private:
+	template < class T > friend class CVsMayaMPxFactory;
+
+	static const MString s_name;
+
+	static const MString s_desc;
+
+	static const MStringArray s_extensions;
+
+	static const MCreatorFunction s_creatorFunction;
+
+	static void *Create()
+	{
+		return new CVsMayaMPxImageFileDecorator< T >;
+	}
+
+	static MStatus Register( MFnPlugin &pluginFn )
+	{
+		return T::Register( pluginFn, s_name, Create, s_extensions );
+	}
+
+	static MStatus Deregister( MFnPlugin &pluginFn )
+	{
+		return T::Deregister( pluginFn, s_name );
+	}
+};
+
+
+//-----------------------------------------------------------------------------
+// Helper macro to instantiate an image file
+//-----------------------------------------------------------------------------
+#define INSTALL_MAYA_MPXIMAGEFILE( _class, _name, _extensions, _desc )									\
+	const MString CVsMayaMPxImageFileDecorator< _class >::s_name( #_name );											\
+	const MString CVsMayaMPxImageFileDecorator< _class >::s_desc( _desc );											\
+	const MStringArray CVsMayaMPxImageFileDecorator< _class >::s_extensions( _extensions );										\
+	static CVsMayaMPxFactory< CVsMayaMPxImageFileDecorator< _class > > s_##_name##_Factory
+
+
+#endif // MAYA_API_VERSION >= 200800
+
+
+//=============================================================================
+//
+// Base class for Valve Maya Dependency Nodes ( CVsMayaMPxNode )
+//
+//============================================================================
+class CVsMayaMPxDeformerNode : public MPxDeformerNode
+{
+public:
+	virtual const MString &GetName() const = 0;
+
+protected:
+	static MStatus Register(
+		MFnPlugin &pluginFn,
+		const MString &name,
+		const MTypeId &mTypeId,
+		MCreatorFunction creatorFunction,
+		MInitializeFunction initFunction,
+		const MString &classification );
+
+	static MStatus Deregister(
+		MFnPlugin &pluginFn,
+		const MTypeId &mTypeId );
+};
+
+
+//-----------------------------------------------------------------------------
+//
+// Decorator class for Valve Maya nodes ( CVsMayaMPxDeformerNodeDecorator )
+//
+//-----------------------------------------------------------------------------
+template < class T >
+class CVsMayaMPxDeformerNodeDecorator : public T
+{
+public:
+	static const MString &Name() { return s_name; };
+
+	virtual const MString &GetName() const { return Name(); };
+
+	virtual const MString &GetDesc() const { return s_desc; };
+
+	static CVsMayaMPxFactoryBase::Type GetType()
+	{
+		return s_classification.length() ? CVsMayaMPxFactoryBase::kShaderNode : CVsMayaMPxFactoryBase::kDependencyNode;
+	}
+
+private:
+	template < class U > friend class CVsMayaMPxFactory;
+
+	static const MString s_name;
+
+	static const MString s_desc;
+
+	static const MTypeId s_mTypeId;
+
+	static const MInitializeFunction s_mInitializeFunction;
+
+	static const MString s_classification;
+
+	static void *Create()
+	{
+		return new CVsMayaMPxDeformerNodeDecorator< T >;
+	}
+
+	static MStatus Register( MFnPlugin &pluginFn )
+	{
+		return T::Register( pluginFn, s_name, s_mTypeId, Create, s_mInitializeFunction, s_classification );
+	}
+
+	static MStatus Deregister( MFnPlugin &pluginFn )
+	{
+		return T::Deregister( pluginFn, s_mTypeId );
+	}
+};
+
 
 //=============================================================================
 //
@@ -700,7 +865,7 @@ private:
 	const MString CVsMayaMPxNodeDecorator< _class >::s_desc( _desc );											\
 	const MTypeId CVsMayaMPxNodeDecorator< _class >::s_mTypeId( _typeId );										\
 	const MInitializeFunction CVsMayaMPxNodeDecorator< _class >::s_mInitializeFunction( _initializeFunction );	\
-	const MString CVsMayaMPxNodeDecorator< _class >::s_classification( NULL );									\
+	const MString CVsMayaMPxNodeDecorator< _class >::s_classification( "" );									\
 	static CVsMayaMPxFactory< CVsMayaMPxNodeDecorator< _class > > s_##_name##_Factory
 
 
@@ -739,7 +904,7 @@ private:
 	const MTypeId CVsMayaMPxTransformDecorator< _class >::s_mTypeId( _typeId );															\
 	const MInitializeFunction CVsMayaMPxTransformDecorator< _class >::s_mInitializeFunction( _initializeFunction );						\
 	const MCreatorFunction CVsMayaMPxTransformDecorator< _class >::s_xformMCreatorFunction( _xformCreatorFunction );					\
-	const MTypeId CVsMayaMPxTransformDecorator< _class >::s_xformMTypeId( _xformTypeId )												\
+	const MTypeId CVsMayaMPxTransformDecorator< _class >::s_xformMTypeId( _xformTypeId );												\
 	static CVsMayaMPxFactory< CVsMayaMPxTransformDecorator< _class > > s_##_name##_Factory
 
 
@@ -772,6 +937,18 @@ private:
 	const MTypeId CVsMayaMPxShapeNodeDecorator< _class, _uiClass >::s_mTypeId( _typeId );										\
 	const MInitializeFunction CVsMayaMPxShapeNodeDecorator< _class, _uiClass >::s_mInitializeFunction( _initializeFunction );	\
 	static CVsMayaMPxFactory< CVsMayaMPxShapeNodeDecorator< _class, _uiClass > > s_##_name##_Factory
+
+
+//-----------------------------------------------------------------------------
+// Helper macro to instantiate a deformer dependency node 
+//-----------------------------------------------------------------------------
+#define INSTALL_MAYA_MPXDEFORMERNODE( _class, _name, _typeId, _initializeFunction, _desc )								\
+	const MString CVsMayaMPxDeformerNodeDecorator< _class >::s_name( #_name );											\
+	const MString CVsMayaMPxDeformerNodeDecorator< _class >::s_desc( _desc );											\
+	const MTypeId CVsMayaMPxDeformerNodeDecorator< _class >::s_mTypeId( _typeId );										\
+	const MInitializeFunction CVsMayaMPxDeformerNodeDecorator< _class >::s_mInitializeFunction( _initializeFunction );	\
+	const MString CVsMayaMPxDeformerNodeDecorator< _class >::s_classification( "" );									\
+	static CVsMayaMPxFactory< CVsMayaMPxDeformerNodeDecorator< _class > > s_##_name##_Factory
 
 
 #endif // VSMAYAMPXFACTORY_H

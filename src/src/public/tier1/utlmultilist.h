@@ -147,7 +147,6 @@ protected:
 	I	m_TotalElements;	
 	I	m_MaxElementIndex;	// The number allocated
 
-#if !defined(_XBOX) || defined(_DEBUG)
 	void ResetDbgInfo()
 	{
 		m_pElements = m_Memory.Base();
@@ -171,9 +170,6 @@ protected:
 	// For debugging purposes; 
 	// it's in release builds so this can be used in libraries correctly
 	ListElem_t  *m_pElements;
-#else
-	void ResetDbgInfo() {}
-#endif
 };
    
    

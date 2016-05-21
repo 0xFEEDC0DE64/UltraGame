@@ -15,7 +15,7 @@
 #include "vgui/VGUI.h"
 #include "vgui_controls/EditablePanel.h"
 #include "vgui_controls/PHandle.h"
-#include "UtlVector.h"
+#include "utlvector.h"
 
 namespace vgui
 {
@@ -128,6 +128,7 @@ protected:
 	virtual void OnKeyCodeTyped(KeyCode code);
 	virtual void OnCommand(const char *command);
 	virtual void ApplySchemeSettings(IScheme *pScheme);
+	virtual void ApplySettings(KeyValues *inResourceData);
 
 	// internal message handlers
 	MESSAGE_FUNC_PTR( OnTabPressed, "TabPressed", panel );
@@ -135,9 +136,9 @@ protected:
 	MESSAGE_FUNC_PARAMS( OnOpenContextMenu, "OpenContextMenu", params );
 	MESSAGE_FUNC( OnApplyButtonEnable, "ApplyButtonEnable" );
 	// called when default button has been set
-	MESSAGE_FUNC_PTR( OnDefaultButtonSet, "DefaultButtonSet", button );
+	MESSAGE_FUNC_HANDLE( OnDefaultButtonSet, "DefaultButtonSet", button );
 	// called when the current default button has been set
-	MESSAGE_FUNC_PTR( OnCurrentDefaultButtonSet, "CurrentDefaultButtonSet", button);
+	MESSAGE_FUNC_HANDLE( OnCurrentDefaultButtonSet, "CurrentDefaultButtonSet", button);
     MESSAGE_FUNC( OnFindDefaultButton, "FindDefaultButton" );
 
 private:
@@ -174,6 +175,13 @@ private:
 	bool	m_bDraggableTabs;
 	bool	m_bContextButton;
 	bool	m_bKBNavigationEnabled;
+
+	CPanelAnimationVarAliasType( int, m_iTabXIndent, "tabxindent", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iTabXDelta, "tabxdelta", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iTabHeight, "tabheight", "28", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iTabHeightSmall, "tabheight_small", "14", "proportional_int" );
+
+	KeyValues	*m_pTabKV;
 };
 
 }; // namespace vgui

@@ -19,8 +19,10 @@
 #include <string.h>
 #include "tier0/platform.h"
 #include "tier0/dbg.h"
+#include "tier0/threadtools.h"
 #include "tier1/utlmemory.h"
-#include "vstdlib/strtools.h"
+#include "tier1/utlblockmemory.h"
+#include "tier1/strtools.h"
 
 #define FOR_EACH_VEC( vecName, iteratorName ) \
 	for ( int iteratorName = 0; iteratorName < vecName.Count(); iteratorName++ )
@@ -53,11 +55,15 @@ public:
 	const T& operator[]( int i ) const;
 	T& Element( int i );
 	const T& Element( int i ) const;
+	T& Head();
+	const T& Head() const;
+	T& Tail();
+	const T& Tail() const;
 
 	// Gets the base address (can change when adding elements!)
 	T* Base()								{ return m_Memory.Base(); }
 	const T* Base() const					{ return m_Memory.Base(); }
-	
+
 	// Returns the number of elements in the vector
 	// SIZE IS DEPRECATED!
 	int Count() const;
@@ -112,7 +118,7 @@ public:
 	// Element removal
 	void FastRemove( int elem );	// doesn't preserve order
 	void Remove( int elem );		// preserves order, shifts elements
-	void FindAndRemove( const T& src );	// removes first occurrence of src, preserves order, shifts elements
+	bool FindAndRemove( const T& src );	// removes first occurrence of src, preserves order, shifts elements
 	void RemoveMultiple( int elem, int num );	// preserves order, shifts elements
 	void RemoveAll();				// doesn't deallocate memory
 
@@ -150,7 +156,6 @@ protected:
 	CAllocator m_Memory;
 	int m_Size;
 
-#if !defined(_XBOX) || defined(_DEBUG)
 	// For easier access to the elements through the debugger
 	// it's in release builds so this can be used in libraries correctly
 	T *m_pElements;
@@ -159,9 +164,16 @@ protected:
 	{
 		m_pElements = Base();
 	}
-#else
-	void ResetDbgInfo() {}
-#endif
+};
+
+
+// this is kind of ugly, but until C++ gets templatized typedefs in C++0x, it's our only choice
+template < class T >
+class CUtlBlockVector : public CUtlVector< T, CUtlBlockMemory< T, int > >
+{
+public:
+	CUtlBlockVector( int growSize = 0, int initSize = 0 )
+		: CUtlVector< T, CUtlBlockMemory< T, int > >( growSize, initSize ) {}
 };
 
 //-----------------------------------------------------------------------------
@@ -169,6 +181,23 @@ protected:
 // A array class with a fixed allocation scheme
 //-----------------------------------------------------------------------------
 
+template< class BASE_UTLVECTOR, class MUTEX_TYPE = CThreadFastMutex >
+class CUtlVectorMT : public BASE_UTLVECTOR, public MUTEX_TYPE
+{
+	typedef BASE_UTLVECTOR BaseClass;
+public:
+	MUTEX_TYPE Mutex_t;
+
+	// constructor, destructor
+	CUtlVectorMT( int growSize = 0, int initSize = 0 ) : BaseClass( growSize, initSize ) {}
+	CUtlVectorMT( typename BaseClass::ElemType_t* pMemory, int numElements ) : BaseClass( pMemory, numElements ) {}
+};
+
+
+//-----------------------------------------------------------------------------
+// The CUtlVectorFixed class:
+// A array class with a fixed allocation scheme
+//-----------------------------------------------------------------------------
 template< class T, size_t MAX_SIZE >
 class CUtlVectorFixed : public CUtlVector< T, CUtlMemoryFixed<T, MAX_SIZE > >
 {
@@ -182,15 +211,30 @@ public:
 
 
 //-----------------------------------------------------------------------------
+// The CUtlVectorFixed class:
+// A array class with a fixed allocation scheme
+//-----------------------------------------------------------------------------
+template< class T, size_t MAX_SIZE >
+class CUtlVectorFixedGrowable : public CUtlVector< T, CUtlMemoryFixedGrowable<T, MAX_SIZE > >
+{
+	typedef CUtlVector< T, CUtlMemoryFixedGrowable<T, MAX_SIZE > > BaseClass;
+
+public:
+	// constructor, destructor
+	CUtlVectorFixedGrowable( int growSize = 0 ) : BaseClass( growSize, MAX_SIZE ) {}
+};
+
+
+//-----------------------------------------------------------------------------
 // The CCopyableUtlVector class:
 // A array class that allows copy construction (so you can nest a CUtlVector inside of another one of our containers)
 //  WARNING - this class lets you copy construct which can be an expensive operation if you don't carefully control when it happens
 // Only use this when nesting a CUtlVector() inside of another one of our container classes (i.e a CUtlMap)
 //-----------------------------------------------------------------------------
-template< class T, class A = CUtlMemory<T> >
-class CCopyableUtlVector : public CUtlVector< T, A >
+template< class T >
+class CCopyableUtlVector : public CUtlVector< T, CUtlMemory<T> >
 {
-	typedef CUtlVector< T, A > BaseClass;
+	typedef CUtlVector< T, CUtlMemory<T> > BaseClass;
 public:
 	CCopyableUtlVector( int growSize = 0, int initSize = 0 ) : BaseClass( growSize, initSize ) {}
 	CCopyableUtlVector( T* pMemory, int numElements ) : BaseClass( pMemory, numElements ) {}
@@ -224,7 +268,12 @@ inline CUtlVector<T, A>::~CUtlVector()
 template< typename T, class A >
 inline CUtlVector<T, A>& CUtlVector<T, A>::operator=( const CUtlVector<T, A> &other )
 {
-	CopyArray( other.Base(), other.Count() );
+	int nCount = other.Count();
+	SetSize( nCount );
+	for ( int i = 0; i < nCount; i++ )
+	{
+		(*this)[ i ] = other[ i ];
+	}
 	return *this;
 }
 
@@ -235,29 +284,53 @@ inline CUtlVector<T, A>& CUtlVector<T, A>::operator=( const CUtlVector<T, A> &ot
 template< typename T, class A >
 inline T& CUtlVector<T, A>::operator[]( int i )
 {
-	Assert( IsValidIndex(i) );
-	return Base()[i];
+	return m_Memory[ i ];
 }
 
 template< typename T, class A >
 inline const T& CUtlVector<T, A>::operator[]( int i ) const
 {
-	Assert( IsValidIndex(i) );
-	return Base()[i];
+	return m_Memory[ i ];
 }
 
 template< typename T, class A >
 inline T& CUtlVector<T, A>::Element( int i )
 {
-	Assert( IsValidIndex(i) );
-	return Base()[i];
+	return m_Memory[ i ];
 }
 
 template< typename T, class A >
 inline const T& CUtlVector<T, A>::Element( int i ) const
 {
-	Assert( IsValidIndex(i) );
-	return Base()[i];
+	return m_Memory[ i ];
+}
+
+template< typename T, class A >
+inline T& CUtlVector<T, A>::Head()
+{
+	Assert( m_Size > 0 );
+	return m_Memory[ 0 ];
+}
+
+template< typename T, class A >
+inline const T& CUtlVector<T, A>::Head() const
+{
+	Assert( m_Size > 0 );
+	return m_Memory[ 0 ];
+}
+
+template< typename T, class A >
+inline T& CUtlVector<T, A>::Tail()
+{
+	Assert( m_Size > 0 );
+	return m_Memory[ m_Size - 1 ];
+}
+
+template< typename T, class A >
+inline const T& CUtlVector<T, A>::Tail() const
+{
+	Assert( m_Size > 0 );
+	return m_Memory[ m_Size - 1 ];
 }
 
 
@@ -321,8 +394,32 @@ template< typename T, class A >
 void CUtlVector<T, A>::Sort( int (__cdecl *pfnCompare)(const T *, const T *) )
 {
 	typedef int (__cdecl *QSortCompareFunc_t)(const void *, const void *);
-	if ( Count() > 1 )
+	if ( Count() <= 1 )
+		return;
+
+	if ( Base() )
+	{
 		qsort( Base(), Count(), sizeof(T), (QSortCompareFunc_t)(pfnCompare) );
+	}
+	else
+	{
+		Assert( 0 );
+		// this path is untested
+		// if you want to sort vectors that use a non-sequential memory allocator,
+		// you'll probably want to patch in a quicksort algorithm here
+		// I just threw in this bubble sort to have something just in case...
+
+		for ( int i = m_Size - 1; i >= 0; --i )
+		{
+			for ( int j = 1; j <= i; ++j )
+			{
+				if ( pfnCompare( &Element( j - 1 ), &Element( j ) ) < 0 )
+				{
+					swap( Element( j - 1 ), Element( j ) );
+				}
+			}
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -417,7 +514,7 @@ template< typename T, class A >
 inline int CUtlVector<T, A>::AddToHead( const T& src )
 {
 	// Can't insert something that's in the list... reallocation may hose us
-	Assert( (&src < Base()) || (&src >= (Base() + Count()) ) ); 
+	Assert( (Base() == NULL) || (&src < Base()) || (&src >= (Base() + Count()) ) ); 
 	return InsertBefore( 0, src );
 }
 
@@ -425,7 +522,7 @@ template< typename T, class A >
 inline int CUtlVector<T, A>::AddToTail( const T& src )
 {
 	// Can't insert something that's in the list... reallocation may hose us
-	Assert( (&src < Base()) || (&src >= (Base() + Count()) ) ); 
+	Assert( (Base() == NULL) || (&src < Base()) || (&src >= (Base() + Count()) ) ); 
 	return InsertBefore( m_Size, src );
 }
 
@@ -433,7 +530,7 @@ template< typename T, class A >
 inline int CUtlVector<T, A>::InsertAfter( int elem, const T& src )
 {
 	// Can't insert something that's in the list... reallocation may hose us
-	Assert( (&src < Base()) || (&src >= (Base() + Count()) ) ); 
+	Assert( (Base() == NULL) || (&src < Base()) || (&src >= (Base() + Count()) ) ); 
 	return InsertBefore( elem + 1, src );
 }
 
@@ -441,7 +538,7 @@ template< typename T, class A >
 int CUtlVector<T, A>::InsertBefore( int elem, const T& src )
 {
 	// Can't insert something that's in the list... reallocation may hose us
-	Assert( (&src < Base()) || (&src >= (Base() + Count()) ) ); 
+	Assert( (Base() == NULL) || (&src < Base()) || (&src >= (Base() + Count()) ) ); 
 
 	// Can insert at the end
 	Assert( (elem == Count()) || IsValidIndex(elem) );
@@ -466,7 +563,7 @@ template< typename T, class A >
 inline int CUtlVector<T, A>::AddMultipleToTail( int num, const T *pToCopy )
 {
 	// Can't insert something that's in the list... reallocation may hose us
-	Assert( !pToCopy || (pToCopy + num < Base()) || (pToCopy >= (Base() + Count()) ) ); 
+	Assert( (Base() == NULL) || !pToCopy || (pToCopy + num < Base()) || (pToCopy >= (Base() + Count()) ) ); 
 
 	return InsertMultipleBefore( m_Size, num, pToCopy );
 }
@@ -495,7 +592,7 @@ template< typename T, class A >
 void CUtlVector<T, A>::CopyArray( const T *pArray, int size )
 {
 	// Can't insert something that's in the list... reallocation may hose us
-	Assert( !pArray || (Base() >= (pArray + size)) || (pArray >= (Base() + Count()) ) ); 
+	Assert( (Base() == NULL) || !pArray || (Base() >= (pArray + size)) || (pArray >= (Base() + Count()) ) ); 
 
 	SetSize( size );
 	for( int i=0; i < size; i++ )
@@ -606,13 +703,15 @@ void CUtlVector<T, A>::Remove( int elem )
 }
 
 template< typename T, class A >
-void CUtlVector<T, A>::FindAndRemove( const T& src )
+bool CUtlVector<T, A>::FindAndRemove( const T& src )
 {
 	int elem = Find( src );
 	if ( elem != -1 )
 	{
 		Remove( elem );
+		return true;
 	}
+	return false;
 }
 
 template< typename T, class A >

@@ -14,15 +14,13 @@
 
 #include "appframework/IAppSystem.h"
 #include "tier1/convar.h"
-#include "icvar.h"
 
 
 //-----------------------------------------------------------------------------
 // Forward declarations
 //-----------------------------------------------------------------------------
 class ICvar;
-class IDataModel;
-class IDmElementFramework;
+class IProcessUtils;
 
 
 //-----------------------------------------------------------------------------
@@ -31,10 +29,11 @@ class IDmElementFramework;
 // It is hoped that setting this, and using this library will be the common mechanism for
 // allowing link libraries to access tier1 library interfaces
 //-----------------------------------------------------------------------------
-extern ICvar *cvar;
-extern ICvar *g_pCVar;
-extern IDataModel *g_pDataModel;
-extern IDmElementFramework *g_pDmElementFramework;
+
+// These are marked DLL_EXPORT for Linux.
+DLL_EXPORT ICvar *cvar;
+DLL_EXPORT ICvar *g_pCVar;
+extern IProcessUtils *g_pProcessUtils;
 
 
 //-----------------------------------------------------------------------------
@@ -49,7 +48,7 @@ void DisconnectTier1Libraries();
 // Helper empty implementation of an IAppSystem for tier2 libraries
 //-----------------------------------------------------------------------------
 template< class IInterface, int ConVarFlag = 0 > 
-class CTier1AppSystem : public CTier0AppSystem< IInterface >, public IConCommandBaseAccessor
+class CTier1AppSystem : public CTier0AppSystem< IInterface >
 {
 	typedef CTier0AppSystem< IInterface > BaseClass;
 
@@ -66,11 +65,6 @@ public:
 		if ( IsPrimaryAppSystem() )
 		{
 			ConnectTier1Libraries( &factory, 1 );
-			if ( ConVarFlag && !g_pCVar )
-			{
-				Warning( "The convar system is needed to run!\n" );
-				return false;
-			}
 		}
 		return true;
 	}
@@ -90,37 +84,20 @@ public:
 		if ( nRetVal != INIT_OK )
 			return nRetVal;
 
-		if ( g_pCVar && ConVarFlag && IsPrimaryAppSystem() )
+		if ( g_pCVar && IsPrimaryAppSystem() )
 		{
-			ConCommandBaseMgr::OneTimeInit( this );
+			ConVar_Register( ConVarFlag );
 		}
 		return INIT_OK;
 	}
 
 	virtual void Shutdown()
 	{
-		if ( g_pCVar && ConVarFlag && IsPrimaryAppSystem() )
+		if ( g_pCVar && IsPrimaryAppSystem() )
 		{
-			g_pCVar->UnlinkVariables( ConVarFlag );
+			ConVar_Unregister( );
 		}
 		BaseClass::Shutdown( );
-	}
-
-	virtual bool RegisterConCommandBase( ConCommandBase *pCommand )
-	{
-		// Mark for easy removal
-		pCommand->AddFlags( ConVarFlag );
-		pCommand->SetNext( 0 );
-
-		// Link to engine's list instead
-		g_pCVar->RegisterConCommandBase( pCommand );
-
-//		char const *pValue = m_pCVar->GetCommandLineValue( pCommand->GetName() );
-//		if( pValue && !pCommand->IsCommand() )
-//		{
-//			( ( ConVar * )pCommand )->SetValue( pValue );
-//		}
-		return true;
 	}
 };
 

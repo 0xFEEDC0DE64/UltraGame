@@ -17,8 +17,8 @@
 #include "commonmacros.h"
 #include "tier0/dbg.h"
 #include "bspfile.h"
-#include "mathlib.h"
-#include "bumpvects.h"
+#include "mathlib/mathlib.h"
+#include "mathlib/bumpvects.h"
 #include "disp_common.h"
 #include "bitvec.h"
 
@@ -79,6 +79,12 @@ public:
 	inline void SetLuxelCoords( int bumpIndex, Vector2D const coords[4] );
 	inline void GetLuxelCoords( int bumpIndex, Vector2D coords[4] ) const;
 
+	inline void SetLuxelU( int nU )			{ m_nLuxelU = nU; }
+	inline int	GetLuxelU( void )			{ return m_nLuxelU; }
+	inline void SetLuxelV( int nV )			{ m_nLuxelV = nV; }
+	inline int	GetLuxelV( void )			{ return m_nLuxelV; }
+	bool		CalcLuxelCoords( int nLuxels, bool bAdjust, const Vector &vecU, const Vector &vecV );
+
 	inline void SetAlpha( int index, float alpha );
 	inline float GetAlpha( int const index ) const;
 
@@ -127,7 +133,11 @@ public:
 
 
 protected:
-	
+
+	// Utility
+	bool		LongestInU( const Vector &vecU, const Vector &vecV );
+
+
 	int			m_Index;																// parent face (CMapFace, dface_t, msurface_t) index "handle"
 	
 	int			m_PointCount;															// number of points in the face (should be 4!)
@@ -136,6 +146,10 @@ protected:
 	Vector2D	m_TexCoords[QUAD_POINT_COUNT];											// texture coordinates at points
 	Vector2D	m_LuxelCoords[NUM_BUMP_VECTS+1][QUAD_POINT_COUNT];						// lightmap coordinates at points
 	float		m_Alphas[QUAD_POINT_COUNT];												// alpha at points
+
+	// Luxels sizes
+	int					m_nLuxelU;
+	int					m_nLuxelV;
 
 	// Straight from the BSP file.	
 	CDispNeighbor			m_EdgeNeighbors[4];
@@ -808,7 +822,12 @@ public:
 	inline void SetNormal( const CVertIndex &index, Vector const& normal );
 	
 	inline void GetTangentS( int index, Vector& tangentS ) const;
+	inline const Vector &GetTangentS( int index ) const;
+	inline const Vector &GetTangentS( const CVertIndex &index ) const { return GetTangentS(VertIndexToInt(index)); }
 	inline void GetTangentT( int index, Vector& tangentT ) const;
+	inline void SetTangentS( int index, Vector const& vTangentS ) { m_pVerts[index].m_TangentS = vTangentS; }
+	inline void SetTangentT( int index, Vector const& vTangentT ) { m_pVerts[index].m_TangentT = vTangentT; }
+
 	inline void SetTexCoord( int index, Vector2D const& texCoord );
 	inline void GetTexCoord( int index, Vector2D& texCoord ) const;
 	
@@ -1122,6 +1141,13 @@ inline void CCoreDispInfo::GetTangentS( int index, Vector& tangentS ) const
 	Assert( index >= 0 );
 	Assert( index < GetSize() );
 	VectorCopy( m_pVerts[index].m_TangentS, tangentS );
+}
+
+inline const Vector &CCoreDispInfo::GetTangentS( int index ) const
+{
+	Assert( index >= 0 );
+	Assert( index < GetSize() );
+	return m_pVerts[index].m_TangentS;
 }
 
 

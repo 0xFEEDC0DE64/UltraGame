@@ -77,7 +77,6 @@ public:
 
 #define DECLARE_CLIENTCLASS() \
 	virtual int YouForgotToImplementOrDeclareClientClass();\
-	virtual char const* GetClassName();\
 	virtual ClientClass* GetClientClass();\
 	static RecvTable *m_pClassRecvTable; \
 	DECLARE_CLIENTCLASS_NOBASE()
@@ -175,7 +174,6 @@ public:
 	namespace dataTable {extern RecvTable g_RecvTable;}\
 	extern ClientClass __g_##clientClassName##ClientClass;\
 	RecvTable*		clientClassName::m_pClassRecvTable = &dataTable::g_RecvTable;\
-	char const*		clientClassName::GetClassName() {return #clientClassName;}\
 	int				clientClassName::YouForgotToImplementOrDeclareClientClass() {return 0;}\
 	ClientClass*	clientClassName::GetClientClass() {return &__g_##clientClassName##ClientClass;}
 

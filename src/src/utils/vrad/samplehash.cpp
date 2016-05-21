@@ -5,9 +5,7 @@
 // $NoKeywords: $
 //
 //=============================================================================//
-#ifdef _WIN32
-#include <windows.h>
-#endif
+
 #include "vrad.h"
 #include "lightmap.h"
 
@@ -159,8 +157,8 @@ unsigned short IncrementPatchIterationKey()
 	if ( g_PatchIterationKey == 0xFFFF )
 	{
 		g_PatchIterationKey = 1;
-		for ( int i=0; i < patches.Count(); i++ )
-			patches[i].m_IterationKey = 0;
+		for ( int i=0; i < g_Patches.Count(); i++ )
+			g_Patches[i].m_IterationKey = 0;
 	}
 	else
 	{
@@ -172,7 +170,7 @@ unsigned short IncrementPatchIterationKey()
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-void PatchSampleData_AddSample( patch_t *pPatch, int ndxPatch )
+void PatchSampleData_AddSample( CPatch *pPatch, int ndxPatch )
 {
 	int patchSampleMins[3], patchSampleMaxs[3];
 

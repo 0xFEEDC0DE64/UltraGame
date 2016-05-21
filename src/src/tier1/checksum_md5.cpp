@@ -1,15 +1,15 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
-//=============================================================================//
+//===========================================================================//
 
 #include "basetypes.h"
 #include "commonmacros.h"
 #include "checksum_md5.h"
 #include <string.h>
 #include <stdio.h>
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "tier0/dbg.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

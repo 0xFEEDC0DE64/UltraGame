@@ -56,7 +56,7 @@ abstract_class IEngineSound
 {
 public:
 	// Precache a particular sample
-	virtual bool PrecacheSound( const char *pSample, bool preload = false ) = 0;
+	virtual bool PrecacheSound( const char *pSample, bool bPreload = false, bool bIsUISound = false ) = 0;
 	virtual bool IsSoundPrecached( const char *pSample ) = 0;
 	virtual void PrefetchSound( const char *pSample ) = 0;
 
@@ -114,6 +114,8 @@ public:
 	virtual void	GetActiveSounds( CUtlVector< SndInfo_t >& sndlist ) = 0;
 
 	virtual void	PrecacheSentenceGroup( const char *pGroupName ) = 0;
+	virtual void	NotifyBeginMoviePlayback() = 0;
+	virtual void	NotifyEndMoviePlayback() = 0;
 };
 
 

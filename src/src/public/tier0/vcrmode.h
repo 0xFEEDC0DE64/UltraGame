@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: VCR mode records a client's game and allows you to 
 //			play it back and reproduce it exactly. When playing it back, nothing
@@ -8,7 +8,7 @@
 //			called at various points in the engine.
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 #ifndef VCRMODE_H
 #define VCRMODE_H
 
@@ -22,13 +22,14 @@
 
 #include "tier0/platform.h"
 #include "tier0/vcr_shared.h"
+#include "tier0/dbg.h"
 
 #ifdef _LINUX
-void BuildCmdLine( int argc, tchar **argv );
+DBG_INTERFACE void BuildCmdLine( int argc, tchar **argv );
 tchar *GetCommandLine();
 #endif
 
-#ifdef _XBOX
+#ifdef _X360
 #define NO_VCR 1
 #endif
 
@@ -48,24 +49,28 @@ tchar *GetCommandLine();
 }
 #endif
 
-// ---------------------------------------------------------------------- //
+
+//-----------------------------------------------------------------------------
+// Forward declarations
+//-----------------------------------------------------------------------------
+struct InputEvent_t;
+
+
+//-----------------------------------------------------------------------------
 // Definitions.
-// ---------------------------------------------------------------------- //
-typedef enum
+//-----------------------------------------------------------------------------
+enum VCRMode_t
 {
+	VCR_Invalid=-1,
 	VCR_Disabled=0,
 	VCR_Record,
 	VCR_Playback
-} VCRMode;
+};
 
 
-
-// ---------------------------------------------------------------------- //
+//-----------------------------------------------------------------------------
 // Functions.
-// ---------------------------------------------------------------------- //
-
-#ifndef NO_VCR
-
+//-----------------------------------------------------------------------------
 abstract_class IVCRHelpers
 {
 public:
@@ -92,7 +97,7 @@ typedef struct VCR_s
 	IVCRTrace*	(*GetVCRTraceInterface)();
 
 	// Get the current mode the VCR is in.
-	VCRMode		(*GetMode)();
+	VCRMode_t	(*GetMode)();
 
 	// This can be used to block out areas of code that are unpredictable (like things triggered by WM_TIMER messages).
 	// Note: this enables/disables VCR mode usage on a PER-THREAD basis. The assumption is that you're marking out
@@ -117,11 +122,11 @@ typedef struct VCR_s
 		);
 
 	// Call this to record game messages.
-	void		(*Hook_RecordGameMsg)( unsigned int uMsg, unsigned int wParam, long lParam );
+	void		(*Hook_RecordGameMsg)( const InputEvent_t &event );
 	void		(*Hook_RecordEndGameMsg)();
 	
 	// Call this to playback game messages until it returns false.
-	bool		(*Hook_PlaybackGameMsg)( unsigned int &uMsg, unsigned int &wParam, long &lParam );
+	bool		(*Hook_PlaybackGameMsg)( InputEvent_t *pEvent );
 
 	// Hook for recvfrom() calls. This replaces the recvfrom() call.
 	int			(*Hook_recvfrom)(int s, char *buf, int len, int flags, struct sockaddr *from, int *fromlen);
@@ -205,6 +210,8 @@ typedef struct VCR_s
 
 } VCR_t;
 
+#ifndef NO_VCR
+
 // In the launcher, this is created by vcrmode.c. 
 // In the engine, this is set when the launcher initializes its DLL.
 PLATFORM_INTERFACE VCR_t *g_pVCR;
@@ -263,7 +270,7 @@ PLATFORM_INTERFACE VCR_t *g_pVCR;
 #define VCRGenericValue							MUST_IFDEF_OUT_GenericValue
 #define VCRGenericString						MUST_IFDEF_OUT_GenericString
 #define VCRGenericValueVerify					MUST_IFDEF_OUT_GenericValueVerify
-#define VCRGetPercentCompleted					(0.0)
+#define VCRGetPercentCompleted()				(0.0f)
 #define VCRHook_Sys_FloatTime					Sys_FloatTime
 #define VCRHook_PeekMessage						PeekMessage
 #define VCRHook_RecordGameMsg					RecordGameMsg
@@ -285,7 +292,11 @@ PLATFORM_INTERFACE VCR_t *g_pVCR;
 #define VCRHook_GetKeyState						GetKeyState
 #define VCRHook_recv							recv
 #define VCRHook_send							send
+#if defined( _X360 )
+#define VCRHook_CreateThread					CreateThread
+#else
 #define VCRHook_CreateThread					(void*)_beginthreadex
+#endif
 #define VCRHook_WaitForSingleObject				WaitForSingleObject
 #define VCRHook_EnterCriticalSection			EnterCriticalSection
 #define VCRHook_WaitForMultipleObjects( a, b, c, d) WaitForMultipleObjects( a, (const HANDLE *)b, c, d)

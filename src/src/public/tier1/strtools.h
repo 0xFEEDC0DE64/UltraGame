@@ -21,7 +21,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-template< class T > class CUtlMemory;
+template< class T, class I > class CUtlMemory;
 template< class T, class A > class CUtlVector;
 
 
@@ -95,11 +95,11 @@ inline int		V_memcmp (const void *m1, const void *m2, int count){ return memcmp(
 inline int		V_strlen (const char *str)							{ return (int) strlen ( str ); }
 inline void		V_strcpy (char *dest, const char *src)				{ strcpy( dest, src ); }
 inline int		V_wcslen(const wchar_t *pwch)						{ return (int)wcslen(pwch); }
-inline char*	V_strrchr (const char *s, char c)					{ return strrchr((char *) s, c ); }
+inline char*	V_strrchr (const char *s, char c)					{ return (char*)strrchr( s, c ); }
 inline int		V_strcmp (const char *s1, const char *s2)			{ return strcmp( s1, s2 ); }
 inline int		V_wcscmp (const wchar_t *s1, const wchar_t *s2)		{ return wcscmp( s1, s2 ); }
 inline int		V_stricmp( const char *s1, const char *s2 )			{ return stricmp( s1, s2 ); }
-inline char*	V_strstr( const char *s1, const char *search )		{ return strstr((char *) s1, search ); }
+inline char*	V_strstr( const char *s1, const char *search )		{ return (char*)strstr( s1, search ); }
 inline char*	V_strupr (char *start)								{ return strupr( start ); }
 inline char*	V_strlower (char *start)							{ return strlwr( start ); }
 
@@ -116,6 +116,13 @@ const char*	V_stristr( const char* pStr, const char* pSearch );
 const char*	V_strnistr( const char* pStr, const char* pSearch, int n );
 const char*	V_strnchr( const char* pStr, char c, int n );
 
+// returns string immediately following prefix, (ie str+strlen(prefix)) or NULL if prefix not found
+const char *StringAfterPrefix             ( const char *str, const char *prefix );
+const char *StringAfterPrefixCaseSensitive( const char *str, const char *prefix );
+inline bool	StringHasPrefix             ( const char *str, const char *prefix ) { return StringAfterPrefix             ( str, prefix ) != NULL; }
+inline bool	StringHasPrefixCaseSensitive( const char *str, const char *prefix ) { return StringAfterPrefixCaseSensitive( str, prefix ) != NULL; }
+
+
 // Normalizes a float string in place.  
 // (removes leading zeros, trailing zeros after the decimal point, and the decimal point itself where possible)
 void			V_normalizeFloatString( char* pFloat );
@@ -131,6 +138,7 @@ void			V_normalizeFloatString( char* pFloat );
 void V_strncpy( char *pDest, const char *pSrc, int maxLen );
 int V_snprintf( char *pDest, int destLen, const char *pFormat, ... );
 void V_wcsncpy( wchar_t *pDest, wchar_t const *pSrc, int maxLenInBytes );
+int V_snwprintf( wchar_t *pDest, int destLen, const wchar_t *pFormat, ... );
 
 #define COPY_ALL_CHARACTERS -1
 char *V_strncat(char *, const char *, size_t destBufferSize, int max_chars_to_copy=COPY_ALL_CHARACTERS );
@@ -161,6 +169,14 @@ typedef char *  va_list;
 
 #elif _LINUX
 #include <stdarg.h>
+#endif
+
+#ifdef _WIN32
+#define CORRECT_PATH_SEPARATOR '\\'
+#define INCORRECT_PATH_SEPARATOR '/'
+#elif _LINUX
+#define CORRECT_PATH_SEPARATOR '/'
+#define INCORRECT_PATH_SEPARATOR '\\'
 #endif
 
 int V_vsnprintf( char *pDest, int maxLen, const char *pFormat, va_list params );
@@ -218,12 +234,21 @@ const char *V_GetFileExtension( const char * path );
 // This removes "./" and "../" from the pathname. pFilename should be a full pathname.
 // Returns false if it tries to ".." past the root directory in the drive (in which case 
 // it is an invalid path).
-bool V_RemoveDotSlashes( char *pFilename );
+bool V_RemoveDotSlashes( char *pFilename, char separator = CORRECT_PATH_SEPARATOR );
 
 // If pPath is a relative path, this function makes it into an absolute path
 // using the current working directory as the base, or pStartingDir if it's non-NULL.
 // Returns false if it runs out of room in the string, or if pPath tries to ".." past the root directory.
 void V_MakeAbsolutePath( char *pOut, int outLen, const char *pPath, const char *pStartingDir = NULL );
+
+// Creates a relative path given two full paths
+// The first is the full path of the file to make a relative path for.
+// The second is the full path of the directory to make the first file relative to
+// Returns false if they can't be made relative (on separate drives, for example)
+bool V_MakeRelativePath( const char *pFullPath, const char *pDirectory, char *pRelativePath, int nBufLen );
+
+// Fixes up a file name, removing dot slashes, fixing slashes, converting to lowercase, etc.
+void V_FixupPathName( char *pOut, size_t nOutLen, const char *pPath );
 
 // Adds a path separator to the end of the string if there isn't one already. Returns false if it would run out of space.
 void V_AppendSlash( char *pStr, int strSize );
@@ -241,10 +266,16 @@ bool V_StrSubst( const char *pIn, const char *pMatch, const char *pReplaceWith,
 // Split the specified string on the specified separator.
 // Returns a list of strings separated by pSeparator.
 // You are responsible for freeing the contents of outStrings (call outStrings.PurgeAndDeleteElements).
-void V_SplitString( const char *pString, const char *pSeparator, CUtlVector<char*, CUtlMemory<char*> > &outStrings );
+void V_SplitString( const char *pString, const char *pSeparator, CUtlVector<char*, CUtlMemory<char*, int> > &outStrings );
 
 // Just like V_SplitString, but it can use multiple possible separators.
-void V_SplitString2( const char *pString, const char **pSeparators, int nSeparators, CUtlVector<char*, CUtlMemory<char*> > &outStrings );
+void V_SplitString2( const char *pString, const char **pSeparators, int nSeparators, CUtlVector<char*, CUtlMemory<char*, int> > &outStrings );
+
+// Returns false if the buffer is not large enough to hold the working directory name.
+bool V_GetCurrentDirectory( char *pOut, int maxLen );
+
+// Set the working directory thus.
+bool V_SetCurrentDirectory( const char *pDirName );
 
 
 // This function takes a slice out of pStr and stores it in pOut.
@@ -259,17 +290,15 @@ void V_StrLeft( const char *pStr, int nChars, char *pOut, int outSize );
 // Chop off the right nChars of a string.
 void V_StrRight( const char *pStr, int nChars, char *pOut, int outSize );
 
-
-#ifdef _WIN32
-#define CORRECT_PATH_SEPARATOR '\\'
-#define INCORRECT_PATH_SEPARATOR '/'
-#elif _LINUX
-#define CORRECT_PATH_SEPARATOR '/'
-#define INCORRECT_PATH_SEPARATOR '\\'
-#endif
+// change "special" characters to have their c-style backslash sequence. like \n, \r, \t, ", etc.
+// returns a pointer to a newly allocated string, which you must delete[] when finished with.
+char *V_AddBackSlashesToSpecialChars( char const *pSrc );
 
 // Force slashes of either type to be = separator character
 void V_FixSlashes( char *pname, char separator = CORRECT_PATH_SEPARATOR );
+
+// This function fixes cases of filenames like materials\\blah.vmt or somepath\otherpath\\ and removes the extra double slash.
+void V_FixDoubleSlashes( char *pStr );
 
 // Convert multibyte to wchar + back
 // Specify -1 for nInSize for null-terminated string
@@ -281,6 +310,80 @@ inline void V_strcat( char *dest, const char *src, int cchDest )
 {
 	V_strncat( dest, src, cchDest, COPY_ALL_CHARACTERS );
 }
+
+
+//-----------------------------------------------------------------------------
+// generic unique name helper functions
+//-----------------------------------------------------------------------------
+
+// returns startindex if none found, 2 if "prefix" found, and n+1 if "prefixn" found
+template < class NameArray >
+int V_GenerateUniqueNameIndex( const char *prefix, const NameArray &nameArray, int startindex = 0 )
+{
+	if ( prefix == NULL )
+		return 0;
+
+	int freeindex = startindex;
+
+	int nNames = nameArray.Count();
+	for ( int i = 0; i < nNames; ++i )
+	{
+		const char *pName = nameArray[ i ];
+		if ( !pName )
+			continue;
+
+		const char *pIndexStr = StringAfterPrefix( pName, prefix );
+		if ( pIndexStr )
+		{
+			int index = *pIndexStr ? atoi( pIndexStr ) : 1;
+			if ( index >= freeindex )
+			{
+				// TODO - check that there isn't more junk after the index in pElementName
+				freeindex = index + 1;
+			}
+		}
+	}
+
+	return freeindex;
+}
+
+template < class NameArray >
+bool V_GenerateUniqueName( char *name, int memsize, const char *prefix, const NameArray &nameArray )
+{
+	if ( name == NULL || memsize == 0 )
+		return false;
+
+	if ( prefix == NULL )
+	{
+		name[ 0 ] = '\0';
+		return false;
+	}
+
+	int prefixLength = V_strlen( prefix );
+	if ( prefixLength + 1 > memsize )
+	{
+		name[ 0 ] = '\0';
+		return false;
+	}
+
+	int i = V_GenerateUniqueNameIndex( prefix, nameArray );
+	if ( i <= 0 )
+	{
+		V_strncpy( name, prefix, memsize );
+		return true;
+	}
+
+	int newlen = prefixLength + ( int )log10( ( float )i ) + 1;
+	if ( newlen + 1 > memsize )
+	{
+		V_strncpy( name, prefix, memsize );
+		return false;
+	}
+
+	V_snprintf( name, memsize, "%s%d", prefix, i );
+	return true;
+}
+
 
 
 // NOTE: This is for backward compatability!
@@ -349,6 +452,9 @@ inline void V_strcat( char *dest, const char *src, int cchDest )
 #define Q_strtowcs				V_strtowcs
 #define Q_wcstostr				V_wcstostr
 #define Q_strcat				V_strcat
+#define Q_GenerateUniqueNameIndex	V_GenerateUniqueNameIndex
+#define Q_GenerateUniqueName		V_GenerateUniqueName
+#define Q_MakeRelativePath		V_MakeRelativePath
 
 #endif // !defined( VSTDLIB_DLL_EXPORT )
 

@@ -11,14 +11,16 @@
 #include "utilmatlib.h"
 #include "disp_vbsp.h"
 #include "writebsp.h"
-#include "vstdlib/icommandline.h"
+#include "tier0/icommandline.h"
 #include "materialsystem/imaterialsystem.h"
 #include "map.h"
 #include "tools_minidump.h"
 #include "materialsub.h"
 #include "loadcmdline.h"
+#include "byteswap.h"
+#include "worldvertextransitionfixup.h"
 
-extern	float g_maxLightmapDimension;
+extern float		g_maxLightmapDimension;
 
 char		source[1024];
 char		mapbase[ 64 ];
@@ -46,6 +48,7 @@ qboolean	verboseentities;
 qboolean	dumpcollide = false;
 qboolean	g_bLowPriority = false;
 qboolean	g_DumpStaticProps = false;
+qboolean	g_bSkyVis = false;			// skybox vis is off by default, toggle this to enable it
 bool		g_bLightIfMissing = false;
 bool		g_snapAxialPlanes = false;
 bool		g_bKeepStaleZip = false;
@@ -59,8 +62,8 @@ float		g_luxelScale = 1.0f;
 float		g_minLuxelScale = 1.0f;
 bool		g_BumpAll = false;
 
-int			g_nDXLevel = 90; // default dxlevel if you don't specify it on the command-line.
-
+int			g_nDXLevel = 0; // default dxlevel if you don't specify it on the command-line.
+CUtlVector<int> g_SkyAreas;
 char		outbase[32];
 
 // HLTOOLS: Introduce these calcs to make the block algorithm proportional to the proper 
@@ -83,6 +86,7 @@ node_t		*block_nodes[BLOCKS_SPACE+2][BLOCKS_SPACE+2];
 // Assign occluder areas (must happen *after* the world model is processed)
 //-----------------------------------------------------------------------------
 void AssignOccluderAreas( tree_t *pTree );
+static void Compute3DSkyboxAreas( node_t *headnode, CUtlVector<int>& areas );
 
 
 /*
@@ -198,7 +202,7 @@ void SplitSubdividedFaces( node_t *headnode ); // garymcthack
 void ProcessWorldModel (void)
 {
 	entity_t	*e;
-	tree_t		*tree;
+	tree_t		*tree = NULL;
 	qboolean	leaked;
 	int	optimize;
 	int			start;
@@ -327,7 +331,7 @@ void ProcessWorldModel (void)
 	}
 
 	AssignOccluderAreas( tree );
-
+	Compute3DSkyboxAreas( tree->headnode, g_SkyAreas );
 	face_t *pLeafFaceList = NULL;
 	if ( !nodetail )
 	{
@@ -774,6 +778,37 @@ void MarkNoDynamicShadowSides()
 	}
 }
 
+//-----------------------------------------------------------------------------
+// Compute the 3D skybox areas
+//-----------------------------------------------------------------------------
+static void Compute3DSkyboxAreas( node_t *headnode, CUtlVector<int>& areas )
+{
+	for (int i = 0; i < num_entities; ++i)
+	{
+		char* pEntity = ValueForKey(&entities[i], "classname");
+		if (!strcmp(pEntity, "sky_camera"))
+		{
+			// Found a 3D skybox camera, get a leaf that lies in it
+			node_t *pLeaf = PointInLeaf( headnode, entities[i].origin );
+			if (pLeaf->contents & CONTENTS_SOLID)
+			{
+				Error ("Error! Entity sky_camera in solid volume! at %.1f %.1f %.1f\n", entities[i].origin.x, entities[i].origin.y, entities[i].origin.z);
+			}
+			areas.AddToTail( pLeaf->area );
+		}
+	}
+}
+
+bool Is3DSkyboxArea( int area )
+{
+	for ( int i = g_SkyAreas.Count(); --i >=0; )
+	{
+		if ( g_SkyAreas[i] == area )
+			return true;
+	}
+	return false;
+}
+
 		
 /*
 ============
@@ -871,122 +906,122 @@ int RunVBSP( int argc, char **argv )
 			numthreads = atoi (argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(argv[i],"-glview"))
+		else if (!Q_stricmp(argv[i],"-glview"))
 		{
 			glview = true;
 		}
-		else if ( !stricmp(argv[i], "-v") || !stricmp(argv[i], "-verbose") )
+		else if ( !Q_stricmp(argv[i], "-v") || !Q_stricmp(argv[i], "-verbose") )
 		{
 			Msg("verbose = true\n");
 			verbose = true;
 		}
-		else if (!stricmp(argv[i], "-noweld"))
+		else if (!Q_stricmp(argv[i], "-noweld"))
 		{
 			Msg ("noweld = true\n");
 			noweld = true;
 		}
-		else if (!stricmp(argv[i], "-nocsg"))
+		else if (!Q_stricmp(argv[i], "-nocsg"))
 		{
 			Msg ("nocsg = true\n");
 			nocsg = true;
 		}
-		else if (!stricmp(argv[i], "-noshare"))
+		else if (!Q_stricmp(argv[i], "-noshare"))
 		{
 			Msg ("noshare = true\n");
 			noshare = true;
 		}
-		else if (!stricmp(argv[i], "-notjunc"))
+		else if (!Q_stricmp(argv[i], "-notjunc"))
 		{
 			Msg ("notjunc = true\n");
 			notjunc = true;
 		}
-		else if (!stricmp(argv[i], "-nowater"))
+		else if (!Q_stricmp(argv[i], "-nowater"))
 		{
 			Msg ("nowater = true\n");
 			nowater = true;
 		}
-		else if (!stricmp(argv[i], "-noopt"))
+		else if (!Q_stricmp(argv[i], "-noopt"))
 		{
 			Msg ("noopt = true\n");
 			noopt = true;
 		}
-		else if (!stricmp(argv[i], "-noprune"))
+		else if (!Q_stricmp(argv[i], "-noprune"))
 		{
 			Msg ("noprune = true\n");
 			noprune = true;
 		}
-		else if (!stricmp(argv[i], "-nomerge"))
+		else if (!Q_stricmp(argv[i], "-nomerge"))
 		{
 			Msg ("nomerge = true\n");
 			nomerge = true;
 		}
-		else if (!stricmp(argv[i], "-nomergewater"))
+		else if (!Q_stricmp(argv[i], "-nomergewater"))
 		{
 			Msg ("nomergewater = true\n");
 			nomergewater = true;
 		}
-		else if (!stricmp(argv[i], "-nosubdiv"))
+		else if (!Q_stricmp(argv[i], "-nosubdiv"))
 		{
 			Msg ("nosubdiv = true\n");
 			nosubdiv = true;
 		}
-		else if (!stricmp(argv[i], "-nodetail"))
+		else if (!Q_stricmp(argv[i], "-nodetail"))
 		{
 			Msg ("nodetail = true\n");
 			nodetail = true;
 		}
-		else if (!stricmp(argv[i], "-fulldetail"))
+		else if (!Q_stricmp(argv[i], "-fulldetail"))
 		{
 			Msg ("fulldetail = true\n");
 			fulldetail = true;
 		}
-		else if (!stricmp(argv[i], "-onlyents"))
+		else if (!Q_stricmp(argv[i], "-onlyents"))
 		{
 			Msg ("onlyents = true\n");
 			onlyents = true;
 		}
-		else if (!stricmp(argv[i], "-onlyprops"))
+		else if (!Q_stricmp(argv[i], "-onlyprops"))
 		{
 			Msg ("onlyprops = true\n");
 			onlyprops = true;
 		}
-		else if (!stricmp(argv[i], "-micro"))
+		else if (!Q_stricmp(argv[i], "-micro"))
 		{
 			microvolume = atof(argv[i+1]);
 			Msg ("microvolume = %f\n", microvolume);
 			i++;
 		}
-		else if (!stricmp(argv[i], "-leaktest"))
+		else if (!Q_stricmp(argv[i], "-leaktest"))
 		{
 			Msg ("leaktest = true\n");
 			leaktest = true;
 		}
-		else if (!stricmp(argv[i], "-verboseentities"))
+		else if (!Q_stricmp(argv[i], "-verboseentities"))
 		{
 			Msg ("verboseentities = true\n");
 			verboseentities = true;
 		}
-		else if (!stricmp(argv[i], "-snapaxial"))
+		else if (!Q_stricmp(argv[i], "-snapaxial"))
 		{
 			Msg ("snap axial = true\n");
 			g_snapAxialPlanes = true;
 		}
 #if 0
-		else if (!stricmp(argv[i], "-maxlightmapdim"))
+		else if (!Q_stricmp(argv[i], "-maxlightmapdim"))
 		{
 			g_maxLightmapDimension = atof(argv[i+1]);
 			Msg ("g_maxLightmapDimension = %f\n", g_maxLightmapDimension);
 			i++;
 		}
 #endif
-		else if (!stricmp(argv[i], "-block"))
+		else if (!Q_stricmp(argv[i], "-block"))
 		{
 			block_xl = block_xh = atoi(argv[i+1]);
 			block_yl = block_yh = atoi(argv[i+2]);
 			Msg ("block: %i,%i\n", block_xl, block_yl);
 			i+=2;
 		}
-		else if (!stricmp(argv[i], "-blocks"))
+		else if (!Q_stricmp(argv[i], "-blocks"))
 		{
 			block_xl = atoi(argv[i+1]);
 			block_yl = atoi(argv[i+2]);
@@ -996,28 +1031,33 @@ int RunVBSP( int argc, char **argv )
 				block_xl, block_yl, block_xh, block_yh);
 			i+=4;
 		}
-		else if ( !stricmp( argv[i], "-dumpcollide" ) )
+		else if ( !Q_stricmp( argv[i], "-dumpcollide" ) )
 		{
 			Msg("Dumping collision models to collideXXX.txt\n" );
 			dumpcollide = true;
 		}
-		else if ( !stricmp( argv[i], "-dumpstaticprop" ) )
+		else if ( !Q_stricmp( argv[i], "-dumpstaticprop" ) )
 		{
 			Msg("Dumping static props to staticpropXXX.txt\n" );
 			g_DumpStaticProps = true;
 		}
-		else if (!stricmp (argv[i],"-tmpout"))
+		else if ( !Q_stricmp( argv[i], "-forceskyvis" ) )
+		{
+			Msg("Enabled vis in 3d skybox\n" );
+			g_bSkyVis = true;
+		}
+		else if (!Q_stricmp (argv[i],"-tmpout"))
 		{
 			strcpy (outbase, "/tmp");
 		}
 #if 0
-		else if( !stricmp( argv[i], "-defaultluxelsize" ) )
+		else if( !Q_stricmp( argv[i], "-defaultluxelsize" ) )
 		{
 			g_defaultLuxelSize = atof( argv[i+1] );
 			i++;
 		}
 #endif
-		else if( !stricmp( argv[i], "-luxelscale" ) )
+		else if( !Q_stricmp( argv[i], "-luxelscale" ) )
 		{
 			g_luxelScale = atof( argv[i+1] );
 			i++;
@@ -1029,58 +1069,58 @@ int RunVBSP( int argc, char **argv )
 				g_minLuxelScale = 1;
 			i++;
 		}
-		else if( !stricmp( argv[i], "-dxlevel" ) )
+		else if( !Q_stricmp( argv[i], "-dxlevel" ) )
 		{
 			g_nDXLevel = atoi( argv[i+1] );
 			Msg( "DXLevel = %d\n", g_nDXLevel );
 			i++;
 		}
-		else if( !stricmp( argv[i], "-bumpall" ) )
+		else if( !Q_stricmp( argv[i], "-bumpall" ) )
 		{
 			g_BumpAll = true;
 		}
-		else if( !stricmp( argv[i], "-low" ) )
+		else if( !Q_stricmp( argv[i], "-low" ) )
 		{
 			g_bLowPriority = true;
 		}
-		else if( !stricmp( argv[i], "-lightifmissing" ) )
+		else if( !Q_stricmp( argv[i], "-lightifmissing" ) )
 		{
 			g_bLightIfMissing = true;
 		}
 		else if ( !Q_stricmp( argv[i], CMDLINEOPTION_NOVCONFIG ) )
 		{
 		}
-		else if ( !stricmp( argv[i], "-allowdebug" ) || !stricmp( argv[i], "-steam" ) )
+		else if ( !Q_stricmp( argv[i], "-allowdebug" ) || !Q_stricmp( argv[i], "-steam" ) )
 		{
 			// nothing to do here, but don't bail on this option
 		}
-		else if ( !stricmp( argv[i], "-vproject" ) || !stricmp( argv[i], "-game" ) )
+		else if ( !Q_stricmp( argv[i], "-vproject" ) || !Q_stricmp( argv[i], "-game" ) )
 		{
 			++i;
 		}
-		else if ( !stricmp( argv[i], "-keepstalezip" ) )
+		else if ( !Q_stricmp( argv[i], "-keepstalezip" ) )
 		{
 			g_bKeepStaleZip = true;
 		}
-		else if ( !stricmp( argv[i], "-xbox" ) )
+		else if ( !Q_stricmp( argv[i], "-xbox" ) )
 		{
 			// enable mandatory xbox extensions
 			g_NodrawTriggers = true;
 			g_DisableWaterLighting = true;
 		}
-		else if ( !stricmp( argv[i], "-allowdetailcracks"))
+		else if ( !Q_stricmp( argv[i], "-allowdetailcracks"))
 		{
 			g_bAllowDetailCracks = true;
 		}
-		else if ( !stricmp( argv[i], "-novirtualmesh"))
+		else if ( !Q_stricmp( argv[i], "-novirtualmesh"))
 		{
 			g_bNoVirtualMesh = true;
 		}
-		else if ( !stricmp( argv[i], "-replacematerials" ) )
+		else if ( !Q_stricmp( argv[i], "-replacematerials" ) )
 		{
 			g_ReplaceMaterials = true;
 		}
-		else if ( !stricmp(argv[i], "-nodrawtriggers") )
+		else if ( !Q_stricmp(argv[i], "-nodrawtriggers") )
 		{
 			g_NodrawTriggers = true;
 		}
@@ -1158,6 +1198,7 @@ int RunVBSP( int argc, char **argv )
 				"  -blocks # # # # : Enter the mins and maxs for the grid size vbsp uses.\n"
 				"  -dumpstaticprops: Dump static props to staticprop*.txt\n"
 				"  -dumpcollide    : Write files with collision info.\n"
+				"  -forceskyvis	   : Enable vis calculations in 3d skybox leaves\n"
 				"  -luxelscale #   : Scale all lightmaps by this amount (default: 1.0).\n"
 				"  -minluxelscale #: No luxel scale will be lower than this amount (default: 1.0).\n"
 				"  -lightifmissing : Force lightmaps to be generated for all surfaces even if\n"
@@ -1166,6 +1207,8 @@ int RunVBSP( int argc, char **argv )
 				"                    else.\n"
 				"  -virtualdispphysics : Use virtual (not precomputed) displacement collision models\n"
 				"  -xbox           : Enable mandatory xbox options\n"
+				"  -x360		   : Generate Xbox360 version of vsp\n"
+				"  -nox360		   : Disable generation Xbox360 version of vsp (default)\n"
 				"  -replacematerials : Substitute materials according to materialsub.txt in content\\maps\n"
 				"  -FullMinidumps  : Write large minidumps on crash.\n"
 				);
@@ -1184,14 +1227,14 @@ int RunVBSP( int argc, char **argv )
 		SetLowPriority();
 	}
 
-	if( g_nDXLevel < 80 )
+	if( ( g_nDXLevel != 0 ) && ( g_nDXLevel < 80 ) )
 	{
 		g_BumpAll = false;
 	}
 
 	if( g_luxelScale == 1.0f )
 	{
-		if( g_nDXLevel == 70 )
+		if ( g_nDXLevel == 70 )
 		{
 			g_luxelScale = 4.0f;
 		}
@@ -1245,7 +1288,7 @@ int RunVBSP( int argc, char **argv )
 		num_entities = 0;
 
 		// Mark as stale since the lighting could be screwed with new ents.
-		AddBufferToPack( "stale.txt", "stale", strlen( "stale" ) + 1, false );
+		AddBufferToPak( GetPakFile(), "stale.txt", "stale", strlen( "stale" ) + 1, false );
 
 		LoadMapFile (name);
 		SetModelNumbers ();
@@ -1302,15 +1345,15 @@ int RunVBSP( int argc, char **argv )
 		{
 			LoadBSPFile_FileSystemOnly (platformBSPFileName);
 			// Mark as stale since the lighting could be screwed with new ents.
-			AddBufferToPack( "stale.txt", "stale", strlen( "stale" ) + 1, false );
+			AddBufferToPak( GetPakFile(), "stale.txt", "stale", strlen( "stale" ) + 1, false );
 		}
 
 		LoadMapFile (name);
-		if( g_nDXLevel >= 70 )
+		WorldVertexTransitionFixup();
+		if( ( g_nDXLevel == 0 ) || ( g_nDXLevel >= 70 ) )
 		{
 			Cubemap_FixupBrushSidesMaterials();
 			Cubemap_AttachDefaultCubemapToSpecularSides();
-			Cubemap_ClearUnusedTexInfos();
 			Cubemap_AddUnreferencedCubemaps();
 		}
 		SetModelNumbers ();
@@ -1326,6 +1369,7 @@ int RunVBSP( int argc, char **argv )
 	Msg( "%s elapsed\n", str );
 
 	DeleteCmdLine( argc, argv );
+	ReleasePakFileLumps();
 	DeleteMaterialReplacementKeys();
 	ShutdownMaterialSystem();
 	CmdLib_Cleanup();
@@ -1334,7 +1378,7 @@ int RunVBSP( int argc, char **argv )
 
 
 /*
-============
+=============
 main
 ============
 */

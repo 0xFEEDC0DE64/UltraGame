@@ -10,6 +10,7 @@
 #pragma once
 #endif
 
+#include "tier0/threadtools.h"
 #include "utlmultilist.h"
 #include "utlvector.h"
 
@@ -44,6 +45,8 @@ public:
 	unsigned int			AvailableSize();
 	unsigned int			UsedSize();
 
+	void					NotifySizeChanged( memhandle_t handle, unsigned int oldSize, unsigned int newSize );
+
 	void					SetTargetSize( unsigned int targetSize );
 
 	// NOTE: flush is equivalent to Destroy
@@ -52,6 +55,11 @@ public:
 	unsigned int			FlushAll();
 	unsigned int			Purge( unsigned int nBytesToPurge );
 	unsigned int			EnsureCapacity( unsigned int size );
+
+	// Thread lock
+	virtual void			Lock() {}
+	virtual bool			TryLock() { return true; }
+	virtual void			Unlock() {}
 
 	// Iteration
 
@@ -64,14 +72,14 @@ public:
 
 protected:
 	// derived class must call these to implement public API
-	unsigned short			CreateHandle();
+	unsigned short			CreateHandle( bool bCreateLocked );
 	memhandle_t				StoreResourceInHandle( unsigned short memoryIndex, void *pStore, unsigned int realSize );
 	void					*GetResource_NoLock( memhandle_t handle );
 	void					*GetResource_NoLockNoLRUTouch( memhandle_t handle );
 	void					*LockResource( memhandle_t handle );
 
 	// NOTE: you must call this from the destructor of the derived class! (will assert otherwise)
-	void					FreeAllLists();
+	void					FreeAllLists()	{ FlushAll(); m_listsAreFreed = true; }
 
 							CDataManagerBase( unsigned int maxSize );
 	virtual					~CDataManagerBase();
@@ -85,16 +93,11 @@ protected:
 	virtual void			DestroyResourceStorage( void * ) = 0;
 	virtual unsigned int	GetRealSize( void * ) = 0;
 
-
 	memhandle_t				ToHandle( unsigned short index );
 	unsigned short			FromHandle( memhandle_t handle );
-	bool					FreeLRU();
 	
-	void					*LockByIndex( unsigned short memoryIndex );
-	int						UnlockByIndex( unsigned short memoryIndex );
 	void					TouchByIndex( unsigned short memoryIndex );
-	void					MarkAsStaleByIndex( unsigned short memoryIndex );
-	void					FreeByIndex( unsigned short memoryIndex );
+	void *					GetForFreeByIndex( unsigned short memoryIndex );
 
 	// One of these is stored per active allocation
 	struct resource_lru_element_t
@@ -124,16 +127,16 @@ protected:
 
 };
 
-template< class STORAGE_TYPE, class CREATE_PARAMS, class LOCK_TYPE = STORAGE_TYPE * >
+template< class STORAGE_TYPE, class CREATE_PARAMS, class LOCK_TYPE = STORAGE_TYPE *, class MUTEX_TYPE = CThreadNullMutex>
 class CDataManager : public CDataManagerBase
 {
 	typedef CDataManagerBase BaseClass;
 public:
 
-	CDataManager<STORAGE_TYPE, CREATE_PARAMS, LOCK_TYPE>( unsigned int size = (unsigned)-1 ) : BaseClass(size) {}
+	CDataManager<STORAGE_TYPE, CREATE_PARAMS, LOCK_TYPE, MUTEX_TYPE>( unsigned int size = (unsigned)-1 ) : BaseClass(size) {}
 	
 
-	~CDataManager<STORAGE_TYPE, CREATE_PARAMS, LOCK_TYPE>()
+	~CDataManager<STORAGE_TYPE, CREATE_PARAMS, LOCK_TYPE, MUTEX_TYPE>()
 	{
 		// NOTE: This must be called in all implementations of CDataManager
 		FreeAllLists();
@@ -175,15 +178,15 @@ public:
 	}
 
 	// Wrapper to match implementation of allocation with typed storage & alloc params.
-	memhandle_t CreateResource( const CREATE_PARAMS &createParams )
+	memhandle_t CreateResource( const CREATE_PARAMS &createParams, bool bCreateLocked = false )
 	{
 		BaseClass::EnsureCapacity(STORAGE_TYPE::EstimatedSize(createParams));
-		unsigned short memoryIndex = BaseClass::CreateHandle();
+		unsigned short memoryIndex = BaseClass::CreateHandle( bCreateLocked );
 		STORAGE_TYPE *pStore = STORAGE_TYPE::CreateResource( createParams );
 		return BaseClass::StoreResourceInHandle( memoryIndex, pStore, pStore->Size() );
 	}
 
-	// Iteration
+	// Iteration. Must lock first
 	memhandle_t GetFirstUnlocked()
 	{
 		unsigned node = m_memoryLists.Head(m_lruList);
@@ -220,6 +223,11 @@ public:
 		return ToHandle( iNext );
 	}
 
+	MUTEX_TYPE &AccessMutex()	{ return m_mutex; }
+	virtual void Lock() { m_mutex.Lock(); }
+	virtual bool TryLock() { return m_mutex.TryLock(); }
+	virtual void Unlock() { m_mutex.Unlock(); }
+
 private:
 	STORAGE_TYPE *StoragePointer( void *pMem )
 	{
@@ -235,6 +243,8 @@ private:
 	{
 		return StoragePointer(pStore)->Size();
 	}
+
+	MUTEX_TYPE m_mutex;
 };
 
 //-----------------------------------------------------------------------------
@@ -252,12 +262,15 @@ inline unsigned short CDataManagerBase::FromHandle( memhandle_t handle )
 
 inline int CDataManagerBase::LockCount( memhandle_t handle )
 {
+	Lock();
+	int result = 0;
 	unsigned short memoryIndex = FromHandle(handle);
 	if ( memoryIndex != m_memoryLists.InvalidIndex() )
 	{
-		return m_memoryLists[memoryIndex].lockCount;
+		result = m_memoryLists[memoryIndex].lockCount;
 	}
-	return 0;
+	Unlock();
+	return result;
 }
 
 

@@ -1,13 +1,30 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright Â© 1996-2005, Valve Corporation, All rights reserved. ======//
 //
-// Purpose: 
+// Purpose:
 //
 // $NoKeywords: $
 //
-//=============================================================================//
-	   
+//===========================================================================//
+
 #ifndef PLATFORM_H
 #define PLATFORM_H
+
+#if defined( _X360 )
+#define NO_STEAM
+#define NO_VOICE
+// for the 360, the ppc platform and the rtos are tightly coupled
+// setup the 360 environment here !once! for much less leaf module include wackiness
+// these are critical order and purposely appear *before* anything else
+#define _XBOX
+#include <xtl.h>
+#include <xaudio.h>
+#include <xbdm.h>
+#include <Xgraphics.h>
+#include <xui.h>
+#include <pmcpbsetup.h>
+#include <XMAHardwareAbstraction.h>
+#undef _XBOX
+#endif
 
 #include "wchartypes.h"
 #include "basetypes.h"
@@ -20,15 +37,22 @@
 // feature enables
 #define NEW_SOFTWARE_LIGHTING
 
+#ifdef _LINUX
 // need this for _alloca
+#include <alloca.h>
+#endif // _LINUX
+
 #include <malloc.h>
 #include <new.h>
+
 
 // need this for memset
 #include <string.h>
 
+#include "tier0/valve_minmax_on.h"	// GCC 4.2.2 headers screw up our min/max defs.
+
 #ifdef _RETAIL
-#define IsRetail() true 
+#define IsRetail() true
 #else
 #define IsRetail() false
 #endif
@@ -41,30 +65,39 @@
 #define IsDebug() false
 #endif
 
+// Deprecating, infavor of IsX360() which will revert to IsXbox()
+// after confidence of xbox 1 code flush
+#define IsXbox()	false
+
 #ifdef _WIN32
-#define IsLinux() false
-#ifndef _XBOX
-#define IsPC() true
-#define IsConsole() false
-#define IsXbox() false
-#else
-#ifndef _CONSOLE
-#define _CONSOLE
-#endif
-#define IsPC() false
-#define IsConsole() true
-#define IsXbox() true
-#endif
+	#define IsLinux() false
+	#ifndef _X360
+		#define IsPC() true
+		#define IsConsole() false
+		#define IsX360() false
+		#define IsPS3() false
+		#define IS_WINDOWS_PC
+	#else
+        #ifndef _CONSOLE
+		#define _CONSOLE
+		#endif
+		#define IsPC() false
+		#define IsConsole() true
+		#define IsX360() true
+		#define IsPS3() false
+	#endif
 #elif defined(_LINUX)
-#define IsPC() true
-#define IsConsole() false
-#define IsXbox() false
-#define IsLinux() true
+	#define IsPC() true
+	#define IsConsole() false
+	#define IsX360() false
+	#define IsPS3() false
+	#define IsLinux() true
 #else
-#error
+	#error
 #endif
 
 typedef unsigned char uint8;
+typedef signed char int8;
 
 #ifdef __x86_64__
 #define X64BITS
@@ -85,6 +118,13 @@ typedef unsigned __int64 uintp;		// (ie, sizeof(intp) >= sizeof(int) && sizeof(i
 #else
 typedef __int32 intp;
 typedef unsigned __int32 uintp;
+#endif
+
+#if defined( _X360 )
+#ifdef __m128
+	#undef __m128
+#endif
+#define __m128 __vector4
 #endif
 
 #else // _WIN32
@@ -112,22 +152,14 @@ typedef double float64;
 // for when we don't care about how many bits we use
 typedef unsigned int uint;
 
-#define XBOX_DVD_SECTORSIZE	2048
-#define XBOX_HDD_SECTORSIZE	512
-
-// Custom windows messages for Xbox input
-#define WM_XREMOTECOMMAND			WM_USER + 100
-#define WM_XCONTROLLER_KEY			WM_USER + 101
-#define WM_XCONTROLLER_UNPLUGGED	WM_USER + 102
-
 // This can be used to ensure the size of pointers to members when declaring
 // a pointer type for a class that has only been forward declared
 #ifdef _MSC_VER
-#define SINGLE_INHERITANCE __single_inheritance 
-#define MULTIPLE_INHERITANCE __multiple_inheritance 
+#define SINGLE_INHERITANCE __single_inheritance
+#define MULTIPLE_INHERITANCE __multiple_inheritance
 #else
-#define SINGLE_INHERITANCE  
-#define MULTIPLE_INHERITANCE 
+#define SINGLE_INHERITANCE
+#define MULTIPLE_INHERITANCE
 #endif
 
 #ifdef _MSC_VER
@@ -136,11 +168,11 @@ typedef unsigned int uint;
 #define NO_VTABLE
 #endif
 
-// This can be used to declare an abstract (interface only) class. 
+// This can be used to declare an abstract (interface only) class.
 // Classes marked abstract should not be instantiated.  If they are, and access violation will occur.
 //
 // Example of use:
-// 
+//
 // abstract_class CFoo
 // {
 //      ...
@@ -151,7 +183,7 @@ typedef unsigned int uint;
 // Note: NJS: This is not enabled for regular PC, due to not knowing the implications of exporting a class with no no vtable.
 //       It's probable that this shouldn't be an issue, but an experiment should be done to verify this.
 //
-#ifndef _XBOX
+#ifndef _X360
 #define abstract_class class
 #else
 #define abstract_class class NO_VTABLE
@@ -210,15 +242,19 @@ typedef void * HINSTANCE;
 #define _MAX_PATH PATH_MAX
 #endif // defined(_WIN32) && !defined(WINDED)
 
- 
+
 // Defines MAX_PATH
 #ifndef MAX_PATH
 #define MAX_PATH  260
 #endif
 
+#define ALIGN_VALUE( val, alignment ) ( ( val + alignment - 1 ) & ~( alignment - 1 ) ) //  need macro for constant expression
+
 // Used to step into the debugger
-#ifdef _WIN32
+#if defined( _WIN32 ) && !defined( _X360 )
 #define DebuggerBreak()  __asm { int 3 }
+#elif defined( _X360 )
+#define DebuggerBreak() DebugBreak()
 #else
 #define DebuggerBreak()  {}
 #endif
@@ -228,7 +264,7 @@ typedef void * HINSTANCE;
 #ifndef EXPORT
 	#ifdef _WIN32
 		#define EXPORT	_declspec( dllexport )
-	#else 
+	#else
 		#define EXPORT	/* */
 	#endif
 #endif
@@ -241,14 +277,26 @@ typedef void * HINSTANCE;
 
 // decls for aligning data
 #ifdef _WIN32
-	#define ALIGN16 __declspec(align(16))
-	#define ALIGN32 __declspec(align(32))
+        #define DECL_ALIGN(x) __declspec(align(x))
+
 #elif _LINUX
-	#define ALIGN16 __attribute__((aligned(16)))
-	#define ALIGN32 __attribute__((aligned(32)))
+	#define DECL_ALIGN(x) __attribute__((aligned(x)))
 #elif
-	#define ALIGN16 /* */
-	#define ALIGN32 /* */
+        #define DECL_ALIGN(x) /* */
+#endif
+
+#define ALIGN8 DECL_ALIGN(8)
+#define ALIGN16 DECL_ALIGN(16)
+#define ALIGN32 DECL_ALIGN(32)
+#define ALIGN128 DECL_ALIGN(128)
+
+
+// Linux had a few areas where it didn't construct objects in the same order that Windows does.
+// So when CVProfile::CVProfile() would access g_pMemAlloc, it would crash because the allocator wasn't initalized yet.
+#ifdef _LINUX
+	#define CONSTRUCT_EARLY __attribute__((init_priority(101)))
+#else
+	#define CONSTRUCT_EARLY
 #endif
 
 #ifdef _WIN32
@@ -259,74 +307,76 @@ typedef void * HINSTANCE;
 	#define SELECTANY static
 #endif
 
-#if defined(_WIN32) && !defined(_XBOX)
+#if defined( _WIN32 )
 
 // Used for dll exporting and importing
-#define  DLL_EXPORT   extern "C" __declspec( dllexport ) 
+#define  DLL_EXPORT   extern "C" __declspec( dllexport )
 #define  DLL_IMPORT   extern "C" __declspec( dllimport )
 
 // Can't use extern "C" when DLL exporting a class
-#define  DLL_CLASS_EXPORT   __declspec( dllexport ) 
+#define  DLL_CLASS_EXPORT   __declspec( dllexport )
 #define  DLL_CLASS_IMPORT   __declspec( dllimport )
 
 // Can't use extern "C" when DLL exporting a global
-#define  DLL_GLOBAL_EXPORT   extern __declspec( dllexport ) 
+#define  DLL_GLOBAL_EXPORT   extern __declspec( dllexport )
 #define  DLL_GLOBAL_IMPORT   extern __declspec( dllimport )
 
 #elif defined _LINUX
 // Used for dll exporting and importing
-#define  DLL_EXPORT   extern "C" 
-#define  DLL_IMPORT   extern "C" 
+#define  DLL_EXPORT   extern "C" __attribute__ ((visibility("default")))
+#define  DLL_IMPORT   extern "C"
 
 // Can't use extern "C" when DLL exporting a class
-#define  DLL_CLASS_EXPORT   
-#define  DLL_CLASS_IMPORT  
+#define  DLL_CLASS_EXPORT __attribute__ ((visibility("default")))
+#define  DLL_CLASS_IMPORT
 
 // Can't use extern "C" when DLL exporting a global
-#define  DLL_GLOBAL_EXPORT   extern
-#define  DLL_GLOBAL_IMPORT   extern 
-
-#elif defined(_XBOX)
-
-#define  DLL_EXPORT				extern   
-#define  DLL_IMPORT				extern
-#define  DLL_CLASS_EXPORT  
-#define  DLL_CLASS_IMPORT   
-#define  DLL_GLOBAL_EXPORT   
-#define  DLL_GLOBAL_IMPORT   
+#define  DLL_GLOBAL_EXPORT   extern __attribute ((visibility("default")))
+#define  DLL_GLOBAL_IMPORT   extern
 
 #else
 #error "Unsupported Platform."
 #endif
 
 // Used for standard calling conventions
-#ifdef _WIN32
+#if defined( _WIN32 ) && !defined( _X360 )
 	#define  STDCALL				__stdcall
 	#define  FASTCALL				__fastcall
-	#define  FORCEINLINE			__forceinline	
+	#define  FORCEINLINE			__forceinline
 	// GCC 3.4.1 has a bug in supporting forced inline of templated functions
 	// this macro lets us not force inlining in that case
-	#define  FORCEINLINE_TEMPLATE		__forceinline	
+	#define  FORCEINLINE_TEMPLATE		__forceinline
+#elif defined( _X360 )
+	#define  STDCALL				__stdcall
+	#ifdef FORCEINLINE
+		#undef FORCEINLINE
+	#endif
+	#define  FORCEINLINE			__forceinline
+	#define  FORCEINLINE_TEMPLATE		__forceinline
 #else
 	#define  STDCALL
-	#define  FASTCALL 
-	#define  FORCEINLINE			__attribute__ ((always_inline))
+	#define  FASTCALL
+	#ifdef _LINUX_DEBUGGABLE
+		#define  FORCEINLINE
+	#else
+		#define  FORCEINLINE inline
+	#endif
 	// GCC 3.4.1 has a bug in supporting forced inline of templated functions
 	// this macro lets us not force inlining in that case
-	#define  FORCEINLINE_TEMPLATE
-	#define  __stdcall			__attribute__ ((__stdcall__)) 
+	#define  FORCEINLINE_TEMPLATE inline
+	#define  __stdcall			__attribute__ ((__stdcall__))
 #endif
 
 // Force a function call site -not- to inlined. (useful for profiling)
 #define DONT_INLINE(a) (((int)(a)+1)?(a):(a))
 
 // Pass hints to the compiler to prevent it from generating unnessecary / stupid code
-// in certain situations.  Several compilers other than MSVC also have an equivilent 
+// in certain situations.  Several compilers other than MSVC also have an equivilent
 // construct.
 //
-// Essentially the 'Hint' is that the condition specified is assumed to be true at 
+// Essentially the 'Hint' is that the condition specified is assumed to be true at
 // that point in the compilation.  If '0' is passed, then the compiler assumes that
-// any subsequent code in the same 'basic block' is unreachable, and thus usually 
+// any subsequent code in the same 'basic block' is unreachable, and thus usually
 // removed.
 #ifdef _MSC_VER
 	#define HINT(THE_HINT)	__assume((THE_HINT))
@@ -338,19 +388,28 @@ typedef void * HINSTANCE;
 // and asserts if any attempt is made to execute it.
 #define UNREACHABLE() { Assert(0); HINT(0); }
 
-// In cases where no default is present or appropriate, this causes MSVC to generate 
+// In cases where no default is present or appropriate, this causes MSVC to generate
 // as little code as possible, and throw an assertion in debug.
 #define NO_DEFAULT default: UNREACHABLE();
 
 #ifdef _WIN32
 // Alloca defined for this platform
-#define  stackalloc( _size ) _alloca( _size )
+#define  stackalloc( _size ) _alloca( ALIGN_VALUE( _size, 16 ) )
 #define  stackfree( _p )   0
 #elif _LINUX
 // Alloca defined for this platform
-#define  stackalloc( _size ) alloca( _size )
+#define  stackalloc( _size ) _alloca( ALIGN_VALUE( _size, 16 ) )
 #define  stackfree( _p )   0
 #endif
+
+#ifdef _WIN32
+#define RESTRICT __restrict
+#define RESTRICT_FUNC __declspec(restrict)
+#else
+#define RESTRICT
+#define RESTRICT_FUNC
+#endif
+
 
 #ifdef _WIN32
 // Remove warnings from warning level 4.
@@ -369,6 +428,7 @@ typedef void * HINSTANCE;
 #pragma warning(disable : 4305)	// truncation from 'const double ' to 'float '
 #pragma warning(disable : 4786)	// Disable warnings about long symbol names
 #pragma warning(disable : 4250) // 'X' : inherits 'Y::Z' via dominance
+#pragma warning(disable : 4201) // nonstandard extension used : nameless struct/union
 
 #if _MSC_VER >= 1300
 #pragma warning(disable : 4511)	// Disable warnings about private copy constructors
@@ -390,29 +450,54 @@ typedef void * HINSTANCE;
 #pragma warning( disable : 4312 )	// conversion from 'unsigned int' to 'memhandle_t' of greater size
 #endif
 
+
+//-----------------------------------------------------------------------------
+// fsel
+//-----------------------------------------------------------------------------
+#ifndef _X360
+
+static FORCEINLINE float fsel(float fComparand, float fValGE, float fLT)
+{
+	return fComparand >= 0 ? fValGE : fLT;
+}
+static FORCEINLINE double fsel(double fComparand, double fValGE, double fLT)
+{
+	return fComparand >= 0 ? fValGE : fLT;
+}
+
+#else
+
+// __fsel(double fComparand, double fValGE, double fLT) == fComparand >= 0 ? fValGE : fLT
+// this is much faster than if ( aFloat > 0 ) { x = .. }
+#define fsel __fsel
+
+#endif
+
+
 //-----------------------------------------------------------------------------
 // FP exception handling
 //-----------------------------------------------------------------------------
 //#define CHECK_FLOAT_EXCEPTIONS 1
 
-#ifdef _MSC_VER
+#if !defined( _X360 )
+#if defined( _MSC_VER )
 
 inline void SetupFPUControlWordForceExceptions()
 {
 	// use local to get and store control word
-	uint16 tmpCtrlW;              
-	__asm 
+	uint16 tmpCtrlW;
+	__asm
 	{
-		fnclex                     /* clear all current exceptions */
-		fnstcw word ptr [tmpCtrlW] /* get current control word */
-		and [tmpCtrlW], 0FCC0h     /* Keep infinity control + rounding control */
-		or [tmpCtrlW],   0230h     /* set to 53-bit, mask only inexact, underflow */
-		fldcw word ptr [tmpCtrlW]  /* put new control word in FPU */
+		fnclex						/* clear all current exceptions */
+		fnstcw word ptr [tmpCtrlW]	/* get current control word */
+		and [tmpCtrlW], 0FCC0h		/* Keep infinity control + rounding control */
+		or [tmpCtrlW], 0230h		/* set to 53-bit, mask only inexact, underflow */
+		fldcw word ptr [tmpCtrlW]	/* put new control word in FPU */
 	}
 }
 
 #ifdef CHECK_FLOAT_EXCEPTIONS
-	 
+
 inline void SetupFPUControlWord()
 {
 	SetupFPUControlWordForceExceptions();
@@ -424,12 +509,12 @@ inline void SetupFPUControlWord()
 {
 	// use local to get and store control word
 	uint16 tmpCtrlW;
-	__asm 
+	__asm
 	{
-		fnstcw word ptr [tmpCtrlW] /* get current control word */
-		and [tmpCtrlW], 0FCC0h     /* Keep infinity control + rounding control */
-		or [tmpCtrlW],   023Fh     /* set to 53-bit, mask only inexact, underflow */
-		fldcw word ptr [tmpCtrlW]  /* put new control word in FPU */
+		fnstcw word ptr [tmpCtrlW]	/* get current control word */
+		and [tmpCtrlW], 0FCC0h		/* Keep infinity control + rounding control */
+		or [tmpCtrlW], 023Fh		/* set to 53-bit, mask only inexact, underflow */
+		fldcw word ptr [tmpCtrlW]	/* put new control word in FPU */
 	}
 }
 
@@ -439,10 +524,48 @@ inline void SetupFPUControlWord()
 
 inline void SetupFPUControlWord()
 {
+	__volatile unsigned short int __cw;
+	__asm __volatile ("fnstcw %0" : "=m" (__cw));
+	__cw = __cw & 0x0FCC0;	// keep infinity control, keep rounding mode
+	__cw = __cw | 0x023F;	// set 53-bit, no exceptions
+	__asm __volatile ("fldcw %0" : : "m" (__cw));
 }
 
 #endif // _MSC_VER
 
+#else
+
+#ifdef _DEBUG
+FORCEINLINE bool IsFPUControlWordSet()
+{
+	float f = 0.996f;
+	union
+	{
+		double flResult;
+		int pResult[2];
+	};
+	flResult = __fctiw( f );
+	return ( pResult[1] == 1 );
+}
+#endif
+
+inline void SetupFPUControlWord()
+{
+	// Set round-to-nearest in FPSCR
+	// (cannot assemble, must use op-code form)
+	__emit( 0xFF80010C );	// mtfsfi  7,0
+
+	// Favour compatibility over speed (make sure the VPU set to Java-compliant mode)
+	// NOTE: the VPU *always* uses round-to-nearest
+	__vector4  a = { 0.0f, 0.0f, 0.0f, 0.0f };
+	a;				//	Avoid compiler warning
+	__asm
+	{
+		mtvscr a;	// Clear the Vector Status & Control Register to zero
+	}
+}
+
+#endif // _X360
 
 //-----------------------------------------------------------------------------
 // Purpose: Standard functions for handling endian-ness
@@ -480,7 +603,28 @@ inline T DWordSwapC( T dw )
 // Fast swaps
 //-------------------------------------
 
-#ifdef _MSC_VER
+#if defined( _X360 )
+
+#define WordSwap  WordSwap360Intr
+#define DWordSwap DWordSwap360Intr
+
+template <typename T>
+inline T WordSwap360Intr( T w )
+{
+	T output;
+	__storeshortbytereverse( w, 0, &output );
+	return output;
+}
+
+template <typename T>
+inline T DWordSwap360Intr( T dw )
+{
+	T output;
+	__storewordbytereverse( dw, 0, &output );
+	return output;
+}
+
+#elif defined( _MSC_VER )
 
 #define WordSwap  WordSwapAsm
 #define DWordSwap DWordSwapAsm
@@ -510,13 +654,6 @@ inline T DWordSwapAsm( T dw )
 
 #pragma warning(pop)
 
-// The assembly implementation is not compatible with floats
-template <>
-inline float DWordSwapAsm<float>( float f )
-{
-	return DWordSwapC( f );
-}
-
 #else
 
 #define WordSwap  WordSwapC
@@ -525,59 +662,106 @@ inline float DWordSwapAsm<float>( float f )
 #endif
 
 //-------------------------------------
-// The typically used methods. 
+// The typically used methods.
 //-------------------------------------
 
-#if defined(__i386__) || defined(_XBOX)
+#if defined(__i386__)
 #define LITTLE_ENDIAN 1
 #endif
 
-#ifdef _SGI_SOURCE
+#if defined( _SGI_SOURCE ) || defined( _X360 )
 #define	BIG_ENDIAN 1
 #endif
 
+// If a swapped float passes through the fpu, the bytes may get changed.
+// Prevent this by swapping floats as DWORDs.
+#define SafeSwapFloat( pOut, pIn )	(*((uint*)pOut) = DWordSwap( *((uint*)pIn) ))
+
 #if defined(LITTLE_ENDIAN)
 
-#define BigShort( val )		WordSwap( val )
-#define BigWord( val )		WordSwap( val )
-#define BigLong( val )		DWordSwap( val )
-#define BigDWord( val )		DWordSwap( val )
-#define BigFloat( val )		DWordSwap( val )
-#define LittleShort( val )	( val )
-#define LittleWord( val )	( val )
-#define LittleLong( val )	( val )
-#define LittleDWord( val )	( val )
-#define LittleFloat( val )	( val )
+#define BigShort( val )				WordSwap( val )
+#define BigWord( val )				WordSwap( val )
+#define BigLong( val )				DWordSwap( val )
+#define BigDWord( val )				DWordSwap( val )
+#define LittleShort( val )			( val )
+#define LittleWord( val )			( val )
+#define LittleLong( val )			( val )
+#define LittleDWord( val )			( val )
+#define SwapShort( val )			BigShort( val )
+#define SwapWord( val )				BigWord( val )
+#define SwapLong( val )				BigLong( val )
+#define SwapDWord( val )			BigDWord( val )
+
+// Pass floats by pointer for swapping to avoid truncation in the fpu
+#define BigFloat( pOut, pIn )		SafeSwapFloat( pOut, pIn )
+#define LittleFloat( pOut, pIn )	( *pOut = *pIn )
+#define SwapFloat( pOut, pIn )		BigFloat( pOut, pIn )
 
 #elif defined(BIG_ENDIAN)
 
-#define BigShort( val )		( val )
-#define BigWord( val )		( val )
-#define BigLong( val )		( val )
-#define BigDWord( val )		( val )
-#define BigFloat( val )		( val )
-#define LittleShort( val )	WordSwap( val )
-#define LittleWord( val )	WordSwap( val )
-#define LittleLong( val )	DWordSwap( val )
-#define LittleDWord( val )	DWordSwap( val )
-#define LittleFloat( val )	DWordSwap( val )
+#define BigShort( val )				( val )
+#define BigWord( val )				( val )
+#define BigLong( val )				( val )
+#define BigDWord( val )				( val )
+#define LittleShort( val )			WordSwap( val )
+#define LittleWord( val )			WordSwap( val )
+#define LittleLong( val )			DWordSwap( val )
+#define LittleDWord( val )			DWordSwap( val )
+#define SwapShort( val )			LittleShort( val )
+#define SwapWord( val )				LittleWord( val )
+#define SwapLong( val )				LittleLong( val )
+#define SwapDWord( val )			LittleDWord( val )
+
+// Pass floats by pointer for swapping to avoid truncation in the fpu
+#define BigFloat( pOut, pIn )		( *pOut = *pIn )
+#define LittleFloat( pOut, pIn )	SafeSwapFloat( pOut, pIn )
+#define SwapFloat( pOut, pIn )		LittleFloat( pOut, pIn )
 
 #else
 
-// @Note (toml 05-02-02): this technique expects the compiler to 
-// optimize the expression and eliminate the other path. On any new 
+// @Note (toml 05-02-02): this technique expects the compiler to
+// optimize the expression and eliminate the other path. On any new
 // platform/compiler this should be tested.
 inline short BigShort( short val )		{ int test = 1; return ( *(char *)&test == 1 ) ? WordSwap( val )  : val; }
 inline uint16 BigWord( uint16 val )		{ int test = 1; return ( *(char *)&test == 1 ) ? WordSwap( val )  : val; }
 inline long BigLong( long val )			{ int test = 1; return ( *(char *)&test == 1 ) ? DWordSwap( val ) : val; }
 inline uint32 BigDWord( uint32 val )	{ int test = 1; return ( *(char *)&test == 1 ) ? DWordSwap( val ) : val; }
-inline float BigFloat( float val )		{ int test = 1; return ( *(char *)&test == 1 ) ? DWordSwap( val ) : val; }
 inline short LittleShort( short val )	{ int test = 1; return ( *(char *)&test == 1 ) ? val : WordSwap( val ); }
 inline uint16 LittleWord( uint16 val )	{ int test = 1; return ( *(char *)&test == 1 ) ? val : WordSwap( val ); }
 inline long LittleLong( long val )		{ int test = 1; return ( *(char *)&test == 1 ) ? val : DWordSwap( val ); }
 inline uint32 LittleDWord( uint32 val )	{ int test = 1; return ( *(char *)&test == 1 ) ? val : DWordSwap( val ); }
-inline float LittleFloat( float val )	{ int test = 1; return ( *(char *)&test == 1 ) ? val : DWordSwap( val ); }
+inline short SwapShort( short val )					{ return WordSwap( val ); }
+inline uint16 SwapWord( uint16 val )				{ return WordSwap( val ); }
+inline long SwapLong( long val )					{ return DWordSwap( val ); }
+inline uint32 SwapDWord( uint32 val )				{ return DWordSwap( val ); }
 
+// Pass floats by pointer for swapping to avoid truncation in the fpu
+inline void BigFloat( float *pOut, const float *pIn )		{ int test = 1; ( *(char *)&test == 1 ) ? SafeSwapFloat( pOut, pIn ) : ( *pOut = *pIn ); }
+inline void LittleFloat( float *pOut, const float *pIn )	{ int test = 1; ( *(char *)&test == 1 ) ? ( *pOut = *pIn ) : SafeSwapFloat( pOut, pIn ); }
+inline void SwapFloat( float *pOut, const float *pIn )		{ SafeSwapFloat( pOut, pIn ); }
+
+#endif
+
+#if _X360
+inline unsigned long LoadLittleDWord( unsigned long *base, unsigned int dwordIndex )
+{
+	return __loadwordbytereverse( dwordIndex<<2, base );
+}
+
+inline void StoreLittleDWord( unsigned long *base, unsigned int dwordIndex, unsigned long dword )
+{
+	__storewordbytereverse( dword, dwordIndex<<2, base );
+}
+#else
+inline unsigned long LoadLittleDWord( unsigned long *base, unsigned int dwordIndex )
+{
+	return LittleDWord( base[dwordIndex] );
+}
+
+inline void StoreLittleDWord( unsigned long *base, unsigned int dwordIndex, unsigned long dword )
+{
+	base[dwordIndex] = LittleDWord(dword);
+}
 #endif
 
 
@@ -594,9 +778,17 @@ inline float LittleFloat( float val )	{ int test = 1; return ( *(char *)&test ==
 #else	// BUILD_AS_DLL
 
 #define PLATFORM_INTERFACE	extern
-#define PLATFORM_OVERLOAD	
+#define PLATFORM_OVERLOAD
 
 #endif	// BUILD_AS_DLL
+
+
+// When in benchmark mode, the timer returns a simple incremented value each time you call it.
+//
+// It should not be changed after startup unless you really know what you're doing. The only place
+// that should do this is the benchmark code itself so it can output a legit duration.
+PLATFORM_INTERFACE void				Plat_SetBenchmarkMode( bool bBenchmarkMode );	
+PLATFORM_INTERFACE bool				Plat_IsInBenchmarkMode();
 
 
 PLATFORM_INTERFACE double			Plat_FloatTime();		// Returns time in seconds since the module was loaded.
@@ -620,8 +812,8 @@ struct CPUInformation
 		 m_bMMX   : 1,	// Is MMX supported?
 		 m_bHT	  : 1;	// Is HyperThreading supported?
 
-	uint8 m_nLogicalProcessors,		// Number op logical processors.
-		    m_nPhysicalProcessors;	// Number of physical processors
+	uint8 m_nLogicalProcessors;		// Number op logical processors.
+	uint8 m_nPhysicalProcessors;	// Number of physical processors
 
 	int64 m_Speed;						// In cycles per second.
 
@@ -630,19 +822,18 @@ struct CPUInformation
 
 PLATFORM_INTERFACE const CPUInformation& GetCPUInformation();
 
+PLATFORM_INTERFACE void GetCurrentDate( int *pDay, int *pMonth, int *pYear );
+
 // ---------------------------------------------------------------------------------- //
 // Performance Monitoring Events - L2 stats etc...
 // ---------------------------------------------------------------------------------- //
 PLATFORM_INTERFACE void InitPME();
 PLATFORM_INTERFACE void ShutdownPME();
-//PLATFORM_INTERFACE bool g_bPME;
-
-
 
 //-----------------------------------------------------------------------------
 // Thread related functions
 //-----------------------------------------------------------------------------
-// Registers the current thread with Tier0's thread management system. 
+// Registers the current thread with Tier0's thread management system.
 // This should be called on every thread created in the game.
 PLATFORM_INTERFACE unsigned long Plat_RegisterThread( const tchar *pName = _T("Source Thread"));
 
@@ -682,6 +873,7 @@ PLATFORM_INTERFACE const tchar *Plat_GetCommandLine();
 // helper function for OS's that don't have a ::GetCommandLine() call
 PLATFORM_INTERFACE void Plat_SetCommandLine( const char *cmdLine );
 #endif
+PLATFORM_INTERFACE const char *Plat_GetCommandLineA();
 
 //-----------------------------------------------------------------------------
 // Security related functions
@@ -689,60 +881,118 @@ PLATFORM_INTERFACE void Plat_SetCommandLine( const char *cmdLine );
 // Ensure that the hardware key's drivers have been installed.
 PLATFORM_INTERFACE bool Plat_VerifyHardwareKeyDriver();
 
-// Ok, so this isn't a very secure way to verify the hardware key for now.  It 
+// Ok, so this isn't a very secure way to verify the hardware key for now.  It
 // is primarially depending on the fact that all the binaries have been wrapped
 // with the secure wrapper provided by the hardware keys vendor.
-PLATFORM_INTERFACE bool Plat_VerifyHardwareKey();	
+PLATFORM_INTERFACE bool Plat_VerifyHardwareKey();
 
-// The same as above, but notifies user with a message box when the key isn't in 
+// The same as above, but notifies user with a message box when the key isn't in
 // and gives him an opportunity to correct the situation.
 PLATFORM_INTERFACE bool Plat_VerifyHardwareKeyPrompt();
 
 // Can be called in real time, doesn't perform the verify every frame.  Mainly just
 // here to allow the game to drop out quickly when the key is removed, rather than
-// allowing the wrapper to pop up it's own blocking dialog, which the engine doesn't 
+// allowing the wrapper to pop up it's own blocking dialog, which the engine doesn't
 // like much.
 PLATFORM_INTERFACE bool Plat_FastVerifyHardwareKey();
-
-
-
-//-----------------------------------------------------------------------------
-// Include additional dependant header components.
-//-----------------------------------------------------------------------------
-#include "tier0/fasttimer.h"
-
 
 //-----------------------------------------------------------------------------
 // Just logs file and line to simple.log
 //-----------------------------------------------------------------------------
 PLATFORM_INTERFACE void* Plat_SimpleLog( const tchar* file, int line );
 
-//#define Plat_dynamic_cast Plat_SimpleLog(__FILE__,__LINE__),dynamic_cast
-
+//-----------------------------------------------------------------------------
+// Returns true if debugger attached, false otherwise
 //-----------------------------------------------------------------------------
 #if defined(_WIN32)
 PLATFORM_INTERFACE bool Plat_IsInDebugSession();
+PLATFORM_INTERFACE void Plat_DebugString( const char * );
 #else
 #define Plat_IsInDebugSession() (false)
+#define Plat_DebugString(s) ((void)0)
+#endif
+
+//-----------------------------------------------------------------------------
+// XBOX Components valid in PC compilation space
+//-----------------------------------------------------------------------------
+
+#define XBOX_DVD_SECTORSIZE			2048
+#define XBOX_DVD_ECC_SIZE			32768 // driver reads in quantum ECC blocks
+#define XBOX_HDD_SECTORSIZE			512
+
+// Custom windows messages for Xbox input
+#define WM_XREMOTECOMMAND					(WM_USER + 100)
+#define WM_XCONTROLLER_KEY					(WM_USER + 101)
+#define WM_SYS_UI							(WM_USER + 102)
+#define WM_SYS_SIGNINCHANGED				(WM_USER + 103)
+#define WM_SYS_STORAGEDEVICESCHANGED		(WM_USER + 104)
+#define WM_SYS_PROFILESETTINGCHANGED		(WM_USER + 105)
+#define WM_SYS_MUTELISTCHANGED				(WM_USER + 106)
+#define WM_SYS_INPUTDEVICESCHANGED			(WM_USER + 107)
+#define WM_SYS_INPUTDEVICECONFIGCHANGED		(WM_USER + 108)
+#define WM_LIVE_CONNECTIONCHANGED			(WM_USER + 109)
+#define WM_LIVE_INVITE_ACCEPTED				(WM_USER + 110)
+#define WM_LIVE_LINK_STATE_CHANGED			(WM_USER + 111)
+#define WM_LIVE_CONTENT_INSTALLED			(WM_USER + 112)
+#define WM_LIVE_MEMBERSHIP_PURCHASED		(WM_USER + 113)
+#define WM_LIVE_VOICECHAT_AWAY				(WM_USER + 114)
+#define WM_LIVE_PRESENCE_CHANGED			(WM_USER + 115)
+#define WM_FRIENDS_PRESENCE_CHANGED			(WM_USER + 116)
+#define WM_FRIENDS_FRIEND_ADDED				(WM_USER + 117)
+#define WM_FRIENDS_FRIEND_REMOVED			(WM_USER + 118)
+#define WM_CUSTOM_GAMEBANNERPRESSED			(WM_USER + 119)
+#define WM_CUSTOM_ACTIONPRESSED				(WM_USER + 120)
+#define WM_XMP_STATECHANGED					(WM_USER + 121)
+#define WM_XMP_PLAYBACKBEHAVIORCHANGED		(WM_USER + 122)
+#define WM_XMP_PLAYBACKCONTROLLERCHANGED	(WM_USER + 123)
+
+inline const char *GetPlatformExt( void )
+{
+	return IsX360() ? ".360" : "";
+}
+
+// flat view, 6 hw threads
+#define XBOX_PROCESSOR_0			( 1<<0 )
+#define XBOX_PROCESSOR_1			( 1<<1 )
+#define XBOX_PROCESSOR_2			( 1<<2 )
+#define XBOX_PROCESSOR_3			( 1<<3 )
+#define XBOX_PROCESSOR_4			( 1<<4 )
+#define XBOX_PROCESSOR_5			( 1<<5 )
+
+// core view, 3 cores with 2 hw threads each
+#define XBOX_CORE_0_HWTHREAD_0		XBOX_PROCESSOR_0
+#define XBOX_CORE_0_HWTHREAD_1		XBOX_PROCESSOR_1
+#define XBOX_CORE_1_HWTHREAD_0		XBOX_PROCESSOR_2
+#define XBOX_CORE_1_HWTHREAD_1		XBOX_PROCESSOR_3
+#define XBOX_CORE_2_HWTHREAD_0		XBOX_PROCESSOR_4
+#define XBOX_CORE_2_HWTHREAD_1		XBOX_PROCESSOR_5
+
+//-----------------------------------------------------------------------------
+// Include additional dependant header components.
+//-----------------------------------------------------------------------------
+#include "tier0/fasttimer.h"
+
+#if defined( _X360 )
+#include "xbox/xbox_core.h"
 #endif
 
 //-----------------------------------------------------------------------------
 // Methods to invoke the constructor, copy constructor, and destructor
 //-----------------------------------------------------------------------------
 
-template <class T> 
+template <class T>
 inline void Construct( T* pMemory )
 {
 	::new( pMemory ) T;
 }
 
-template <class T> 
+template <class T>
 inline void CopyConstruct( T* pMemory, T const& src )
 {
 	::new( pMemory ) T(src);
 }
 
-template <class T> 
+template <class T>
 inline void Destruct( T* pMemory )
 {
 	pMemory->~T();
@@ -770,7 +1020,7 @@ inline void Destruct( T* pMemory )
 //				printf( "Outer is at 0x%x\n", GET_OUTER( COuter, m_Inner ) );
 //			}
 //		};
-//		
+//
 //		CInner m_Inner;
 //		friend class CInner;
 //	};
@@ -779,15 +1029,15 @@ inline void Destruct( T* pMemory )
    ( ( OuterType * ) ( (uint8 *)this - offsetof( OuterType, OuterMember ) ) )
 
 
-/*	TEMPLATE_FUNCTION_TABLE() 
+/*	TEMPLATE_FUNCTION_TABLE()
 
-    (Note added to platform.h so platforms that correctly support templated 
+    (Note added to platform.h so platforms that correctly support templated
 	 functions can handle portions as templated functions rather than wrapped
 	 functions)
 
-	Helps automate the process of creating an array of function 
-	templates that are all specialized by a single integer.  
-	This sort of thing is often useful in optimization work.  
+	Helps automate the process of creating an array of function
+	templates that are all specialized by a single integer.
+	This sort of thing is often useful in optimization work.
 
 	For example, using TEMPLATE_FUNCTION_TABLE, this:
 
@@ -798,10 +1048,10 @@ inline void Destruct( T* pMemory )
 
 	is equivilent to the following:
 
-	(NOTE: the function has to be wrapped in a class due to code 
-	generation bugs involved with directly specializing a function 
+	(NOTE: the function has to be wrapped in a class due to code
+	generation bugs involved with directly specializing a function
 	based on a constant.)
-	
+
 	template<int argument>
 	class FunctionWrapper
 	{
@@ -874,7 +1124,7 @@ public:																	\
 const __MetaLooper_##NAME<COUNT> NAME::m;								\
 const __Type_##NAME* NAME::functions = (__Type_##NAME*)&m;				\
 template<const int nArgument>													\
-RETURN_TYPE FASTCALL __Function_##NAME<nArgument>::Run ARGS						
+RETURN_TYPE FASTCALL __Function_##NAME<nArgument>::Run ARGS
 
 
 #define LOOP_INTERCHANGE(BOOLEAN, CODE)\
@@ -885,6 +1135,33 @@ RETURN_TYPE FASTCALL __Function_##NAME<nArgument>::Run ARGS
 	{\
 		CODE;\
 	}
+
+//-----------------------------------------------------------------------------
+
+#if defined(_INC_WINDOWS) && defined(_WIN32)
+template <typename FUNCPTR_TYPE>
+class CDynamicFunction
+{
+public:
+	CDynamicFunction( const char *pszModule, const char *pszName, FUNCPTR_TYPE pfnFallback = NULL )
+	{
+		m_pfn = pfnFallback;
+
+		HMODULE hModule = ::LoadLibrary( pszModule );
+		if ( hModule )
+			m_pfn = (FUNCPTR_TYPE)::GetProcAddress( hModule, pszName );
+	}
+
+	operator bool()			{ return m_pfn != NULL;	}
+	bool operator !()		{ return !m_pfn;	}
+	operator FUNCPTR_TYPE()	{ return m_pfn; }
+
+private:
+	FUNCPTR_TYPE m_pfn;
+};
+#endif
+
+//-----------------------------------------------------------------------------
 
 #include "tier0/valve_on.h"
 

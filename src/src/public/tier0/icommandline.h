@@ -2,8 +2,6 @@
 //
 // Purpose: 
 //
-// $Workfile:     $
-// $NoKeywords: $
 //===========================================================================//
 
 #ifndef TIER0_ICOMMANDLINE_H
@@ -40,7 +38,6 @@ public:
 	virtual int			FindParm( const char *psz ) const = 0;	// Returns 0 if not found.
 	virtual const char* GetParm( int nIndex ) const = 0;
 };
-
 
 //-----------------------------------------------------------------------------
 // Gets a singleton to the commandline interface

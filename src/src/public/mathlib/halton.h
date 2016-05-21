@@ -18,7 +18,7 @@
 #define HALTON_H
 
 #include <tier0/platform.h>
-#include <vector.h>
+#include <mathlib/vector.h>
 
 class HaltonSequenceGenerator_t
 {

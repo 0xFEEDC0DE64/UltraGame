@@ -4,7 +4,7 @@
 //
 //=============================================================================//
 
-#include "vector.h"
+#include "mathlib/vector.h"
 #include "bspfile.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

@@ -343,7 +343,7 @@ private:
 				brand = (tchar *)(d + 4);
 
 			// note the assignment to brand above does a copy, we need to delete
-			delete d;
+			delete[] d;
 		}
 	}
 };

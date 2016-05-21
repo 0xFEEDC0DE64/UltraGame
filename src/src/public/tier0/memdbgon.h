@@ -34,13 +34,39 @@
 #include "memalloc.h"
 
 #if defined(USE_MEM_DEBUG)
-#if !defined(_DEBUG)
-#define _DEBUG 1
-#include <crtdbg.h>
-#undef _DEBUG
-#else
-#include <crtdbg.h>
-#endif
+	#if defined(_LINUX)
+	
+		#define _NORMAL_BLOCK 1
+		
+		#include <cstddef>
+		#include <glob.h>
+		#include <new>
+		#include <sys/types.h>
+		
+		#if !defined( DID_THE_OPERATOR_NEW )
+			#define DID_THE_OPERATOR_NEW
+			inline void* operator new( size_t nSize, int blah, const char *pFileName, int nLine )
+			{
+				return g_pMemAlloc->Alloc( nSize, pFileName, nLine );
+			}
+			inline void* operator new[]( size_t nSize, int blah, const char *pFileName, int nLine )
+			{
+				return g_pMemAlloc->Alloc( nSize, pFileName, nLine );
+			}
+		#endif
+	
+	#else // defined(_LINUX)
+	
+		// Include crtdbg.h and make sure _DEBUG is set to 1.
+		#if !defined(_DEBUG)
+			#define _DEBUG 1
+			#include <crtdbg.h>
+			#undef _DEBUG
+		#else
+			#include <crtdbg.h>
+		#endif // !defined(_DEBUG)
+	
+	#endif // defined(_LINUX)
 #endif
 
 #include "tier0/memdbgoff.h"
@@ -172,7 +198,7 @@ inline char *MemAlloc_StrDup(const char *pString)
 	if (!pString)
 		return NULL;
 
-	int len = strlen(pString) + 1;
+	size_t len = strlen(pString) + 1;
 	if ((pMemory = (char *)g_pMemAlloc->Alloc(len)) != NULL)
 	{
 		return strcpy( pMemory, pString );
@@ -188,7 +214,7 @@ inline wchar_t *MemAlloc_WcStrDup(const wchar_t *pString)
 	if (!pString)
 		return NULL;
 
-	int len = (wcslen(pString) + 1);
+	size_t len = (wcslen(pString) + 1);
 	if ((pMemory = (wchar_t *)g_pMemAlloc->Alloc(len * sizeof(wchar_t))) != NULL)
 	{
 		return wcscpy( pMemory, pString );

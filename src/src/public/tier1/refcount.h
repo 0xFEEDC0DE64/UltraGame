@@ -72,11 +72,12 @@ private:
 };
 
 //-----------------------------------------------------------------------------
-// Purpose:	Do a an inline AddRef then return the pointer, usefull when
+// Purpose:	Do a an inline AddRef then return the pointer, useful when
 //			returning an object from a function
 //-----------------------------------------------------------------------------
 
 #define RetAddRef( p ) ( (p)->AddRef(), (p) )
+#define InlineAddRef( p ) ( (p)->AddRef(), (p) )
 
 
 //-----------------------------------------------------------------------------
@@ -101,14 +102,14 @@ public:
 	int			operator=( int i )							{ AssertMsg( i == 0, "Only NULL allowed on integer assign" ); m_pObject = 0; return 0; }
 	T *			operator=( T *p )							{ m_pObject = p; return p; }
 
-    bool        operator !() const							{ return (!m_pObject); }
+    bool        operator !() const							{ return ( !m_pObject ); }
     bool        operator!=( int i ) const					{ AssertMsg( i == 0, "Only NULL allowed on integer compare" ); return (m_pObject != NULL); }
-	bool		operator==( const void *p ) const			{ return (m_pObject == p); }
-	bool		operator!=( const void *p ) const			{ return (m_pObject != p); }
-	bool		operator==( T *p ) const					{ return operator==((void*)p); }
-	bool		operator!=( T *p ) const					{ return operator!=((void*)p); }
-	bool		operator==( const CBaseAutoPtr<T> &p ) const { return operator==((const void*)p); }
-	bool		operator!=( const CBaseAutoPtr<T> &p ) const { return operator!=((const void*)p); }
+	bool		operator==( const void *p ) const			{ return ( m_pObject == p ); }
+	bool		operator!=( const void *p ) const			{ return ( m_pObject != p ); }
+	bool		operator==( T *p ) const					{ return operator==( (void *)p ); }
+	bool		operator!=( T *p ) const					{ return operator!=( (void *)p ); }
+	bool		operator==( const CBaseAutoPtr<T> &p ) const { return operator==( (const void *)p ); }
+	bool		operator!=( const CBaseAutoPtr<T> &p ) const { return operator!=( (const void *)p ); }
 
 	T *  		operator->()								{ return m_pObject; }
 	T &  		operator *()								{ return *m_pObject; }
@@ -119,7 +120,7 @@ public:
 	T * const * operator &() const							{ return &m_pObject; }
 
 protected:
-	CBaseAutoPtr( const CBaseAutoPtr<T> &from )				: m_pObject(from.m_pObject) {}
+	CBaseAutoPtr( const CBaseAutoPtr<T> &from )				: m_pObject( from.m_pObject ) {}
 	void operator=( const CBaseAutoPtr<T> &from ) 			{ m_pObject = from.m_pObject; }
 
 	T *m_pObject;
@@ -130,23 +131,24 @@ protected:
 template <class T>
 class CRefPtr : public CBaseAutoPtr<T>
 {
-	typedef CBaseAutoPtr<T> CBaseClass;
+	typedef CBaseAutoPtr<T> BaseClass;
 public:
 	CRefPtr()												{}
-	CRefPtr( T *pInit )										: CBaseClass( pInit ) {}
-	CRefPtr( const CRefPtr<T> &from )						: CBaseClass( from ) {}
-	~CRefPtr()												{ if ( CBaseClass::m_pObject ) CBaseClass::m_pObject->Release(); }
+	CRefPtr( T *pInit )										: BaseClass( pInit ) {}
+	CRefPtr( const CRefPtr<T> &from )						: BaseClass( from ) {}
+	~CRefPtr()												{ if ( BaseClass::m_pObject ) BaseClass::m_pObject->Release(); }
 
-	void operator=( const CRefPtr<T> &from )				{ CBaseClass::operator=(from); }
+	void operator=( const CRefPtr<T> &from )				{ BaseClass::operator=( from ); }
 
-	int operator=( int i )									{ return CBaseClass::operator=(i); }
-	T * operator=( T *p )									{ return CBaseClass::operator=(p); }
+	int operator=( int i )									{ return BaseClass::operator=( i ); }
+	T *operator=( T *p )									{ return BaseClass::operator=( p ); }
 
-	operator bool() const									{ return !CBaseClass::operator!(); }
-	operator bool()											{ return !CBaseClass::operator!(); }
+	operator bool() const									{ return !BaseClass::operator!(); }
+	operator bool()											{ return !BaseClass::operator!(); }
 
-	void SafeRelease()										{ if (CBaseClass::m_pObject) CBaseClass::m_pObject->Release(); CBaseClass::m_pObject = 0; }
-	void AssignAddRef( T * pFrom )							{ SafeRelease(); if (pFrom) pFrom->AddRef(); CBaseClass::m_pObject = pFrom; }
+	void SafeRelease()										{ if ( BaseClass::m_pObject ) BaseClass::m_pObject->Release(); BaseClass::m_pObject = 0; }
+	void AssignAddRef( T *pFrom )							{ SafeRelease(); if (pFrom) pFrom->AddRef(); BaseClass::m_pObject = pFrom; }
+	void AddRefAssignTo( T *&pTo )							{ ::SafeRelease( pTo ); if ( BaseClass::m_pObject ) BaseClass::m_pObject->AddRef(); pTo = BaseClass::m_pObject; }
 };
 
 
@@ -186,7 +188,52 @@ protected:
 	{
 	}
 
-	virtual void OnFinalRelease()
+	virtual bool OnFinalRelease()
+	{
+		return true;
+	}
+
+	int GetRefCount() const
+	{
+		return m_iRefs;
+	}
+
+	int DoAddRef()
+	{
+		return CRefThreading::Increment( &m_iRefs );
+	}
+
+	int DoRelease()
+	{
+		int result = CRefThreading::Decrement( &m_iRefs );
+		if ( result )
+			return result;
+		if ( OnFinalRelease() && bSelfDelete )
+			delete this;
+		return 0;
+	}
+
+private:
+	int m_iRefs;
+};
+
+class CRefCountServiceNull
+{
+protected:
+	static int DoAddRef() { return 1; }
+	static int DoRelease() { return 1; }
+};
+
+template <typename CRefThreading = CRefMT>
+class NO_VTABLE CRefCountServiceDestruct
+{
+protected:
+	CRefCountServiceDestruct()
+		: m_iRefs( 1 )
+	{
+	}
+
+	virtual ~CRefCountServiceDestruct()
 	{
 	}
 
@@ -205,15 +252,14 @@ protected:
 		int result = CRefThreading::Decrement( &m_iRefs );
 		if ( result )
 			return result;
-		OnFinalRelease();
-		if ( bSelfDelete )
-			delete this;
+		this->~CRefCountServiceDestruct();
 		return 0;
 	}
 
 private:
 	int m_iRefs;
 };
+
 
 typedef CRefCountServiceBase<true, CRefST>	CRefCountServiceST;
 typedef CRefCountServiceBase<false, CRefST>	CRefCountServiceNoDeleteST;
@@ -222,8 +268,8 @@ typedef CRefCountServiceBase<true, CRefMT>	CRefCountServiceMT;
 typedef CRefCountServiceBase<false, CRefMT> CRefCountServiceNoDeleteMT;
 
 // Default to threadsafe
-typedef CRefCountServiceNoDeleteMT			CRefCountService;
-typedef CRefCountServiceMT					CRefCountServiceNoDelete;
+typedef CRefCountServiceNoDeleteMT			CRefCountServiceNoDelete;
+typedef CRefCountServiceMT					CRefCountService;
 
 //-----------------------------------------------------------------------------
 // Purpose:	Base classes to implement reference counting

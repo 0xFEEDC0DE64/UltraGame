@@ -6,13 +6,13 @@
 //=============================================================================//
 
 #include <direct.h>
-#include "mathlib.h"
+#include "mathlib/mathlib.h"
 #include "bitmap/tgawriter.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "vtf/vtf.h"
 #include "tier1/UtlBuffer.h"
 #include "tier0/dbg.h"
-#include "vstdlib/ICommandLine.h"
+#include "tier0/icommandline.h"
 #include "tier1/utlbuffer.h"
 #include "tier2/tier2.h"
 #include "filesystem.h"
@@ -135,11 +135,11 @@ int main( int argc, char **argv )
 	Msg( "TEXTUREFLAGS_CLAMPU=%s\n", ( pTex->Flags() & TEXTUREFLAGS_CLAMPU ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_ANISOTROPIC=%s\n", ( pTex->Flags() & TEXTUREFLAGS_ANISOTROPIC ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_HINT_DXT5=%s\n", ( pTex->Flags() & TEXTUREFLAGS_HINT_DXT5 ) ? "true" : "false" );
-	Msg( "TEXTUREFLAGS_NOCOMPRESS=%s\n", ( pTex->Flags() & TEXTUREFLAGS_NOCOMPRESS ) ? "true" : "false" );
+	Msg( "TEXTUREFLAGS_SRGB=%s\n", ( pTex->Flags() & TEXTUREFLAGS_SRGB ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_NORMAL=%s\n", ( pTex->Flags() & TEXTUREFLAGS_NORMAL ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_NOMIP=%s\n", ( pTex->Flags() & TEXTUREFLAGS_NOMIP ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_NOLOD=%s\n", ( pTex->Flags() & TEXTUREFLAGS_NOLOD ) ? "true" : "false" );
-	Msg( "TEXTUREFLAGS_MINMIP=%s\n", ( pTex->Flags() & TEXTUREFLAGS_MINMIP ) ? "true" : "false" );
+	Msg( "TEXTUREFLAGS_ALL_MIPS=%s\n", ( pTex->Flags() & TEXTUREFLAGS_ALL_MIPS ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_PROCEDURAL=%s\n", ( pTex->Flags() & TEXTUREFLAGS_PROCEDURAL ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_ONEBITALPHA=%s\n", ( pTex->Flags() & TEXTUREFLAGS_ONEBITALPHA ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_EIGHTBITALPHA=%s\n", ( pTex->Flags() & TEXTUREFLAGS_EIGHTBITALPHA ) ? "true" : "false" );
@@ -148,10 +148,6 @@ int main( int argc, char **argv )
 	Msg( "TEXTUREFLAGS_DEPTHRENDERTARGET=%s\n", ( pTex->Flags() & TEXTUREFLAGS_DEPTHRENDERTARGET ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_NODEBUGOVERRIDE=%s\n", ( pTex->Flags() & TEXTUREFLAGS_NODEBUGOVERRIDE ) ? "true" : "false" );
 	Msg( "TEXTUREFLAGS_SINGLECOPY=%s\n", ( pTex->Flags() & TEXTUREFLAGS_SINGLECOPY ) ? "true" : "false" );
-	Msg( "TEXTUREFLAGS_ONEOVERMIPLEVELINALPHA=%s\n", ( pTex->Flags() & TEXTUREFLAGS_ONEOVERMIPLEVELINALPHA ) ? "true" : "false" );
-	Msg( "TEXTUREFLAGS_PREMULTCOLORBYONEOVERMIPLEVEL=%s\n", ( pTex->Flags() & TEXTUREFLAGS_PREMULTCOLORBYONEOVERMIPLEVEL ) ? "true" : "false" );
-	Msg( "TEXTUREFLAGS_NORMALTODUDV=%s\n", ( pTex->Flags() & TEXTUREFLAGS_NORMALTODUDV ) ? "true" : "false" );
-	Msg( "TEXTUREFLAGS_ALPHATESTMIPGENERATION=%s\n", ( pTex->Flags() & TEXTUREFLAGS_ALPHATESTMIPGENERATION ) ? "true" : "false" );
 	
 	Vector vecReflectivity = pTex->Reflectivity();
 	Msg( "vtf reflectivity: %f %f %f\n", vecReflectivity[0], vecReflectivity[1], vecReflectivity[2] );
@@ -185,16 +181,12 @@ int main( int argc, char **argv )
 			int iWidth, iHeight, iDepth;
 			pTex->ComputeMipLevelDimensions( iMipLevel, &iWidth, &iHeight, &iDepth );
 
-			// Don't output really small textures.. it pukes out photoshop
-			if ( ( iWidth < 2 ) || ( iHeight < 2 ) )
-				continue;
-
 			for (int iCubeFace = 0; iCubeFace < iFaceCount; ++iCubeFace)
 			{
 				for ( int z = 0; z < iDepth; ++z )
 				{
 					// Construct output filename
-					char *pTempNameBuf = (char *)stackalloc( iTGANameLen + 12 );
+					char *pTempNameBuf = (char *)stackalloc( iTGANameLen + 13 );
 					Q_strncpy( pTempNameBuf, pOutFileNameBase, iTGANameLen + 1 );
 					char *pExt = Q_strrchr( pTempNameBuf, '.' );
 					if ( pExt )
@@ -206,37 +198,37 @@ int main( int argc, char **argv )
 					{
 						Assert( pTex->Depth() == 1 ); // shouldn't this be 1 instead of 0?
 						static const char *pCubeFaceName[7] = { "rt", "lf", "bk", "ft", "up", "dn", "sph" };
-						Q_strcat( pTempNameBuf, pCubeFaceName[iCubeFace], iTGANameLen + 12 ); 
+						Q_strcat( pTempNameBuf, pCubeFaceName[iCubeFace], iTGANameLen + 13 ); 
 					}
 
 					if ( nFrameCount > 1 )
 					{
 						char pTemp[4];
 						Q_snprintf( pTemp, 4, "%03d", iFrame );
-						Q_strcat( pTempNameBuf, pTemp, iTGANameLen + 12 ); 
+						Q_strcat( pTempNameBuf, pTemp, iTGANameLen + 13 ); 
 					}
 
 					if ( iLastMipLevel != 0 )
 					{
 						char pTemp[8];
 						Q_snprintf( pTemp, 8, "_mip%d", iMipLevel );
-						Q_strcat( pTempNameBuf, pTemp, iTGANameLen + 12 ); 
+						Q_strcat( pTempNameBuf, pTemp, iTGANameLen + 13 ); 
 					}
 
 					if ( pTex->Depth() > 1 )
 					{
 						char pTemp[6];
 						Q_snprintf( pTemp, 6, "_z%03d", z );
-						Q_strcat( pTempNameBuf, pTemp, iTGANameLen + 12 ); 
+						Q_strcat( pTempNameBuf, pTemp, iTGANameLen + 13 ); 
 					}
 
 					if( srcFormat == IMAGE_FORMAT_RGBA16161616F )
 					{
-						Q_strcat( pTempNameBuf, ".pfm", iTGANameLen + 12 ); 
+						Q_strcat( pTempNameBuf, ".pfm", iTGANameLen + 13 ); 
 					}
 					else
 					{
-						Q_strcat( pTempNameBuf, ".tga", iTGANameLen + 12 ); 
+						Q_strcat( pTempNameBuf, ".tga", iTGANameLen + 13 ); 
 					}
 
 					unsigned char *pSrcImage = pTex->ImageData( iFrame, iCubeFace, iMipLevel, 0, 0, z );
@@ -248,7 +240,7 @@ int main( int argc, char **argv )
 					}
 					else
 					{
-						if( ImageLoader::IsTransparent( srcFormat ) )
+						if( ImageLoader::IsTransparent( srcFormat ) || (srcFormat == IMAGE_FORMAT_ATI1N ) || (srcFormat == IMAGE_FORMAT_ATI2N ))
 						{
 							dstFormat = IMAGE_FORMAT_BGRA8888;
 						}

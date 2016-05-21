@@ -41,6 +41,7 @@ public:
 	
 	bool	CompareAdr (const netadr_s &a, bool onlyBase = false) const;
 	bool	CompareClassBAdr (const netadr_s &a) const;
+	bool	CompareClassCAdr (const netadr_s &a) const;
 
 	netadrtype_t	GetType() const;
 	unsigned short	GetPort() const;
@@ -53,7 +54,9 @@ public:
 	bool	IsReservedAdr() const; // true, if this is a private LAN IP
 	bool	IsValid() const;	// ip & port != 0
 	void    SetFromSocket( int hSocket );
-
+	// These function names are decorated because the Xbox360 defines macros for ntohl and htonl
+ 	unsigned long addr_ntohl() const;
+ 	unsigned long addr_htonl() const;
 	bool operator==(const netadr_s &netadr) const {return ( CompareAdr( netadr ) );}
 	bool operator<(const netadr_s &netadr) const;
 

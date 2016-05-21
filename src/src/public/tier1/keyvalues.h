@@ -56,6 +56,26 @@ class KeyValues
 public:
 	KeyValues( const char *setName );
 
+	//
+	// AutoDelete class to automatically free the keyvalues.
+	// Simply construct it with the keyvalues you allocated and it will free them when falls out of scope.
+	// When you decide that keyvalues shouldn't be deleted call Assign(NULL) on it.
+	// If you constructed AutoDelete(NULL) you can later assign the keyvalues to be deleted with Assign(pKeyValues).
+	// You can also pass temporary KeyValues object as an argument to a function by wrapping it into KeyValues::AutoDelete
+	// instance:   call_my_function( KeyValues::AutoDelete( new KeyValues( "test" ) ) )
+	//
+	class AutoDelete
+	{
+	public:
+		explicit inline AutoDelete( KeyValues *pKeyValues ) : m_pKeyValues( pKeyValues ) {}
+		inline ~AutoDelete( void ) { if( m_pKeyValues ) m_pKeyValues->deleteThis(); }
+		inline void Assign( KeyValues *pKeyValues ) { m_pKeyValues = pKeyValues; }
+	private:
+		AutoDelete( AutoDelete const &x ); // forbid
+		AutoDelete & operator= ( AutoDelete const &x ); // forbid
+		KeyValues *m_pKeyValues;
+	};
+
 	// Quick setup constructors
 	KeyValues( const char *setName, const char *firstKey, const char *firstValue );
 	KeyValues( const char *setName, const char *firstKey, const wchar_t *firstValue );
@@ -190,8 +210,14 @@ public:
 	// Virtual deletion function - ensures that KeyValues object is deleted from correct heap
 	void deleteThis();
 
-	void		SetStringValue( char const *strValue );
+	void SetStringValue( char const *strValue );
 
+	// unpack a key values list into a structure
+	void UnpackIntoStructure( struct KeyValuesUnpackStructure const *pUnpackTable, void *pDest );
+
+	// Process conditional keys for widescreen support.
+	bool ProcessResolutionKeys( const char *pResString );
+		
 private:
 	KeyValues( KeyValues& );	// prevent copy constructor being used
 
@@ -217,12 +243,16 @@ private:
 	void ParseIncludedKeys( char const *resourceName, const char *filetoinclude, 
 		IBaseFileSystem* pFileSystem, const char *pPathID, CUtlVector< KeyValues * >& includedKeys );
 
+	// For handling #base "filename"
+	void MergeBaseKeys( CUtlVector< KeyValues * >& baseKeys );
+	void RecursiveMergeKeyValues( KeyValues *baseKV );
+
 	// NOTE: If both filesystem and pBuf are non-null, it'll save to both of them.
 	// If filesystem is null, it'll ignore f.
 	void InternalWrite( IBaseFileSystem *filesystem, FileHandle_t f, CUtlBuffer *pBuf, const void *pData, int len );
 	
 	void Init();
-	const char * ReadToken( CUtlBuffer &buf, bool &wasQuoted );
+	const char * ReadToken( CUtlBuffer &buf, bool &wasQuoted, bool &wasConditional );
 	void WriteIndents( IBaseFileSystem *filesystem, FileHandle_t f, CUtlBuffer *pBuf, int indentLevel );
 
 	void FreeAllocatedValue();
@@ -243,25 +273,38 @@ private:
 		unsigned char m_Color[4];
 	};
 	
-#ifdef _XBOX
 	char	   m_iDataType;
 	char	   m_bHasEscapeSequences; // true, if while parsing this KeyValue, Escape Sequences are used (default false)
-	char	   reserved[2];
+	char	   unused[2];
 
 	KeyValues *m_pPeer;	// pointer to next key in list
 	KeyValues *m_pSub;	// pointer to Start of a new sub key list
 	KeyValues *m_pChain;// Search here if it's not in our list
-#else
-	char	   m_iDataType;
-	char	   reserved[5];
-
-	KeyValues *m_pPeer;	// pointer to next key in list
-	KeyValues *m_pSub;	// pointer to Start of a new sub key list
-	KeyValues *m_pChain;// Search here if it's not in our list
-	char	   m_bHasEscapeSequences; // true, if while parsing this KeyValue, Escape Sequences are used (default false)
-#endif
 };
 
+enum KeyValuesUnpackDestinationTypes_t
+{
+	UNPACK_TYPE_FLOAT,										// dest is a float
+	UNPACK_TYPE_VECTOR,										// dest is a Vector
+	UNPACK_TYPE_VECTOR_COLOR,								// dest is a vector, src is a color
+	UNPACK_TYPE_STRING,										// dest is a char *. unpacker will allocate.
+	UNPACK_TYPE_INT,										// dest is an int
+	UNPACK_TYPE_FOUR_FLOATS,	 // dest is an array of 4 floats. source is a string like "1 2 3 4"
+	UNPACK_TYPE_TWO_FLOATS,		 // dest is an array of 2 floats. source is a string like "1 2"
+};
+
+#define UNPACK_FIXED( kname, kdefault, dtype, ofs ) { kname, kdefault, dtype, ofs, 0 }
+#define UNPACK_VARIABLE( kname, kdefault, dtype, ofs, sz ) { kname, kdefault, dtype, ofs, sz }
+#define UNPACK_END_MARKER { NULL, NULL, UNPACK_TYPE_FLOAT, 0 }
+
+struct KeyValuesUnpackStructure
+{
+	char const *m_pKeyName;									// null to terminate tbl
+	char const *m_pKeyDefault;								// null ok
+	KeyValuesUnpackDestinationTypes_t m_eDataType;			// UNPACK_TYPE_INT, ..
+	size_t m_nFieldOffset;									// use offsetof to set
+	size_t m_nFieldSize;									// for strings or other variable length
+};
 
 //-----------------------------------------------------------------------------
 // inline methods
@@ -309,5 +352,6 @@ inline bool  KeyValues::IsEmpty( int keySymbol )
 	return dat ? dat->IsEmpty( ) : true;
 }
 
+bool EvaluateConditional( const char *str );
 
 #endif // KEYVALUES_H

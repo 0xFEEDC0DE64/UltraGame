@@ -10,8 +10,10 @@
 #include "ivp.h"
 #include "disp_ivp.h"
 #include "vphysics_interface.h"
+#include "vphysics/virtualmesh.h"
 #include "utlrbtree.h"
-
+#include "tier1/utlbuffer.h"
+#include "materialpatch.h"
 
 struct disp_grid_t
 {
@@ -175,5 +177,170 @@ void Disp_AddCollisionModels( CUtlVector<CPhysCollisionEntry *> &collisionList, 
 		// now that we have the collide, we're done with the soup
 		physcollision->PolysoupDestroy( pTerrainPhysics );
 	}
+}
+
+
+class CDispMeshEvent : public IVirtualMeshEvent
+{
+public:
+	CDispMeshEvent( unsigned short *pIndices, int indexCount, CCoreDispInfo *pDispInfo );
+	virtual void GetVirtualMesh( void *userData, virtualmeshlist_t *pList );
+	virtual void GetWorldspaceBounds( void *userData, Vector *pMins, Vector *pMaxs );
+	virtual void GetTrianglesInSphere( void *userData, const Vector &center, float radius, virtualmeshtrianglelist_t *pList );
+
+	CUtlVector<Vector>		m_verts;
+	unsigned short			*m_pIndices;
+	int						m_indexCount;
+};
+
+CDispMeshEvent::CDispMeshEvent( unsigned short *pIndices, int indexCount, CCoreDispInfo *pDispInfo )
+{
+	m_pIndices = pIndices;
+	m_indexCount = indexCount;
+	int maxIndex = 0;
+	for ( int i = 0; i < indexCount; i++ )
+	{
+		if ( pIndices[i] > maxIndex )
+		{
+			maxIndex = pIndices[i];
+		}
+	}
+	for ( int i = 0; i < indexCount/2; i++ )
+	{
+		swap( pIndices[i], pIndices[(indexCount-i)-1] );
+	}
+	int count = maxIndex + 1;
+	m_verts.SetCount( count );
+	for ( int i = 0; i < count; i++ )
+	{
+		m_verts[i] = pDispInfo->GetVert(i);
+	}
+}
+
+void CDispMeshEvent::GetVirtualMesh( void *userData, virtualmeshlist_t *pList )
+{
+	Assert(userData==((void *)this));
+	pList->pVerts = m_verts.Base();
+	pList->indexCount = m_indexCount;
+	pList->triangleCount = m_indexCount/3;
+	pList->vertexCount = m_verts.Count();
+	pList->surfacePropsIndex = 0;	// doesn't matter here, reset at runtime
+	pList->pHull = NULL;
+	int indexMax = ARRAYSIZE(pList->indices);
+	int indexCount = min(m_indexCount, indexMax);
+	Assert(m_indexCount < indexMax);
+	Q_memcpy( pList->indices, m_pIndices, sizeof(*m_pIndices) * indexCount );
+}
+
+void CDispMeshEvent::GetWorldspaceBounds( void *userData, Vector *pMins, Vector *pMaxs )
+{
+	Assert(userData==((void *)this));
+	ClearBounds( *pMins, *pMaxs );
+	for ( int i = 0; i < m_verts.Count(); i++ )
+	{
+		AddPointToBounds( m_verts[i], *pMins, *pMaxs );
+	}
+}
+
+void CDispMeshEvent::GetTrianglesInSphere( void *userData, const Vector &center, float radius, virtualmeshtrianglelist_t *pList )
+{
+	Assert(userData==((void *)this));
+	pList->triangleCount = m_indexCount/3;
+	int indexMax = ARRAYSIZE(pList->triangleIndices);
+	int indexCount = min(m_indexCount, indexMax);
+	Assert(m_indexCount < MAX_VIRTUAL_TRIANGLES*3);
+	Q_memcpy( pList->triangleIndices, m_pIndices, sizeof(*m_pIndices) * indexCount );
+}
+
+void Disp_BuildVirtualMesh( int contentsMask )
+{
+	CUtlVector<CPhysCollide *> virtualMeshes;
+	virtualMeshes.EnsureCount( g_CoreDispInfos.Count() );
+	for ( int i = 0; i < g_CoreDispInfos.Count(); i++ )	
+	{
+		CCoreDispInfo *pDispInfo = g_CoreDispInfos[ i ];
+		mapdispinfo_t *pMapDisp = &mapdispinfo[ i ];
+
+		virtualMeshes[i] = NULL;
+		// not solid for this pass
+		if ( !(pMapDisp->contents & contentsMask) )
+			continue;
+
+		// Build a triangle list. This shares the tesselation code with the engine.
+		CUtlVector<unsigned short> indices;
+		CVBSPTesselateHelper helper;
+		helper.m_pIndices = &indices;
+		helper.m_pActiveVerts = pDispInfo->GetAllowedVerts().Base();
+		helper.m_pPowerInfo = pDispInfo->GetPowerInfo();
+
+		::TesselateDisplacement( &helper );
+
+		// validate the collision data
+		if ( 1 )
+		{
+			int triCount = indices.Count() / 3;
+			for ( int j = 0; j < triCount; j++ )
+			{
+				int index = j * 3;
+				Vector v0 = pDispInfo->GetVert( indices[index+0] );
+				Vector v1 = pDispInfo->GetVert( indices[index+1] );
+				Vector v2 = pDispInfo->GetVert( indices[index+2] );
+				if ( v0 == v1 || v1 == v2 || v2 == v0 )
+				{
+					Warning( "Displacement %d has bad geometry near %.2f %.2f %.2f\n", i, v0.x, v0.y, v0.z );
+					texinfo_t *pTexInfo = &texinfo[pMapDisp->face.texinfo];
+					dtexdata_t *pTexData = GetTexData( pTexInfo->texdata );
+					const char *pMatName = TexDataStringTable_GetString( pTexData->nameStringTableID );
+
+					Error( "Can't compile displacement physics, exiting.  Texture is %s\n", pMatName );
+				}
+			}
+
+		}
+		CDispMeshEvent meshHandler( indices.Base(), indices.Count(), pDispInfo );
+		virtualmeshparams_t params;
+		params.buildOuterHull = true;
+		params.pMeshEventHandler = &meshHandler;
+		params.userData = &meshHandler;
+		virtualMeshes[i] = physcollision->CreateVirtualMesh( params );
+	}
+	unsigned int totalSize = 0;
+	CUtlBuffer buf;
+	dphysdisp_t header;
+	header.numDisplacements = g_CoreDispInfos.Count();
+	buf.PutObjects( &header );
+
+	CUtlVector<char> dispBuf;
+	for ( int i = 0; i < header.numDisplacements; i++ )
+	{
+		if ( virtualMeshes[i] )
+		{
+			unsigned int testSize = physcollision->CollideSize( virtualMeshes[i] );
+			totalSize += testSize;
+			buf.PutShort( testSize );
+		}
+		else
+		{
+			buf.PutShort( -1 );
+		}
+	}
+	for ( int i = 0; i < header.numDisplacements; i++ )
+	{
+		if ( virtualMeshes[i] )
+		{
+			unsigned int testSize = physcollision->CollideSize( virtualMeshes[i] );
+			dispBuf.RemoveAll();
+			dispBuf.EnsureCount(testSize);
+
+			unsigned int outSize = physcollision->CollideWrite( dispBuf.Base(), virtualMeshes[i], false );
+			Assert( outSize == testSize );
+			buf.Put( dispBuf.Base(), outSize );
+		}
+	}
+	g_PhysDispSize = totalSize + sizeof(dphysdisp_t) + (sizeof(unsigned short) * header.numDisplacements);
+	Assert( buf.TellMaxPut() == g_PhysDispSize );
+	g_PhysDispSize = buf.TellMaxPut();
+	g_pPhysDisp = new byte[g_PhysDispSize];
+	Q_memcpy( g_pPhysDisp, buf.Base(), g_PhysDispSize );
 }
 

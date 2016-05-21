@@ -18,7 +18,7 @@
 #include "bitmap/imageformat.h"
 
 #include "appframework/IAppSystem.h"
-#include "Vector2D.h"  // must be before the namespace line
+#include "mathlib/vector2d.h"  // must be before the namespace line
 
 #include "IVguiMatInfo.h"
 
@@ -167,10 +167,8 @@ public:
 	virtual bool IsTextureIDValid(int id) = 0;
 
 	virtual int CreateNewTextureID( bool procedural = false ) = 0;
-#ifdef _XBOX
+#ifdef _X360
 	virtual void DestroyTextureID( int id ) = 0;
-	virtual bool IsCachedForRendering( int id, bool bSyncWait ) = 0;
-	virtual void CopyFrontBufferToBackBuffer() = 0;
 	virtual void UncacheUnusedMaterials() = 0;
 #endif
 
@@ -246,7 +244,7 @@ public:
 		FONTFLAG_BITMAP			= 0x800,		// compiled bitmap font - no fallbacks
 	};
 
-	virtual bool SetFontGlyphSet(HFont font, const char *windowsFontName, int tall, int weight, int blur, int scanlines, int flags) = 0;
+	virtual bool SetFontGlyphSet(HFont font, const char *windowsFontName, int tall, int weight, int blur, int scanlines, int flags, int nRangeMin = 0, int nRangeMax = 0) = 0;
 
 	// adds a custom font file (only supports true type font files (.ttf) for now)
 	virtual bool AddCustomFontFile(const char *fontFileName) = 0;
@@ -323,9 +321,9 @@ public:
 
 	// video mode changing
 	virtual void OnScreenSizeChanged( int nOldWidth, int nOldHeight ) = 0;
-#if !defined( _XBOX )
-	virtual vgui::HCursor	CreateCursorFromFile( char const *curOrAniFile, char const *pPathID = 0 ) = 0;
-#endif
+
+	virtual vgui::HCursor CreateCursorFromFile( char const *curOrAniFile, char const *pPathID = 0 ) = 0;
+
 	// create IVguiMatInfo object ( IMaterial wrapper in VguiMatSurface, NULL in CWin32Surface )
 	virtual IVguiMatInfo *DrawGetTextureMatInfoFactory( int id ) = 0;
 
@@ -345,9 +343,13 @@ public:
 	virtual void SetBitmapFontName( const char *pName, const char *pFontFilename ) = 0;
 	// gets the bitmap font filename
 	virtual const char *GetBitmapFontName( const char *pName ) = 0;
+	virtual void ClearTemporaryFontCache( void ) = 0;
 
 	virtual IImage *GetIconImageForFullPath( char const *pFullPath ) = 0;
 	virtual void DrawUnicodeString( const wchar_t *pwString, FontDrawType_t drawType = FONT_DRAW_DEFAULT ) = 0;
+	virtual void PrecacheFontCharacters(HFont font, wchar_t *pCharacters) = 0;
+	// Console-only.  Get the string to use for the current video mode for layout files.
+	virtual const char *GetResolutionKey( void ) const = 0;
 };
 
 }

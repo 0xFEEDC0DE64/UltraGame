@@ -29,12 +29,13 @@ public:
 	EditablePanel(Panel *parent, const char *panelName);
 	EditablePanel::EditablePanel(Panel *parent, const char *panelName, HScheme hScheme);
 
-	~EditablePanel();
+	virtual ~EditablePanel();
 
 	// Load the control settings - should be done after all the children are added
 	// If you pass in pPreloadedKeyValues, it won't actually load the file. That way, you can cache
 	// the keyvalues outside of here if you want to prevent file accesses in the middle of the game.
 	virtual void LoadControlSettings(const char *dialogResourceName, const char *pathID = NULL, KeyValues *pPreloadedKeyValues = NULL);
+	virtual void ApplySettings(KeyValues *inResourceData);
 
 	// sets the name of this dialog so it can be saved in the user config area
 	// use dialogID to differentiate multiple instances of the same dialog
@@ -90,7 +91,7 @@ public:
 	// Get the panel with the specified hotkey
 	virtual Panel *HasHotkey(wchar_t key);
 
-	virtual void OnKeyCodeTyped(enum KeyCode code);
+	virtual void OnKeyCodeTyped( KeyCode code );
 
 	// Handle information requests
 	virtual bool RequestInfo(KeyValues *data);
@@ -120,15 +121,14 @@ protected:
 	virtual FocusNavGroup &GetFocusNavGroup();
 
 	// called when default button has been set
-	MESSAGE_FUNC_PTR( OnDefaultButtonSet, "DefaultButtonSet", button );
+	MESSAGE_FUNC_HANDLE( OnDefaultButtonSet, "DefaultButtonSet", button );
 	// called when the current default button has been set
-	MESSAGE_FUNC_PTR( OnCurrentDefaultButtonSet, "CurrentDefaultButtonSet", button );
+	MESSAGE_FUNC_HANDLE( OnCurrentDefaultButtonSet, "CurrentDefaultButtonSet", button );
     MESSAGE_FUNC( OnFindDefaultButton, "FindDefaultButton" );
 
 	// overrides
 	virtual void OnChildAdded(VPANEL child);
 	virtual void OnSizeChanged(int wide, int tall);
-	virtual void ApplySettings(KeyValues *inResourceData);
 	virtual void OnClose();
 
 	// user configuration settings

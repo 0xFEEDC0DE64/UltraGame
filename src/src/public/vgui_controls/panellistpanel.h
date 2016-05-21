@@ -12,8 +12,8 @@
 #pragma once
 #endif
 
-#include <UtlLinkedList.h>
-#include <UtlVector.h>
+#include <utllinkedlist.h>
+#include <utlvector.h>
 #include <vgui/VGUI.h>
 #include <vgui_controls/Panel.h>
 
@@ -38,7 +38,13 @@ public:
 	// DATA & ROW HANDLING
 	// The list now owns the panel
 	virtual int AddItem( Panel *labelPanel, Panel *panel );
-	virtual int	GetItemCount();
+	int	GetItemCount() const;
+	int GetItemIDFromRow( int nRow ) const;
+
+	// Iteration. Use these until they return InvalidItemID to iterate all the items.
+	int FirstItem() const;
+	int NextItem( int nItemID ) const;
+	int InvalidItemID() const;
 
 	virtual Panel *GetItemLabel(int itemID); 
 	virtual Panel *GetItemPanel(int itemID); 
@@ -53,6 +59,8 @@ public:
 	// layout
 	void SetFirstColumnWidth( int width );
 	int GetFirstColumnWidth();
+	void SetNumColumns( int iNumColumns );
+	int GetNumColumns( void );
 	void MoveScrollBarToTop();
 
 	// selection
@@ -65,6 +73,8 @@ public:
 	*/
 
 	void		SetVerticalBufferPixels( int buffer );
+
+	void		ScrollToItem( int itemNumber );
 
 protected:
 	// overrides
@@ -96,6 +106,7 @@ private:
 
 	PHandle					m_hSelectedItem;
 	int						m_iFirstColumnWidth;
+	int						m_iNumColumns;
 	int						m_iDefaultHeight;
 	int						m_iPanelBuffer;
 };

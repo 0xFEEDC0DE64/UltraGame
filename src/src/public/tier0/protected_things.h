@@ -130,7 +130,7 @@
 #endif
 
 
-#if defined( PROTECT_FILEIO_FUNCTIONS )
+#if defined( PROTECT_FILEIO_FUNCTIONS ) && ( ! defined( _LINUX ) )
 	#if defined( fopen )
 		#undef fopen
 	#endif
@@ -143,7 +143,7 @@
 #endif	
 
 
-#if defined( PROTECTED_THINGS_ENABLE )
+#if defined( PROTECTED_THINGS_ENABLE ) && !defined( _X360 )
 
 	#if defined( GetTickCount )
 		#undef GetTickCount
@@ -151,14 +151,10 @@
 	#define GetTickCount		GetTickCount__USE_VCR_MODE
 	
 	
-#ifndef _XBOX
 	#if defined( timeGetTime )
 		#undef timeGetTime
 	#endif
 	#define timeGetTime			timeGetTime__USE_VCR_MODE
-#endif
-
-
 	#if defined( clock )
 		#undef clock
 	#endif
@@ -277,12 +273,10 @@
 	#endif
 	#define WaitForSingleObject	WaitForSingleObject__USE_VCR_MODE
 
-#ifndef _XBOX
 	#if defined( EnterCriticalSection )
 		#undef EnterCriticalSection
 	#endif
 	#define EnterCriticalSection EnterCriticalSection__USE_VCR_MODE
-#endif
 
 #endif
 

@@ -23,7 +23,7 @@ public:
 	virtual	~IClient() {}
 
 	// connect client
-	virtual void	Connect(const char * szName, int nUserID, INetChannel *pNetChannel) = 0;
+	virtual void	Connect(const char * szName, int nUserID, INetChannel *pNetChannel, bool bFakePlayer) = 0;
 
 	// set the client in a pending state waiting for a new game
 	virtual void	Inactivate( void ) = 0;
@@ -76,6 +76,10 @@ public:
 	virtual bool	IsHLTV( void ) const = 0;
 	// returns true, if client hears this player
 	virtual bool	IsHearingClient(int index) const = 0;
+	// returns true, if client hears this player by proximity
+	virtual bool	IsProximityHearingClient(int index) const = 0;
+
+	virtual void	SetMaxRoutablePayloadSize( int nMaxRoutablePayloadSize ) = 0;
 };
 
 #endif // ICLIENT_H

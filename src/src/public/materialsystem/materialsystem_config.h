@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef MATERIALSYSTEM_CONFIG_H
 #define MATERIALSYSTEM_CONFIG_H
@@ -29,6 +29,9 @@ enum MaterialSystem_Config_Flags_t
 	MATSYS_VIDCFG_FLAGS_USE_Z_PREFILL				= ( 1 << 10 ),
 	MATSYS_VIDCFG_FLAGS_REDUCE_FILLRATE				= ( 1 << 11 ),
 	MATSYS_VIDCFG_FLAGS_ENABLE_HDR					= ( 1 << 12 ),
+	MATSYS_VIDCFG_FLAGS_LIMIT_WINDOWED_SIZE			= ( 1 << 13 ),
+	MATSYS_VIDCFG_FLAGS_SCALE_TO_OUTPUT_RESOLUTION  = ( 1 << 14 ),
+	MATSYS_VIDCFG_FLAGS_USING_MULTIPLE_WINDOWS      = ( 1 << 15 ),
 };
 
 struct MaterialSystemHardwareIdentifier_t
@@ -52,7 +55,13 @@ struct MaterialSystem_Config_t
 	bool UseZPrefill() const { return ( m_Flags & MATSYS_VIDCFG_FLAGS_USE_Z_PREFILL ) != 0; }
 	bool ReduceFillrate() const { return ( m_Flags & MATSYS_VIDCFG_FLAGS_REDUCE_FILLRATE ) != 0; }
 	bool HDREnabled() const { return ( m_Flags & MATSYS_VIDCFG_FLAGS_ENABLE_HDR ) != 0; }
-	
+	bool LimitWindowedSize() const { return ( m_Flags & MATSYS_VIDCFG_FLAGS_LIMIT_WINDOWED_SIZE ) != 0; }
+	bool ScaleToOutputResolution() const { return ( m_Flags & MATSYS_VIDCFG_FLAGS_SCALE_TO_OUTPUT_RESOLUTION ) != 0; }
+	bool UsingMultipleWindows() const { return ( m_Flags & MATSYS_VIDCFG_FLAGS_USING_MULTIPLE_WINDOWS ) != 0; }
+	bool ShadowDepthTexture() const { return m_bShadowDepthTexture; }
+	bool MotionBlur() const { return m_bMotionBlur; }
+	bool SupportFlashlight() const { return m_bSupportFlashlight; }
+
 	void SetFlag( unsigned int flag, bool val )
 	{
 		if( val )
@@ -68,6 +77,11 @@ struct MaterialSystem_Config_t
 	// control panel stuff
 	MaterialVideoMode_t m_VideoMode;
 	float m_fMonitorGamma;
+	float m_fGammaTVRangeMin;
+	float m_fGammaTVRangeMax;
+	float m_fGammaTVExponent;
+	bool m_bGammaTVEnabled;
+
 	int m_nAASamples;
 	int m_nForceAnisotropicLevel;
 	int skipMipLevels;
@@ -86,7 +100,7 @@ struct MaterialSystem_Config_t
 	bool bNoTransparency;
 	bool bSoftwareLighting;
 	bool bAllowCheats;
-	bool bShowMipLevels;
+	char nShowMipLevels;
 	bool bShowLowResImage;
 	bool bShowNormalMap; 
 	bool bMipMapTextures;
@@ -99,16 +113,26 @@ struct MaterialSystem_Config_t
 	bool bShowDiffuse;  // This is the fast version that doesn't require reloading materials
 
 	// misc
-	// can we get rid of numTextureUnits?
-	int numTextureUnits; // set to zero if there is no limit on the 
-						 // number of texture units to be used.
-						 // otherwise, the effective number of texture units
-						 // will be max( config->numTexturesUnits, hardwareNumTextureUnits )
+	int m_nReserved;	// Currently unused
 
-	float m_SlopeScaleDepthBias_Decal;
+	// No depth bias
 	float m_SlopeScaleDepthBias_Normal;
-	float m_DepthBias_Decal;
 	float m_DepthBias_Normal;
+
+	// Depth bias for rendering decals closer to the camera
+	float m_SlopeScaleDepthBias_Decal;
+	float m_DepthBias_Decal;
+
+	// Depth bias for biasing shadow depth map rendering away from the camera
+	float m_SlopeScaleDepthBias_ShadowMap;
+	float m_DepthBias_ShadowMap;
+
+	uint m_WindowedSizeLimitWidth;
+	uint m_WindowedSizeLimitHeight;
+	int m_nAAQuality;
+	bool m_bShadowDepthTexture;
+	bool m_bMotionBlur;
+	bool m_bSupportFlashlight;
 
 	MaterialSystem_Config_t()
 	{
@@ -126,17 +150,30 @@ struct MaterialSystem_Config_t
 		SetFlag( MATSYS_VIDCFG_FLAGS_ENABLE_PARALLAX_MAPPING, true );
 		SetFlag( MATSYS_VIDCFG_FLAGS_USE_Z_PREFILL, false );
 		SetFlag( MATSYS_VIDCFG_FLAGS_REDUCE_FILLRATE, false );
+		SetFlag( MATSYS_VIDCFG_FLAGS_LIMIT_WINDOWED_SIZE, false );
+		SetFlag( MATSYS_VIDCFG_FLAGS_SCALE_TO_OUTPUT_RESOLUTION, false );
+		SetFlag( MATSYS_VIDCFG_FLAGS_USING_MULTIPLE_WINDOWS, false );
+
 		m_VideoMode.m_Width = 640;
 		m_VideoMode.m_Height = 480;
 		m_VideoMode.m_RefreshRate = 60;
 		dxSupportLevel = 0;
 		bCompressedTextures = true;
-		numTextureUnits = 0;
 		bFilterTextures = true;
 		bFilterLightmaps = true;
 		bMipMapTextures = true;
 		bBufferPrimitives = true;
+
 		m_fMonitorGamma = 2.2f;
+		m_fGammaTVRangeMin = 16.0f;
+		m_fGammaTVRangeMax = 255.0f;
+		m_fGammaTVExponent = 2.5;
+		m_bGammaTVEnabled = IsX360();
+
+		m_nAASamples = 1;
+		m_bShadowDepthTexture = false;
+		m_bMotionBlur = false;
+		m_bSupportFlashlight = true;
 
 		// misc defaults
 		bAllowCheats = false;
@@ -151,7 +188,7 @@ struct MaterialSystem_Config_t
 		bFilterLightmaps = true;
 		bFilterTextures = true;
 		bMipMapTextures = true;
-		bShowMipLevels = false;
+		nShowMipLevels = 0;
 		bShowLowResImage = false;
 		bReverseDepth = false;
 		bBufferPrimitives = true;
@@ -165,8 +202,12 @@ struct MaterialSystem_Config_t
 		m_bSuppressRendering = false;
 		m_SlopeScaleDepthBias_Decal = -0.5f;
 		m_SlopeScaleDepthBias_Normal = 0.0f;
+		m_SlopeScaleDepthBias_ShadowMap = 0.5f;
 		m_DepthBias_Decal = -262144;
 		m_DepthBias_Normal = 0.0f;
+		m_DepthBias_ShadowMap = 262144;
+		m_WindowedSizeLimitWidth = 1280;
+		m_WindowedSizeLimitHeight = 1024;
 	}
 };
 

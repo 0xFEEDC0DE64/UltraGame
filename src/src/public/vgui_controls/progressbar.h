@@ -48,7 +48,20 @@ public:
 	// returns the number of segment blocks drawn
 	int GetDrawnSegmentCount();
 
+	enum ProgressDir_e
+	{
+		PROGRESS_EAST,
+		PROGRESS_WEST,
+		PROGRESS_NORTH,
+		PROGRESS_SOUTH
+	};
+
+	int GetProgressDirection() const { return m_iProgressDirection; }
+	void SetProgressDirection( int val ) { m_iProgressDirection = val; }
+
 protected:
+	virtual void Paint();
+	void PaintSegment( int &x, int &y, int tall, int wide );
 	virtual void PaintBackground();
 	virtual void ApplySchemeSettings(IScheme *pScheme);
 	MESSAGE_FUNC_PARAMS( OnDialogVariablesChanged, "DialogVariables", dialogVariables );
@@ -57,13 +70,29 @@ protected:
 			input:	"progress"	- float value of the progress to set
 	*/
 
+protected:
+	int m_iProgressDirection;
+	float _progress;
+
 private:
 	int   _segmentCount;
-	float _progress;
 	int _segmentGap;
 	int _segmentWide;
 	int m_iBarInset;
 	char *m_pszDialogVar;
+};
+
+//-----------------------------------------------------------------------------
+// Purpose: Non-segmented progress bar
+//-----------------------------------------------------------------------------
+class ContinuousProgressBar : public ProgressBar
+{
+	DECLARE_CLASS_SIMPLE( ContinuousProgressBar, ProgressBar );
+
+public:
+	ContinuousProgressBar(Panel *parent, const char *panelName);
+
+	virtual void Paint();
 };
 
 } // namespace vgui

@@ -93,16 +93,26 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#if defined( PROTECTED_THINGS_ENABLE )
+#undef PROTECTED_THINGS_ENABLE // from protected_things.h
+#endif
 
+#include "tier0/platform.h"
+
+#ifdef IS_WINDOWS_PC
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
+#endif
 #include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <tchar.h>
 #include "zip/XUnzip.h"
+#if defined( _X360 )
+#include "xbox/xbox_win32stubs.h"
+#endif
 
 // THIS FILE is almost entirely based upon code by Jean-loup Gailly
 // and Mark Adler. It has been modified by Lucian Wischik.
@@ -3946,16 +3956,19 @@ ZRESULT TUnzip::Get(int index,ZIPENTRY *ze)
     bool hasctime = (flags&4)!=0;
     epos+=5;
     if (hasmtime)
-    { time_t mtime = *(time_t*)(extra+epos); epos+=4;
-      ze->mtime = timet2filetime(mtime);
+    { 
+		__time32_t mtime = *(__time32_t*)(extra+epos); epos+=4;
+		ze->mtime = timet2filetime(mtime);
     }
     if (hasatime)
-    { time_t atime = *(time_t*)(extra+epos); epos+=4;
-      ze->atime = timet2filetime(atime);
+    { 
+		__time32_t atime = *(__time32_t*)(extra+epos); epos+=4;
+		ze->atime = timet2filetime(atime);
     }
     if (hasctime)
-    { time_t ctime = *(time_t*)(extra+epos); 
-      ze->ctime = timet2filetime(ctime);
+    { 
+		__time32_t ctime = *(__time32_t*)(extra+epos); 
+		ze->ctime = timet2filetime(ctime);
     }
     break;
   }

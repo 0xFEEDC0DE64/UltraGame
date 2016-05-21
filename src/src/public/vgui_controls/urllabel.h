@@ -36,6 +36,8 @@ protected:
 	virtual void ApplySchemeSettings(IScheme *pScheme);
 	virtual const char *GetDescription( void );
 
+	const char *GetURL( void ) { return m_pszURL; }
+
 private:
     char    *m_pszURL;
     int     m_iURLSize;

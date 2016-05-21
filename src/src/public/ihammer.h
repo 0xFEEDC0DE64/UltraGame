@@ -49,6 +49,8 @@ public:
 
 	// Returns the full path to the mod and the game to initially start up
 	virtual const char *GetDefaultModFullPath() = 0;
+
+	virtual int MainLoop() = 0;
 };	
 
 #endif // IHAMMER_H

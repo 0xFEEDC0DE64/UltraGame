@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef MENU_H
 #define MENU_H
@@ -14,15 +14,14 @@
 
 #include <vgui_controls/Panel.h>
 #include <vgui_controls/Label.h>
-#include <UtlLinkedList.h>
-#include <UtlVector.h>
+#include <utllinkedlist.h>
+#include <utlvector.h>
 
 namespace vgui
 {
 
 class MenuItem;
 class ScrollBar;
-enum MouseCode;
 class MenuSeparator;
 
 //-----------------------------------------------------------------------------
@@ -85,7 +84,7 @@ class MenuSeparator;
 class Menu : public Panel
 {
 	DECLARE_CLASS_SIMPLE( Menu, Panel );
-	friend MenuItem;
+	friend class MenuItem;
 public:
 	enum MenuDirection_e
 	{
@@ -192,7 +191,7 @@ public:
 	// Hotkey handling
 	virtual void OnKeyTyped(wchar_t unichar);
 	// Menu nagivation etc.
-	virtual void OnKeyCodeTyped(enum KeyCode code);
+	virtual void OnKeyCodeTyped( KeyCode code );
 
 	// Visibility
 	virtual void SetVisible(bool state);
@@ -244,6 +243,8 @@ public:
 	void SetCurrentKeyBinding( int itemID, char const *hotkey );
 
 	void ForceCalculateWidth();
+
+	void SetUseFallbackFont( bool bState, HFont hFallback );
 
 protected:
 	// helper functions	
@@ -309,9 +310,11 @@ private:
 	CUtlVector<int>					m_Separators;       // menu item ids after  which separators should be shown
 	CUtlVector<MenuSeparator *>		m_SeparatorPanels;
 
-	bool 			_sizedForScrollBar;  // whether menu has been sized for a scrollbar
+	bool 			_sizedForScrollBar: 1 ;  // whether menu has been sized for a scrollbar
+	bool			m_bUseFallbackFont : 1;
+	bool 			_recalculateWidth : 1;
+
 	int 			_menuWide;
-	bool 			_recalculateWidth;
 	int 			m_iCurrentlySelectedItemID;
 	int 			m_iInputMode;
 	int 			m_iCheckImageWidth; // the size of the check box spot on a checkable menu.
@@ -320,6 +323,7 @@ private:
 	Color 			_borderDark;
 	int 			m_iActivatedItem;
 	HFont			m_hItemFont;
+	HFont			m_hFallbackItemFont;
 };
 
 } // namespace vgui

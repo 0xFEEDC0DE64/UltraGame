@@ -10,39 +10,49 @@
 #pragma once
 #endif
 
-#define XWV_ID	(('X'<<24)|('W'<<16)|('V'<<8)|('1'<<0))
+#pragma pack(1)
 
-#define XBOX_ADPCM_SAMPLES_PER_BLOCK		64
-#define XBOX_ADPCM_BLOCK_SIZE_PER_CHANNEL	36
+#define XWV_ID		(('X'<<24)|('W'<<16)|('V'<<8)|(' '<<0))
+#define XWV_VERSION 4
 
-enum xwvsamplerates_t
+enum xwvSampleRate_t
 {
 	XWV_RATE_11025 = 0,
 	XWV_RATE_22050 = 1,
 	XWV_RATE_44100 = 2,
 };
 
-enum xwvformats_t
+enum xwvFormat_t
 {
 	XWV_FORMAT_PCM = 0,
-	XWV_FORMAT_XBOX_ADPCM = 1,
+	XWV_FORMAT_XMA = 1,
+	XWV_FORMAT_ADPCM = 2,
 };
 
-struct xwvheader_t
+// generated in big-endian
+struct xwvHeader_t
 {
 	unsigned int	id;
-	unsigned int	headerSize;
-	unsigned int	dataSize;
-	unsigned int	dataOffset;
-	int				loopStart;
-	unsigned short	vdatSize;
+	unsigned int	version;
+	unsigned int	headerSize;			// header only
+	unsigned int	staticDataSize;		// follows header
+	unsigned int	dataOffset;			// start of samples, possibly sector aligned
+	unsigned int	dataSize;			// length of samples in bytes
+	unsigned int	numDecodedSamples;	// for duration calcs
+	int				loopStart;			// -1 = no loop, offset of loop in samples
+	unsigned short	loopBlock;			// the xma block where the loop starts 
+	unsigned short	numLeadingSamples;	// number of leading samples in the loop block to discard
+	unsigned short	numTrailingSamples;	// number of trailing samples at the final block to discard
+	unsigned short	vdatSize;			// follows seek table
 	byte			format;
 	byte			bitsPerSample;
-	byte			sampleRate : 4;
-	byte			channels : 4;
-	byte			unused;
+	byte			sampleRate;
+	byte			channels;
+	byte			quality;
+	byte			bHasSeekTable;		// indicates presence, follows header
+	byte			padding[2];			// created as 0
 
-	inline unsigned int GetPreloadSize() { return headerSize + vdatSize; }
+	inline unsigned int GetPreloadSize() { return headerSize + staticDataSize; }
 
 	inline int GetBitsPerSample() const { return bitsPerSample; }
 
@@ -57,12 +67,19 @@ struct xwvheader_t
 
 	void SetSampleRate( int sampleRateIn )
 	{
-		byte rate = (sampleRateIn == 11025) ? XWV_RATE_11025 : (sampleRateIn==22050)? XWV_RATE_22050 : XWV_RATE_44100;
+		byte rate = ( sampleRateIn == 11025 ) ? XWV_RATE_11025 : ( sampleRateIn==22050 )? XWV_RATE_22050 : XWV_RATE_44100;
 		sampleRate = rate;
 	}
 
 	inline void SetChannels( int channelsIn ) { channels = channelsIn; }
+
+	inline int GetSeekTableSize()
+	{
+		// seek table is indexed by packets
+		return bHasSeekTable ? ( dataSize / 2048 ) * sizeof( int ) : 0;
+	}
 };
 
+#pragma pack()
 
 #endif // XWVFILE_H

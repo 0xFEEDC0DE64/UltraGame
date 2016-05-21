@@ -43,6 +43,7 @@ public:
 	virtual int AddItem(const wchar_t *itemText, const KeyValues *userData);
 
 	virtual int GetItemCount();
+	int GetItemIDFromRow( int row );
 
 	// update the item
 	virtual bool UpdateItem(int itemID, const char *itemText,const  KeyValues *userData);
@@ -103,6 +104,8 @@ public:
 	virtual void SetOpenDirection(Menu::MenuDirection_e direction);
 
 	virtual void SetFont( HFont font );
+
+	virtual void SetUseFallbackFont( bool bState, HFont hFallback );
 
 protected:
 	// overrides

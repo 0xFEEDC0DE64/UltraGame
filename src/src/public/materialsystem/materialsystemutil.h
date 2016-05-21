@@ -37,10 +37,11 @@ public:
 	~CMaterialReference();
 
 	// Attach to a material
-	void Init( char const* pMaterialName, const char *pTextureGroupName, bool bComplain = true );
+	void Init( const char* pMaterialName, const char *pTextureGroupName, bool bComplain = true );
 	void Init( const char *pMaterialName, KeyValues *pVMTKeyValues );
 	void Init( IMaterial* pMaterial );
 	void Init( CMaterialReference& ref );
+	void Init( const char *pMaterialName, const char *pTextureGroupName, KeyValues *pVMTKeyValues );
 
 	// Detach from a material
 	void Shutdown();
@@ -69,11 +70,16 @@ public:
 	// Attach to a texture
 	void Init( char const* pTexture, const char *pTextureGroupName, bool bComplain = true );
 	void InitProceduralTexture( const char *pTextureName, const char *pTextureGroupName, int w, int h, ImageFormat fmt, int nFlags );
-	void InitRenderTarget( int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat fmt, MaterialRenderTargetDepth_t depth, bool bHDR );
+	void InitRenderTarget( int w, int h, RenderTargetSizeMode_t sizeMode, ImageFormat fmt, MaterialRenderTargetDepth_t depth, bool bHDR, char *pStrOptionalName = NULL );
+#if defined( _X360 )
+	// used when RT coupling is disparate (texture is DDR based, surface is EDRAM based)
+	void InitRenderTargetTexture( int width, int height, RenderTargetSizeMode_t sizeMode, ImageFormat fmt, MaterialRenderTargetDepth_t depth, bool bHDR, char *pStrOptionalName = NULL );
+	void InitRenderTargetSurface( int width, int height, ImageFormat fmt, bool bSameAsTexture );
+#endif
 	void Init( ITexture* pTexture );
 
 	// Detach from a texture
-	void Shutdown();
+	void Shutdown( bool bDeleteIfUnReferenced = false );
 	bool IsValid() { return m_pTexture != 0; }
 
 	// Automatic casts to ITexture

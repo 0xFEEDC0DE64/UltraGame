@@ -15,7 +15,7 @@
 #define LIGHTMAP_H
 #pragma once
 
-#include "bumpvects.h"
+#include "mathlib/bumpvects.h"
 #include "bsplib.h"
 
 typedef struct
@@ -72,7 +72,7 @@ struct facelight_t
 	// irregularly shaped light sample data, clipped by face and luxel grid
 	int			numsamples;
 	sample_t	*sample;			
-	Vector		*light[MAXLIGHTMAPS][NUM_BUMP_VECTS+1];	// result of direct illumination, indexed by sample
+	LightingValue_t *light[MAXLIGHTMAPS][NUM_BUMP_VECTS+1];	// result of direct illumination, indexed by sample
 
 	// regularly spaced lightmap grid
 	int			numluxels;			
@@ -110,7 +110,7 @@ struct lightinfo_t
 	int		hasbumpmap;
 };
 
-struct SampleInfo_t
+struct SSE_SampleInfo_t
 {
 	int		m_FaceNum;
 	int		m_WarnFace;
@@ -120,14 +120,16 @@ struct SampleInfo_t
 	int		m_LightmapHeight;
 	int		m_LightmapSize;
 	int		m_NormalCount;
-	int		m_Cluster;
 	int		m_iThread;
 	texinfo_t	*m_pTexInfo;
 	bool	m_IsDispFace;
-	Vector	m_Point;
-	Vector	m_PointNormal[ NUM_BUMP_VECTS + 1 ];
-};
 
+	int          m_NumSamples;
+	int          m_NumSampleGroups;
+	int	        m_Clusters[4];
+	FourVectors	m_Points;
+	FourVectors	m_PointNormals[ NUM_BUMP_VECTS + 1 ];
+};
 
 extern void InitLightinfo( lightinfo_t *l, int facenum );
 

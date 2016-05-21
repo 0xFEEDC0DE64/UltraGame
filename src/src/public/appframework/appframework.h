@@ -1,10 +1,10 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: An application framework 
 //
 // $Revision: $
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef APPFRAMEWORK_H
 #define APPFRAMEWORK_H
@@ -36,26 +36,50 @@ int AppMain( int argc, char **argv, CAppSystemGroup *pAppSystemGroup );
 
 
 //-----------------------------------------------------------------------------
+// Used to startup/shutdown the application
+//-----------------------------------------------------------------------------
+int AppStartup( void* hInstance, void* hPrevInstance, const char* lpCmdLine, int nCmdShow, CAppSystemGroup *pAppSystemGroup );
+int AppStartup( int argc, char **argv, CAppSystemGroup *pAppSystemGroup );
+void AppShutdown( CAppSystemGroup *pAppSystemGroup );
+
+
+//-----------------------------------------------------------------------------
 // Macros to create singleton application objects for windowed + console apps
 //-----------------------------------------------------------------------------
+#if !defined( _X360 )
 #define DEFINE_WINDOWED_APPLICATION_OBJECT_GLOBALVAR( _globalVarName ) \
 	int __stdcall WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )	\
 	{																							\
 		return AppMain( hInstance, hPrevInstance, lpCmdLine, nCmdShow, &_globalVarName );		\
 	}
+#else
+#define DEFINE_WINDOWED_APPLICATION_OBJECT_GLOBALVAR( _globalVarName )	\
+	void __cdecl main()																\
+	{																				\
+		AppMain( (HINSTANCE)1, (HINSTANCE)0, NULL, 0, &_globalVarName );		\
+	}
+#endif
 
+#if !defined( _X360 )
 #define DEFINE_CONSOLE_APPLICATION_OBJECT_GLOBALVAR( _globalVarName ) \
 	int main( int argc, char **argv )			\
 	{											\
 		return AppMain( argc, argv, &_globalVarName );	\
 	}
+#else
+#define DEFINE_CONSOLE_APPLICATION_OBJECT_GLOBALVAR( _globalVarName ) \
+	void __cdecl main()							\
+	{											\
+		AppMain( 0, (char**)NULL, &_globalVarName );	\
+	}
+#endif
 
 #define DEFINE_WINDOWED_APPLICATION_OBJECT( _className )	\
 	static _className __s_ApplicationObject;				\
 	DEFINE_WINDOWED_APPLICATION_OBJECT_GLOBALVAR( __s_ApplicationObject )
 
 #define DEFINE_CONSOLE_APPLICATION_OBJECT( _className )	\
-	static _className *__s_ApplicationObject;			\
+	static _className __s_ApplicationObject;			\
 	DEFINE_CONSOLE_APPLICATION_OBJECT_GLOBALVAR( __s_ApplicationObject )
 
 
@@ -66,6 +90,8 @@ int AppMain( int argc, char **argv, CAppSystemGroup *pAppSystemGroup );
 //-----------------------------------------------------------------------------
 class CSteamApplication : public CAppSystemGroup
 {
+	typedef CAppSystemGroup BaseClass;
+
 public:
 	CSteamApplication( CSteamAppSystemGroup *pAppSystemGroup );
 
@@ -75,6 +101,11 @@ public:
 	virtual int Main( );
 	virtual void PostShutdown();
 	virtual void Destroy();
+
+	// Use this version in cases where you can't control the main loop and
+	// expect to be ticked
+	virtual int Startup();
+	virtual void Shutdown();
 
 protected:
 	IFileSystem *m_pFileSystem;
@@ -95,10 +126,13 @@ protected:
 	static CSteamApplication __s_SteamApplicationObject( &__s_ApplicationObject );	\
 	DEFINE_WINDOWED_APPLICATION_OBJECT_GLOBALVAR( __s_SteamApplicationObject )
 
+#define DEFINE_CONSOLE_STEAM_APPLICATION_OBJECT_GLOBALVAR( _className, _varName )	\
+	static CSteamApplication __s_SteamApplicationObject( &_varName );	\
+	DEFINE_CONSOLE_APPLICATION_OBJECT_GLOBALVAR( __s_SteamApplicationObject )
+
 #define DEFINE_CONSOLE_STEAM_APPLICATION_OBJECT( _className )	\
 	static _className __s_ApplicationObject;			\
 	static CSteamApplication __s_SteamApplicationObject( &__s_ApplicationObject );	\
 	DEFINE_CONSOLE_APPLICATION_OBJECT_GLOBALVAR( __s_SteamApplicationObject )
-
 
 #endif // APPFRAMEWORK_H

@@ -19,14 +19,16 @@
 #endif
 
 
-#include "appframework/AppFramework.h"
+#include "appframework/tier3app.h"
 
 
 //-----------------------------------------------------------------------------
 // The application object
 //-----------------------------------------------------------------------------
-class CVguiMatSysApp : public CSteamAppSystemGroup
+class CVguiMatSysApp : public CVguiSteamApp
 {
+	typedef CVguiSteamApp BaseClass;
+
 public:
 	CVguiMatSysApp();
 
@@ -49,17 +51,16 @@ protected:
 	int GetWindowWidth() const;
 	int GetWindowHeight() const;
 
+	// Sets up the game path
+	bool SetupSearchPaths( const char *pStartingDir, bool bOnlyUseStartingDir, bool bIsTool );
+
 private:
 	// Returns the app name
 	virtual const char *GetAppName() = 0;
-	virtual const char *GetGameInfoName() { return NULL; }
 	virtual bool AppUsesReadPixels() { return false; }
 
 	// Creates the app window
-	bool CreateAppWindow( char const *pTitle, bool bWindowed, int w, int h );
-
-	// Sets up the game path
-	bool SetupSearchPaths();
+	virtual void *CreateAppWindow( char const *pTitle, bool bWindowed, int w, int h );
 
 	void *m_HWnd;
 	int m_nWidth;

@@ -63,7 +63,7 @@ typedef unsigned long HFont;
 const HFont INVALID_FONT = 0; // the value of an invalid font handle
 }
 
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 
 
 #endif // VGUI_H

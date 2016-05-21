@@ -33,7 +33,7 @@ public:
 	virtual void FreeKeyValuesMemory(void *pMem) = 0;
 
 	// symbol table access (used for key names)
-	virtual HKeySymbol GetSymbolForString(const char *name) = 0;
+	virtual HKeySymbol GetSymbolForString( const char *name, bool bCreate = true ) = 0;
 	virtual const char *GetStringForSymbol(HKeySymbol symbol) = 0;
 
 	// for debugging, adds KeyValues record into global list so we can track memory leaks

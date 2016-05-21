@@ -13,8 +13,8 @@
 #include <vgui_controls/Panel.h>
 #include <vgui_controls/PHandle.h>
 
-#include "UtlSymbol.h"
-#include "UtlVector.h"
+#include "tier1/utlsymbol.h"
+#include "tier1/utlvector.h"
 
 namespace vgui
 {
@@ -48,6 +48,7 @@ public:
 
 	// starts an animation sequence script
 	bool StartAnimationSequence(const char *sequenceName);
+	bool StartAnimationSequence(Panel *pWithinParent, const char *sequenceName);
 
 	// gets the length of an animation sequence, in seconds
 	float GetAnimationSequenceLength(const char *sequenceName);
@@ -201,25 +202,37 @@ private:
 		UtlSymId_t variable;
 		UtlSymId_t variable2;
 		float startTime;
+		PHandle parent;
 	};
 	CUtlVector<PostedMessage_t> m_PostedMessages;
+
+	struct RanEvent_t
+	{
+		UtlSymId_t event;
+		Panel *pParent;
+	
+		bool operator==( const RanEvent_t &other ) const
+		{
+			return ( event == other.event && pParent == other.pParent );
+		}
+	};
 
 	// variable names
 	UtlSymId_t m_sPosition, m_sSize, m_sFgColor, m_sBgColor;
 	UtlSymId_t m_sXPos, m_sYPos, m_sWide, m_sTall;
 
 	// file name
-	UtlSymId_t m_sScriptFileName;
+	CUtlVector<UtlSymId_t>	m_ScriptFileNames;
 
 	// runs a single line of the script
-	void ExecAnimationCommand(UtlSymId_t seqName, AnimCommand_t &animCommand);
+	void ExecAnimationCommand(UtlSymId_t seqName, AnimCommand_t &animCommand, Panel *pWithinParent);
 	// removes all commands belonging to a script
-	void RemoveQueuedAnimationCommands(UtlSymId_t seqName);
+	void RemoveQueuedAnimationCommands(UtlSymId_t seqName, vgui::Panel *panel = NULL);
 	// removes an existing instance of a command
 	void RemoveQueuedAnimationByType(vgui::Panel *panel, UtlSymId_t variable, UtlSymId_t sequenceToIgnore);
 
 	// handlers
-	void StartCmd_Animate(UtlSymId_t seqName, AnimCmdAnimate_t &cmd);
+	void StartCmd_Animate(UtlSymId_t seqName, AnimCmdAnimate_t &cmd, Panel *pWithinParent);
 	void StartCmd_Animate(Panel *panel, UtlSymId_t seqName, AnimCmdAnimate_t &cmd);
 	void RunCmd_RunEvent(PostedMessage_t &msg);
 	void RunCmd_StopEvent(PostedMessage_t &msg);

@@ -40,12 +40,6 @@ typedef unsigned long HPanel;
 class IVGui : public IAppSystem
 {
 public:
-	// must be called first - provides interfaces for vgui to access
-	virtual bool Init( CreateInterfaceFn *factoryList, int numFactories ) = 0;
-
-	// call to free memory on shutdown
-	virtual void Shutdown() = 0;
-
 	// activates vgui message pump
 	virtual void Start() = 0;
 
@@ -103,7 +97,7 @@ public:
 	virtual bool GetShouldVGuiControlSleep() = 0;
 };
 
-#define VGUI_IVGUI_INTERFACE_VERSION "VGUI_ivgui007"
+#define VGUI_IVGUI_INTERFACE_VERSION "VGUI_ivgui008"
 
 };
 

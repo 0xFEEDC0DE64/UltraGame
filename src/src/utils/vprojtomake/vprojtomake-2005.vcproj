@@ -46,12 +46,11 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="..\common,..\..\public,..\..\public\tier1"
+				AdditionalIncludeDirectories="..\common,..\..\public,..\..\public\tier1,..\..\public\tier0"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				StringPooling="true"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				TreatWChar_tAsBuiltInType="false"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\Release/vprojtomake.pch"
@@ -75,12 +74,12 @@
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="odbc32.lib odbccp32.lib comsupp.lib msxml2.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib comsupp.lib msxml2.lib comsuppw.lib"
 				OutputFile=".\Release/vcpm.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="..\..\lib\public"
-				IgnoreDefaultLibraryNames="LIBCD,LIBC,LIBCMTD"
+				IgnoreDefaultLibraryNames="LIBCMTD"
 				ProgramDatabaseFile=".\Release/vprojtomake.pdb"
 				SubSystem="1"
 				TargetMachine="1"
@@ -142,11 +141,10 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\common,..\..\public,..\..\public\tier1"
+				AdditionalIncludeDirectories="..\common,..\..\public,..\..\public\tier1;..\..\public\tier0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE;DEBUG"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				TreatWChar_tAsBuiltInType="false"
 				UsePrecompiledHeader="0"
 				PrecompiledHeaderThrough="stdafx.h"
 				PrecompiledHeaderFile=".\Debug/vprojtomake.pch"
@@ -174,7 +172,7 @@
 			<Tool
 				Name="VCLinkerTool"
 				AdditionalOptions="/FIXED:NO"
-				AdditionalDependencies="odbc32.lib odbccp32.lib comsupp.lib msxml2.lib"
+				AdditionalDependencies="odbc32.lib odbccp32.lib msxml2.lib comsuppw.lib comsupp.lib"
 				OutputFile=".\Debug/vprojtomake.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
@@ -512,11 +510,6 @@
 				>
 			</File>
 		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-			>
-		</Filter>
 		<File
 			RelativePath="..\..\public\appframework\IAppSystem.h"
 			>
@@ -554,24 +547,6 @@
 		<File
 			RelativePath="..\..\lib\public\vstdlib.lib"
 			>
-			<FileConfiguration
-				Name="Release|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					Description=""
-					CommandLine=""
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Debug|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					Description=""
-					CommandLine=""
-				/>
-			</FileConfiguration>
 		</File>
 	</Files>
 	<Globals>

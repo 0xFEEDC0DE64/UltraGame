@@ -15,6 +15,7 @@
 #include "bitmap/imageformat.h"
 
 typedef unsigned int ColorCorrectionHandle_t;
+struct ShaderColorCorrectionInfo_t;
 
 #define COLORCORRECTION_INTERFACE_VERSION "COLORCORRECTION_VERSION_1"
 
@@ -30,7 +31,6 @@ public:
 	virtual void  SetLookupWeight( ColorCorrectionHandle_t handle, float flWeight ) = 0;
 	virtual float GetLookupWeight( ColorCorrectionHandle_t handle ) = 0;
 	virtual float GetLookupWeight( int i ) = 0;
-	virtual void  NormalizeWeights( ) = 0;
 
 	virtual void LockLookup() = 0;
 	virtual void LockLookup( ColorCorrectionHandle_t handle ) = 0;
@@ -63,6 +63,11 @@ public:
 	virtual color24 ConvertToColor24( RGBX5551_t inColor ) = 0;
 
 	virtual void SetResetable( ColorCorrectionHandle_t handle, bool bResetable ) = 0;
+
+	virtual void EnableColorCorrection( bool bEnable ) = 0;
+
+	// FIXME: Move this to a private interface only the material system can see?
+	virtual void GetCurrentColorCorrection( ShaderColorCorrectionInfo_t* pInfo ) = 0;
 };
 
 #endif

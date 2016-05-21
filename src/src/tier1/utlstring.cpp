@@ -5,7 +5,7 @@
 //=============================================================================
 
 #include "tier1/utlstring.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 
 
 //-----------------------------------------------------------------------------
@@ -216,3 +216,119 @@ bool CUtlString::operator==( const char *src ) const
 {
 	return ( strcmp( Get(), src ) == 0 );
 }
+
+CUtlString &CUtlString::operator+=( const CUtlString &rhs )
+{
+	Assert( !m_Storage.IsReadOnly() );
+
+	const int lhsLength( Length() );
+	const int rhsLength( rhs.Length() );
+	const int requestedLength( lhsLength + rhsLength );
+
+	SetLength( requestedLength );
+	const int allocatedLength( Length() );
+	const int copyLength( allocatedLength - lhsLength < rhsLength ? allocatedLength - lhsLength : rhsLength );
+	memcpy( Get() + lhsLength, rhs.Get(), copyLength );
+	m_Storage[ allocatedLength ] = '\0';
+
+	return *this;
+}
+
+CUtlString &CUtlString::operator+=( const char *rhs )
+{
+	Assert( !m_Storage.IsReadOnly() );
+
+	const int lhsLength( Length() );
+	const int rhsLength( Q_strlen( rhs ) );
+	const int requestedLength( lhsLength + rhsLength );
+
+	SetLength( requestedLength );
+	const int allocatedLength( Length() );
+	const int copyLength( allocatedLength - lhsLength < rhsLength ? allocatedLength - lhsLength : rhsLength );
+	memcpy( Get() + lhsLength, rhs, copyLength );
+	m_Storage[ allocatedLength ] = '\0';
+
+	return *this;
+}
+
+CUtlString &CUtlString::operator+=( char c )
+{
+	Assert( !m_Storage.IsReadOnly() );
+
+	int nLength = Length();
+	SetLength( nLength + 1 );
+	m_Storage[ nLength ] = c;
+	m_Storage[ nLength+1 ] = '\0';
+	return *this;
+}
+
+CUtlString &CUtlString::operator+=( int rhs )
+{
+	Assert( !m_Storage.IsReadOnly() );
+	Assert( sizeof( rhs ) == 4 );
+
+	char tmpBuf[ 12 ];	// Sufficient for a signed 32 bit integer [ -2147483648 to +2147483647 ]
+	Q_snprintf( tmpBuf, sizeof( tmpBuf ), "%d", rhs );
+	tmpBuf[ sizeof( tmpBuf ) - 1 ] = '\0';
+
+	return operator+=( tmpBuf );
+}
+
+CUtlString &CUtlString::operator+=( double rhs )
+{
+	Assert( !m_Storage.IsReadOnly() );
+
+	char tmpBuf[ 256 ];	// How big can doubles be???  Dunno.
+	Q_snprintf( tmpBuf, sizeof( tmpBuf ), "%lg", rhs );
+	tmpBuf[ sizeof( tmpBuf ) - 1 ] = '\0';
+
+	return operator+=( tmpBuf );
+}
+
+int CUtlString::Format( const char *pFormat, ... )
+{
+	Assert( !m_Storage.IsReadOnly() );
+
+	char tmpBuf[ 4096 ];	//< Nice big 4k buffer, as much memory as my first computer had, a Radio Shack Color Computer
+
+	va_list marker;
+
+	va_start( marker, pFormat );
+#ifdef _WIN32
+	int len = _vsnprintf( tmpBuf, sizeof( tmpBuf ) - 1, pFormat, marker );
+#elif _LINUX
+	int len = vsnprintf( tmpBuf, sizeof( tmpBuf ) - 1, pFormat, marker );
+#else
+#error "define vsnprintf type."
+#endif
+	va_end( marker );
+
+	// Len < 0 represents an overflow
+	if( len < 0 )
+	{
+		len = sizeof( tmpBuf ) - 1;
+		tmpBuf[sizeof( tmpBuf ) - 1] = 0;
+	}
+
+	Set( tmpBuf );
+
+	return len;
+}
+
+//-----------------------------------------------------------------------------
+// Strips the trailing slash
+//-----------------------------------------------------------------------------
+void CUtlString::StripTrailingSlash()
+{
+	if ( IsEmpty() )
+		return;
+
+	int nLastChar = Length() - 1;
+	char c = m_Storage[ nLastChar ];
+	if ( c == '\\' || c == '/' )
+	{
+		m_Storage[ nLastChar ] = 0;
+		m_Storage.SetLength( m_Storage.Length() - 1 );
+	}
+}
+

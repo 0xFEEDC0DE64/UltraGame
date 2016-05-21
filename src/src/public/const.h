@@ -33,7 +33,16 @@
 #define ABSOLUTE_PLAYER_LIMIT 255  // not 256, so we can send the limit as a byte 
 #define ABSOLUTE_PLAYER_LIMIT_DW	( (ABSOLUTE_PLAYER_LIMIT/32) + 1 )
 
-#define MAX_PLAYER_NAME_LENGTH		32	// a player name may have 31 chars + 0
+// a player name may have 31 chars + 0 on the PC.
+// the 360 only allows 15 char + 0, but stick with the larger PC size for cross-platform communication
+#define MAX_PLAYER_NAME_LENGTH		32
+
+#ifdef _X360
+#define MAX_PLAYERS_PER_CLIENT		XUSER_MAX_COUNT	// Xbox 360 supports 4 players per console
+#else
+#define MAX_PLAYERS_PER_CLIENT		1	// One player per PC
+#endif
+
 #define MAX_MAP_NAME				32	
 #define	MAX_NETWORKID_LENGTH		64  // num chars for a network (i.e steam) ID
 
@@ -69,10 +78,10 @@
 
 // This is the maximum amount of data a PackedEntity can have. Having a limit allows us
 // to use static arrays sometimes instead of allocating memory all over the place.
-#define MAX_PACKEDENTITY_DATA	2048
+#define MAX_PACKEDENTITY_DATA	(16384)
 
 // This is the maximum number of properties that can be delta'd. Must be evenly divisible by 8.
-#define MAX_PACKEDENTITY_PROPS	1024
+#define MAX_PACKEDENTITY_PROPS	(4096)
 
 // a client can have up to 4 customization files (logo, sounds, models, txt).
 #define MAX_CUSTOM_FILES		4		// max 4 files
@@ -126,7 +135,7 @@
 enum MoveType_t
 {
 	MOVETYPE_NONE		= 0,	// never moves
-	MOVETYPE_ISOMETRIC,			// For players
+	MOVETYPE_ISOMETRIC,			// For players -- in TF2 commander view, etc.
 	MOVETYPE_WALK,				// Player only - moving on the ground
 	MOVETYPE_STEP,				// gravity, special edge handling -- monsters use this
 	MOVETYPE_FLY,				// No gravity, but still collides with stuff
@@ -191,8 +200,9 @@ enum SolidFlags_t
 	FSOLID_FORCE_WORLD_ALIGNED	= 0x0040,	// Forces the collision rep to be world-aligned even if it's SOLID_BSP or SOLID_VPHYSICS
 	FSOLID_USE_TRIGGER_BOUNDS	= 0x0080,	// Uses a special trigger bounds separate from the normal OBB
 	FSOLID_ROOT_PARENT_ALIGNED	= 0x0100,	// Collisions are defined in root parent's local coordinate space
+	FSOLID_TRIGGER_TOUCH_DEBRIS	= 0x0200,	// This trigger will touch debris objects
 
-	FSOLID_MAX_BITS	= 9
+	FSOLID_MAX_BITS	= 10
 };
 
 //-----------------------------------------------------------------------------
@@ -336,8 +346,8 @@ enum Collision_Group_t
 	COLLISION_GROUP_PLAYER,
 	COLLISION_GROUP_BREAKABLE_GLASS,
 	COLLISION_GROUP_VEHICLE,
-	COLLISION_GROUP_PLAYER_MOVEMENT,  // For HL2, same as Collision_Group_Player
-										
+	COLLISION_GROUP_PLAYER_MOVEMENT,  // For HL2, same as Collision_Group_Player, for
+										// TF2, this filters out other players and CBaseObjects
 	COLLISION_GROUP_NPC,			// Generic NPC group
 	COLLISION_GROUP_IN_VEHICLE,		// for any entity inside a vehicle
 	COLLISION_GROUP_WEAPON,			// for any weapons that need collision detection
@@ -349,6 +359,7 @@ enum Collision_Group_t
 	COLLISION_GROUP_PUSHAWAY,		// Nonsolid on client and server, pushaway in player code
 
 	COLLISION_GROUP_NPC_ACTOR,		// Used so NPCs in scripts ignore the player.
+	COLLISION_GROUP_NPC_SCRIPTED,	// USed for NPCs in scripts that should not collide with each other
 
 	LAST_SHARED_COLLISION_GROUP
 };
@@ -361,5 +372,29 @@ enum Collision_Group_t
 #define MAX_AREA_STATE_BYTES		32
 #define MAX_AREA_PORTAL_STATE_BYTES 24
 
+// user message max payload size (note, this value is used by the engine, so MODs cannot change it)
+#define MAX_USER_MSG_DATA 255
+#define MAX_ENTITY_MSG_DATA 255
+
+#define SOURCE_MT
+#ifdef SOURCE_MT
+class CThreadMutex;
+typedef CThreadMutex CSourceMutex;
+#else
+class CThreadNullMutex;
+typedef CThreadNullMutex CSourceMutex;
+#endif
+
+//Tony; added for IPlayerInfo V3. 
+//Putting all standard possible stances, but GetStance in CBasePlayer will only return standing or ducking by default -
+//up to the mod to specify the others, or override what GetStance returns.
+enum player_Stance
+{
+	PINFO_STANCE_STANDING = 0,
+	PINFO_STANCE_DUCKING,
+
+	PINFO_STANCE_SPRINTING,
+	PINFO_STANCE_PRONE,
+};
 #endif
 

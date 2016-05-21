@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef VGUI_IINPUT_H
 #define VGUI_IINPUT_H
@@ -13,13 +13,13 @@
 #endif
 
 #include <vgui/VGUI.h>
-#include "interface.h"
+#include "tier1/interface.h"
+#include "vgui/MouseCode.h"
+#include "vgui/KeyCode.h"
 
 namespace vgui
 {
 
-enum MouseCode;
-enum KeyCode;
 class Cursor;
 typedef unsigned long HCursor;
 

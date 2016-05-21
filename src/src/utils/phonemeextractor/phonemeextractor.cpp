@@ -23,7 +23,7 @@
 #include "PhonemeConverter.h"
 #include "sentence.h"
 #include "tier0/dbg.h"
-#include "vstdlib/icommandline.h"
+#include "tier0/icommandline.h"
 #include "FileSystem.h"
 
 // Extract phoneme grammar id
@@ -48,8 +48,6 @@ void LogReset( void )
 }
 
 char *va( const char *fmt, ... );
-
-IFileSystem		*g_pFullFileSystem = NULL;
 
 //-----------------------------------------------------------------------------
 // Purpose: 

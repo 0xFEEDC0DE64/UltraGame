@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef ILOCALIZE_H
 #define ILOCALIZE_H
@@ -13,8 +13,8 @@
 #endif
 
 #include <vgui/VGUI.h>
-#include "interface.h"
-#include <KeyValues.h>
+#include "appframework/IAppSystem.h"
+#include <tier1/KeyValues.h>
 
 // unicode character type
 // for more unicode manipulation functions #include <wchar.h>
@@ -23,7 +23,6 @@ typedef unsigned short wchar_t;
 #define _WCHAR_T_DEFINED
 #endif
 
-class IFileSystem;
 
 namespace vgui
 {
@@ -35,12 +34,11 @@ const unsigned long INVALID_STRING_INDEX = (unsigned long) -1;
 // Purpose: Handles localization of text
 //			looks up string names and returns the localized unicode text
 //-----------------------------------------------------------------------------
-class ILocalize : public IBaseInterface
+abstract_class ILocalize
 {
 public:
 	// adds the contents of a file to the localization table
-	//!! in the next version of this, the IFileSystem * should be removed, the table should get it itself (not version safe)
-	virtual bool AddFile(IFileSystem *fileSystem, const char *fileName) = 0;
+	virtual bool AddFile( const char *fileName, const char *pPathID = NULL, bool bIncludeFallbackSearchPaths = false ) = 0;
 
 	// Remove all strings from the table
 	virtual void RemoveAll() = 0;
@@ -77,13 +75,13 @@ public:
 	virtual StringIndex_t GetNextStringIndex(StringIndex_t index) = 0;
 
 	// adds a single name/unicode string pair to the table
-	virtual void AddString(const char *tokenName, wchar_t *unicodeString, const char *fileName) = 0;
+	virtual void AddString( const char *tokenName, wchar_t *unicodeString, const char *fileName ) = 0;
 
 	// changes the value of a string
 	virtual void SetValueByIndex(StringIndex_t index, wchar_t *newValue) = 0;
 
 	// saves the entire contents of the token tree to the file
-	virtual bool SaveToFile(IFileSystem *fileSystem, const char *fileName) = 0;
+	virtual bool SaveToFile( const char *fileName ) = 0;
 
 	// iterates the filenames
 	virtual int GetLocalizationFileCount() = 0;
@@ -93,20 +91,14 @@ public:
 	virtual const char *GetFileNameByIndex(StringIndex_t index) = 0;
 
 	// for development only, reloads localization files
-	//!! in the next version of this, the IFileSystem * should be removed, the table should get it itself (not version safe)
-	virtual void ReloadLocalizationFiles(IFileSystem *filesystem) = 0;
+	virtual void ReloadLocalizationFiles( ) = 0;
 
 	// need to replace the existing ConstructString with this
 	virtual void ConstructString(wchar_t *unicodeOutput, int unicodeBufferSizeInBytes, const char *tokenName, KeyValues *localizationVariables) = 0;
 	virtual void ConstructString(wchar_t *unicodeOutput, int unicodeBufferSizeInBytes, StringIndex_t unlocalizedTextSymbol, KeyValues *localizationVariables) = 0;
-
-	// adds the contents of a file to the localization table
-	//!! in the next version of this, the IFileSystem * should be removed, the table should get it itself (not version safe)
-	// If bIncludeFallbackSearchPaths is true, then if you are running a mod, the hl2\resource\*.txt file will be added first, then the modname\resource\*.txt file...
-	virtual bool AddFileEx( IFileSystem *fileSystem, const char *fileName, char const *pPathID, bool bIncludeFallbackSearchPaths ) = 0;
 };
 
-#define VGUI_LOCALIZE_INTERFACE_VERSION "VGUI_Localize003"
+#define VGUI_LOCALIZE_INTERFACE_VERSION "VGUI_Localize004"
 
 }; // namespace vgui
 

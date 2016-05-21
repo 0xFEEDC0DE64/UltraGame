@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef ISOUNDEMITTERSYSTEMBASE_H
 #define ISOUNDEMITTERSYSTEMBASE_H
@@ -11,12 +11,10 @@
 #pragma once
 #endif
 
-#include "interface.h"
 
 #include "tier1/utldict.h"
 #include "soundflags.h"
-#include "compressed_vector.h"
-#include "mempool.h"
+#include "mathlib/compressed_vector.h"
 #include "appframework/IAppSystem.h"
 
 

@@ -13,10 +13,10 @@
 #include "interface.h"
 
 #define WIN32_LEAN_AND_MEAN
-#ifndef _XBOX
+#if !defined( _X360 )
 #include <windows.h>
-#else
-#include "xbox/xbox_platform.h"
+#endif
+#if defined( _X360 )
 #include "xbox/xbox_win32stubs.h"
 #endif
 

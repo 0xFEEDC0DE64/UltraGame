@@ -14,17 +14,17 @@
 #include "interface.h"
 #include "filesystem.h"
 #undef VECTOR_NO_SLOW_OPERATIONS
-#include "vector.h"
+#include "mathlib/vector.h"
 
 #include "eiface.h"
 #include "edict.h"
-#include "dlls/iplayerinfo.h"
+#include "game/server/iplayerinfo.h"
 #include "igameevents.h"
 #include "convar.h"
 #include "vstdlib/random.h"
-#include "../../game_shared/in_buttons.h"
-#include "../../game_shared/shareddefs.h"
-//#include "../../game_shared/util_shared.h"
+#include "../../game/shared/in_buttons.h"
+#include "../../game/shared/shareddefs.h"
+// #include "../../game/shared/util_shared.h"
 #include "engine/IEngineTrace.h"
 
 extern IBotManager *botmanager; 

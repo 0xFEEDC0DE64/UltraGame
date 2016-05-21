@@ -175,7 +175,7 @@ public:
 
 	
 	// Set these before calling TesselateDisplacement.
-	unsigned long *m_pActiveVerts;		// These bits control the tesselation.
+	uint32 *m_pActiveVerts;		// These bits control the tesselation.
 	const CPowerInfo *m_pPowerInfo;								// Lots of precalculated data about a displacement this size.
 	
 	

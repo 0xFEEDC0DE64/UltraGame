@@ -21,8 +21,8 @@
 // to call SetMapping to map what you're drawing input into this cube.
 
 
-#include "vector.h"
-#include "vector2d.h"
+#include "mathlib/vector.h"
+#include "mathlib/vector2d.h"
 #include "utlvector.h"
 
 class IFileSystem;

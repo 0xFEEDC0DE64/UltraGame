@@ -10,7 +10,7 @@
 #pragma once
 #endif
 
-#include "vector.h"
+#include "mathlib/vector.h"
 #include "tier0/platform.h"
 #include "UtlVector.h"
 #include "FileSystem.h"

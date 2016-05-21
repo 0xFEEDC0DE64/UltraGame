@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef CONTROLS_H
 #define CONTROLS_H
@@ -17,8 +17,10 @@
 #include <vstdlib/IKeyValuesSystem.h>
 
 #include "tier1/interface.h"
+#include "vgui/MouseCode.h"
+#include "vgui/KeyCode.h"
+#include "tier3/tier3.h"
 
-class IFileSystem;
 
 namespace vgui
 {
@@ -31,34 +33,57 @@ bool VGui_InitInterfacesList( const char *moduleName, CreateInterfaceFn *factory
 // returns the name of the module as specified above
 const char *GetControlsModuleName();
 
+class IPanel;
+class IInput;
+class ISchemeManager;
+class ISurface;
+class ISystem;
+class IVGui;
+
+//-----------------------------------------------------------------------------
+// Backward compat interfaces, use the interfaces grabbed in tier3
 // set of accessor functions to vgui interfaces
 // the appropriate header file for each is listed above the item
-
-// #include <vgui/IPanel.h>
-class IPanel *ipanel();
+//-----------------------------------------------------------------------------
 
 // #include <vgui/IInput.h>
-class IInput *input();
+inline vgui::IInput *input()
+{
+	return g_pVGuiInput;
+}
 
 // #include <vgui/IScheme.h>
-class ISchemeManager *scheme();
+inline vgui::ISchemeManager *scheme()
+{
+	return g_pVGuiSchemeManager;
+}
 
 // #include <vgui/ISurface.h>
-class ISurface *surface();
+inline vgui::ISurface *surface()
+{
+	return g_pVGuiSurface;
+}
 
 // #include <vgui/ISystem.h>
-class ISystem *system();
+inline vgui::ISystem *system()
+{
+	return g_pVGuiSystem;
+}
 
 // #include <vgui/IVGui.h>
-class IVGui *ivgui();
+inline vgui::IVGui *ivgui()
+{
+	return g_pVGui;
+}
 
-// #include <vgui/ILocalize.h>
-class ILocalize *localize();
-
-// #include "FileSystem.h"
-IFileSystem *filesystem();
+// #include <vgui/IPanel.h>
+inline vgui::IPanel *ipanel()
+{
+	return g_pVGuiPanel;
+}
 
 // predeclare all the vgui control class names
+class AnalogBar;
 class AnimatingImagePanel;
 class AnimationController;
 class BuildModeDialog;
@@ -92,6 +117,7 @@ class PropertySheet;
 class QueryBox;
 class RadioButton;
 class RichText;
+class ScalableImagePanel;
 class ScrollBar;
 class ScrollBarSlider;
 class SectionedListPanel;
@@ -114,10 +140,6 @@ class IImage;
 class Image;
 class ImageList;
 class TextImage;
-
-// vgui enumerations
-enum KeyCode;
-enum MouseCode;
 
 } // namespace vgui
 

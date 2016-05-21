@@ -12,7 +12,7 @@
 #endif
 
 #include "vphysics_interface.h"
-#include "mathlib.h"
+#include "mathlib/mathlib.h"
 
 // constraint groups
 struct constraint_groupparams_t
@@ -218,20 +218,13 @@ struct constraint_slidingparams_t
 	float							friction;				// friction on sliding
 	float							velocity;				// desired velocity
 
-	inline void InitWithCurrentObjectState( IPhysicsObject *pRef, IPhysicsObject *pAttached, const Vector &slideDirWorldspace )
-	{
-		BuildObjectRelativeXform( pRef, pAttached, attachedRefXform );
-		matrix3x4_t tmp;
-		pRef->GetPositionMatrix( &tmp );
-		VectorIRotate( slideDirWorldspace, tmp, slideAxisRef );
-	}
-
 	inline void Defaults()
 	{
 		SetIdentityMatrix( attachedRefXform );
 		slideAxisRef.Init();
 		limitMin = limitMax = 0;
 		friction = 0;
+		velocity = 0;
 		constraint.Defaults();
 	}
 
@@ -245,6 +238,14 @@ struct constraint_slidingparams_t
 	{
 		friction = maxForce;
 		velocity = inputVelocity;
+	}
+
+	inline void InitWithCurrentObjectState( IPhysicsObject *pRef, IPhysicsObject *pAttached, const Vector &slideDirWorldspace )
+	{
+		BuildObjectRelativeXform( pRef, pAttached, attachedRefXform );
+		matrix3x4_t tmp;
+		pRef->GetPositionMatrix( &tmp );
+		VectorIRotate( slideDirWorldspace, tmp, slideAxisRef );
 	}
 };
 
@@ -309,18 +310,22 @@ public:
 	virtual void SetGameData( void *gameData ) = 0;
 
 	// get a pointer to the game object
-	virtual void *GetGameData( void ) = 0;
+	virtual void *GetGameData( void ) const = 0;
 
 	// Get the parent/referenced object
-	virtual IPhysicsObject *GetReferenceObject( void ) = 0;
+	virtual IPhysicsObject *GetReferenceObject( void ) const = 0;
 
 	// Get the attached object
-	virtual IPhysicsObject *GetAttachedObject( void ) = 0;
+	virtual IPhysicsObject *GetAttachedObject( void ) const = 0;
 
 	virtual void			SetLinearMotor( float speed, float maxLinearImpulse ) = 0;
 	virtual void			SetAngularMotor( float rotSpeed, float maxAngularImpulse ) = 0;
 
 	virtual void			UpdateRagdollTransforms( const matrix3x4_t &constraintToReference, const matrix3x4_t &constraintToAttached ) = 0;
+	virtual bool			GetConstraintTransform( matrix3x4_t *pConstraintToReference, matrix3x4_t *pConstraintToAttached ) const = 0;
+	virtual bool			GetConstraintParams( constraint_breakableparams_t *pParams ) const = 0;
+
+	virtual void			OutputDebugInfo() = 0;
 };
 
 
@@ -333,6 +338,7 @@ public:
 	virtual void ClearErrorState() = 0;
 	virtual void GetErrorParams( constraint_groupparams_t *pParams ) = 0;
 	virtual void SetErrorParams( const constraint_groupparams_t &params ) = 0;
+	virtual void SolvePenetration( IPhysicsObject *pObj0, IPhysicsObject *pObj1 ) = 0;
 };
 
 

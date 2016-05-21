@@ -14,6 +14,16 @@
 #pragma once
 #endif
 
+// Define this in release to get memory tracking even in release builds
+//#define USE_MEM_DEBUG 1
+
+#if defined( _MEMTEST )
+#define USE_MEM_DEBUG 1
+#endif
+
+// Undefine this if using a compiler lacking threadsafe RTTI (like vc6)
+#define MEM_DEBUG_CLASSNAME 1
+
 #if !defined(STEAM) && !defined(NO_MALLOC_OVERRIDE)
 
 #include <stddef.h>
@@ -63,6 +73,7 @@ public:
 
 	// FIXME: Make a better stats interface
 	virtual void DumpStats() = 0;
+	virtual void DumpStatsFileBase( char const *pchFileBase ) = 0;
 
 	// FIXME: Remove when we have our own allocator
 	virtual void* CrtSetReportFile( int nRptType, void* hFile ) = 0;
@@ -84,6 +95,15 @@ public:
 
 	// Function called when malloc fails or memory limits hit to attempt to free up memory (can come in any thread)
 	virtual MemAllocFailHandler_t SetAllocFailHandler( MemAllocFailHandler_t pfnMemAllocFailHandler ) = 0;
+
+	virtual void DumpBlockStats( void * ) = 0;
+
+#if defined( _MEMTEST )	
+	virtual void SetStatsExtraInfo( const char *pMapName, const char *pComment ) = 0;
+#endif
+
+	// Returns 0 if no failure, otherwise the size_t of the last requested chunk
+	virtual size_t MemoryAllocFailed() = 0;
 };
 
 //-----------------------------------------------------------------------------
@@ -105,7 +125,7 @@ inline void *MemAlloc_AllocAligned( size_t size, size_t align )
 	if ( (pAlloc = (unsigned char*)g_pMemAlloc->Alloc( sizeof(void *) + align + size ) ) == (unsigned char*)NULL)
 		return NULL;
 
-	pResult = (unsigned char*)( (unsigned)(pAlloc + sizeof(void *) + align ) & ~align );
+	pResult = (unsigned char*)( (size_t)(pAlloc + sizeof(void *) + align ) & ~align );
 	((unsigned char**)(pResult))[-1] = pAlloc;
 
 	return (void *)pResult;
@@ -123,44 +143,75 @@ inline void *MemAlloc_AllocAligned( size_t size, size_t align, const char *pszFi
 	if ( (pAlloc = (unsigned char*)g_pMemAlloc->Alloc( sizeof(void *) + align + size, pszFile, nLine ) ) == (unsigned char*)NULL)
 		return NULL;
 
-	pResult = (unsigned char*)( (unsigned)(pAlloc + sizeof(void *) + align ) & ~align );
+	pResult = (unsigned char*)( (size_t)(pAlloc + sizeof(void *) + align ) & ~align );
 	((unsigned char**)(pResult))[-1] = pAlloc;
 
 	return (void *)pResult;
 }
 
+inline void *MemAlloc_ReallocAligned( void *ptr, size_t size, size_t align )
+{
+	if ( !IsPowerOfTwo( align ) )
+		return NULL;
+
+	// Don't change alignment between allocation + reallocation.
+	if ( ( (size_t)ptr & ( align - 1 ) ) != 0 )
+		return NULL;
+
+	if ( !ptr )
+		return MemAlloc_AllocAligned( size, align );
+
+	void *pAlloc, *pResult;
+
+	// Figure out the actual allocation point
+	pAlloc = ptr;
+	pAlloc = (void *)(((size_t)pAlloc & ~( sizeof(void *) - 1 ) ) - sizeof(void *));
+	pAlloc = *( (void **)pAlloc );
+
+	// See if we have enough space
+	size_t nOffset = (size_t)ptr - (size_t)pAlloc;
+	size_t nOldSize = g_pMemAlloc->GetSize( pAlloc );
+	if ( nOldSize >= size + nOffset )
+		return ptr;
+
+	pResult = MemAlloc_AllocAligned( size, align );
+	memcpy( pResult, ptr, nOldSize - nOffset );
+	g_pMemAlloc->Free( pAlloc );
+	return pResult;
+}
+
 inline void MemAlloc_FreeAligned( void *pMemBlock )
 {
-	unsigned *pAlloc;
+	void *pAlloc;
 
 	if ( pMemBlock == NULL )
 		return;
 
-	pAlloc = (unsigned *)pMemBlock;
+	pAlloc = pMemBlock;
 
 	// pAlloc points to the pointer to starting of the memory block
-	pAlloc = (unsigned *)(((unsigned)pAlloc & ~( sizeof(void *) - 1 ) ) - sizeof(void *));
+	pAlloc = (void *)(((size_t)pAlloc & ~( sizeof(void *) - 1 ) ) - sizeof(void *));
 
 	// pAlloc is the pointer to the start of memory block
-	pAlloc = *( (unsigned **)pAlloc );
-	g_pMemAlloc->Free( (void *)pAlloc );
+	pAlloc = *( (void **)pAlloc );
+	g_pMemAlloc->Free( pAlloc );
 }
 
 inline size_t MemAlloc_GetSizeAligned( void *pMemBlock )
 {
-	unsigned *pAlloc;
+	void *pAlloc;
 
 	if ( pMemBlock == NULL )
 		return 0;
 
-	pAlloc = (unsigned *)pMemBlock;
+	pAlloc = pMemBlock;
 
 	// pAlloc points to the pointer to starting of the memory block
-	pAlloc = (unsigned *)(((unsigned)pAlloc & ~( sizeof(void *) - 1 ) ) - sizeof(void *));
+	pAlloc = (void *)(((size_t)pAlloc & ~( sizeof(void *) - 1 ) ) - sizeof(void *));
 
 	// pAlloc is the pointer to the start of memory block
-	pAlloc = *((unsigned **)pAlloc );
-	return g_pMemAlloc->GetSize( (void *)pAlloc ) - ( (byte *)pMemBlock - (byte *)pAlloc );
+	pAlloc = *((void **)pAlloc );
+	return g_pMemAlloc->GetSize( pAlloc ) - ( (byte *)pMemBlock - (byte *)pAlloc );
 }
 
 //-----------------------------------------------------------------------------
@@ -200,10 +251,6 @@ public:
 //-----------------------------------------------------------------------------
 
 #if defined(_WIN32) && ( defined(_DEBUG) || defined(USE_MEM_DEBUG) )
-
-	#ifdef _XBOX
-		#define MEM_DEBUG_CLASSNAME
-	#endif
 
 	#pragma warning(disable:4290)
 	#pragma warning(push)

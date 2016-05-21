@@ -60,15 +60,6 @@ typedef void *EntitySearchResult;
 
 
 //-----------------------------------------------------------------------------
-// 
-//-----------------------------------------------------------------------------
-#ifndef NO_TOOLFRAMEWORK
-#define ToolsEnabled() 1
-#else
-#define ToolsEnabled() 0
-#endif
-
-//-----------------------------------------------------------------------------
 // Purpose: Client side tool interace (right now just handles IClientRenderables).
 //  In theory could support hooking into client side entities directly
 //-----------------------------------------------------------------------------
@@ -77,6 +68,7 @@ class IClientTools : public IBaseInterface
 public:
 	// Allocates or returns the handle to an entity previously found using the Find* APIs below
 	virtual HTOOLHANDLE		AttachToEntity( EntitySearchResult entityToAttach ) = 0;
+	virtual void			DetachFromEntity( EntitySearchResult entityToDetach ) = 0;
 
 	// Checks whether a handle is still valid.
 	virtual bool			IsValidHandle( HTOOLHANDLE handle ) = 0;
@@ -93,6 +85,8 @@ public:
 	virtual void			SetEnabled( HTOOLHANDLE handle, bool enabled ) = 0;
 	// Use this to tell an entity to post "state" to all listening tools
 	virtual void			SetRecording( HTOOLHANDLE handle, bool recording ) = 0;
+	// Some entities are marked with ShouldRecordInTools false, such as ui entities, etc.
+	virtual bool			ShouldRecord( HTOOLHANDLE handle ) = 0;
 
 	virtual HTOOLHANDLE		GetToolHandleForEntityByIndex( int entindex ) = 0;
 
@@ -104,8 +98,9 @@ public:
 	virtual void			RemoveClientRenderable( IClientRenderable *pRenderable ) = 0;
 	virtual void			SetRenderGroup( IClientRenderable *pRenderable, int renderGroup ) = 0;
 	virtual void			MarkClientRenderableDirty( IClientRenderable *pRenderable ) = 0;
+    virtual void			UpdateProjectedTexture( ClientShadowHandle_t h, bool bForce ) = 0;
 
-	virtual bool			DrawSprite( IClientRenderable *pRenderable, float scale, float frame, int rendermode, int renderfx, const Color &color, int *pVisHandle ) = 0;
+	virtual bool			DrawSprite( IClientRenderable *pRenderable, float scale, float frame, int rendermode, int renderfx, const Color &color, float flProxyRadius, int *pVisHandle ) = 0;
 
 	virtual EntitySearchResult	GetLocalPlayer() = 0;
 	virtual bool			GetLocalPlayerEyePosition( Vector& org, QAngle& ang, float &fov ) = 0;
@@ -113,6 +108,10 @@ public:
 	// See ClientShadowFlags_t above
 	virtual ClientShadowHandle_t CreateShadow( CBaseHandle handle, int nFlags ) = 0;
 	virtual void			DestroyShadow( ClientShadowHandle_t h ) = 0;
+
+	virtual ClientShadowHandle_t CreateFlashlight( const FlashlightState_t &lightState ) = 0;
+	virtual void			DestroyFlashlight( ClientShadowHandle_t h ) = 0;
+	virtual void			UpdateFlashlightState( ClientShadowHandle_t h, const FlashlightState_t &lightState ) = 0;
 
 	virtual void			AddToDirtyShadowList( ClientShadowHandle_t h, bool force = false ) = 0;
 	virtual void			MarkRenderToTextureShadowDirty( ClientShadowHandle_t h ) = 0;
@@ -141,6 +140,20 @@ public:
 
 	virtual Vector			GetAbsOrigin( HTOOLHANDLE handle ) = 0;
 	virtual QAngle			GetAbsAngles( HTOOLHANDLE handle ) = 0;
+
+	// This reloads a portion or all of a particle definition file.
+	// It's up to the client to decide if it cares about this file
+	// Use a UtlBuffer to crack the data
+	virtual void			ReloadParticleDefintions( const char *pFileName, const void *pBufData, int nLen ) = 0;
+
+	// Sends a mesage from the tool to the client
+	virtual void			PostToolMessage( KeyValues *pKeyValues ) = 0;
+
+	// Indicates whether the client should render particle systems
+	virtual void			EnableParticleSystems( bool bEnable ) = 0;
+
+	// Is the game rendering in 3rd person mode?
+	virtual bool			IsRenderingThirdPerson() const = 0;
 };
 
 #define VCLIENTTOOLS_INTERFACE_VERSION "VCLIENTTOOLS001"
@@ -157,6 +170,29 @@ public:
 	virtual bool GetPlayerPosition( Vector &org, QAngle &ang, IClientEntity *pClientPlayer = NULL ) = 0;
 	virtual bool SetPlayerFOV( int fov, IClientEntity *pClientPlayer = NULL ) = 0;
 	virtual int GetPlayerFOV( IClientEntity *pClientPlayer = NULL ) = 0;
+	virtual bool IsInNoClipMode( IClientEntity *pClientPlayer = NULL ) = 0;
+
+	// entity searching
+	virtual void *FirstEntity( void ) = 0;
+	virtual void *NextEntity( void *pEntity ) = 0;
+	virtual void *FindEntityByHammerID( int iHammerID ) = 0;
+
+	// entity query
+	virtual bool GetKeyValue( void *pEntity, const char *szField, char *szValue, int iMaxLen ) = 0;
+	virtual bool SetKeyValue( void *pEntity, const char *szField, const char *szValue ) = 0;
+	virtual bool SetKeyValue( void *pEntity, const char *szField, float flValue ) = 0;
+	virtual bool SetKeyValue( void *pEntity, const char *szField, const Vector &vecValue ) = 0;
+
+	// entity spawning
+	virtual void *CreateEntityByName( const char *szClassName ) = 0;
+	virtual void DispatchSpawn( void *pEntity ) = 0;
+
+	// This reloads a portion or all of a particle definition file.
+	// It's up to the server to decide if it cares about this file
+	// Use a UtlBuffer to crack the data
+	virtual void ReloadParticleDefintions( const char *pFileName, const void *pBufData, int nLen ) = 0;
+
+	virtual void AddOriginToPVS( const Vector &org ) = 0;
 };
 
 #define VSERVERTOOLS_INTERFACE_VERSION "VSERVERTOOLS001"

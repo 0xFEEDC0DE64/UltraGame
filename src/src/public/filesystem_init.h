@@ -166,6 +166,9 @@ public:
 const char *GetVProjectCmdLineValue();
 
 
+// Call this to use a bin directory relative to VPROJECT
+void FileSystem_UseVProjectBinDir( bool bEnable );
+
 // This is used by all things that use the application framework:
 // Note that the application framework automatically takes care of step 1 if you use CSteamApplication.
 // Step 1: Ask filesystem_init for the name of the filesystem DLL to load

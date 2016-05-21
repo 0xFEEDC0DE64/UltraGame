@@ -12,10 +12,10 @@
 #endif
 
 #ifndef VECTOR_H
-#include "vector.h"
+#include "mathlib/vector.h"
 #endif
 
-#include "utlvector.h"
+#include "tier1/utlvector.h"
 
 #include "tier0/memdbgon.h"
 
@@ -63,6 +63,8 @@ typedef enum _fieldtypes
 	FIELD_MODELINDEX,		// a model index
 	FIELD_MATERIALINDEX,	// a material index (using the material precache string table)
 	
+	FIELD_VECTOR2D,			// 2 floats
+
 	FIELD_TYPECOUNT,		// MUST BE LAST
 } fieldtype_t;
 
@@ -74,6 +76,11 @@ template <int FIELD_TYPE>
 class CDatamapFieldSizeDeducer
 {
 public:
+	enum
+	{
+		SIZE = 0
+	};
+
 	static int FieldSize( )
 	{
 		return 0;
@@ -81,11 +88,14 @@ public:
 };
 
 #define DECLARE_FIELD_SIZE( _fieldType, _fieldSize )	\
-	template< > class CDatamapFieldSizeDeducer<_fieldType> { public: static int FieldSize() { return _fieldSize; } };
+	template< > class CDatamapFieldSizeDeducer<_fieldType> { public: enum { SIZE = _fieldSize }; static int FieldSize() { return _fieldSize; } };
+#define FIELD_SIZE( _fieldType )	CDatamapFieldSizeDeducer<_fieldType>::SIZE
+#define FIELD_BITS( _fieldType )	(FIELD_SIZE( _fieldType ) * 8)
 
 DECLARE_FIELD_SIZE( FIELD_FLOAT,		sizeof(float) )
 DECLARE_FIELD_SIZE( FIELD_STRING,		sizeof(int) )
 DECLARE_FIELD_SIZE( FIELD_VECTOR,		3 * sizeof(float) )
+DECLARE_FIELD_SIZE( FIELD_VECTOR2D,		2 * sizeof(float) )
 DECLARE_FIELD_SIZE( FIELD_QUATERNION,	4 * sizeof(float))
 DECLARE_FIELD_SIZE( FIELD_INTEGER,		sizeof(int))
 DECLARE_FIELD_SIZE( FIELD_BOOLEAN,		sizeof(char))
@@ -115,13 +125,15 @@ DECLARE_FIELD_SIZE( FIELD_MATERIALINDEX,	sizeof(int) )
 #endif
 
 #define ARRAYSIZE2D(p)		(sizeof(p)/sizeof(p[0][0]))
+#define SIZE_OF_ARRAY(p)	_ARRAYSIZE(p)
 
 #define _FIELD(name,fieldtype,count,flags,mapname,tolerance)		{ fieldtype, #name, { offsetof(classNameTypedef, name), 0 }, count, flags, mapname, NULL, NULL, NULL, sizeof( ((classNameTypedef *)0)->name ), NULL, 0, tolerance }
 #define DEFINE_FIELD_NULL	{ FIELD_VOID,0, {0,0},0,0,0,0,0,0}
 #define DEFINE_FIELD(name,fieldtype)			_FIELD(name, fieldtype, 1,  FTYPEDESC_SAVE, NULL, 0 )
 #define DEFINE_KEYFIELD(name,fieldtype, mapname) _FIELD(name, fieldtype, 1,  FTYPEDESC_KEY | FTYPEDESC_SAVE, mapname, 0 )
 #define DEFINE_KEYFIELD_NOT_SAVED(name,fieldtype, mapname)_FIELD(name, fieldtype, 1,  FTYPEDESC_KEY, mapname, 0 )
-#define DEFINE_AUTO_ARRAY(name,fieldtype)		_FIELD(name, fieldtype, ARRAYSIZE(((classNameTypedef *)0)->name), FTYPEDESC_SAVE, NULL, 0 )
+#define DEFINE_AUTO_ARRAY(name,fieldtype)		_FIELD(name, fieldtype, SIZE_OF_ARRAY(((classNameTypedef *)0)->name), FTYPEDESC_SAVE, NULL, 0 )
+#define DEFINE_AUTO_ARRAY_KEYFIELD(name,fieldtype,mapname)		_FIELD(name, fieldtype, SIZE_OF_ARRAY(((classNameTypedef *)0)->name), FTYPEDESC_SAVE, mapname, 0 )
 #define DEFINE_ARRAY(name,fieldtype, count)		_FIELD(name, fieldtype, count, FTYPEDESC_SAVE, NULL, 0 )
 #define DEFINE_ENTITY_FIELD(name,fieldtype)			_FIELD(edict_t, name, fieldtype, 1,  FTYPEDESC_KEY | FTYPEDESC_SAVE, #name, 0 )
 #define DEFINE_ENTITY_GLOBAL_FIELD(name,fieldtype)	_FIELD(edict_t, name, fieldtype, 1,  FTYPEDESC_KEY | FTYPEDESC_SAVE | FTYPEDESC_GLOBAL, #name, 0 )
@@ -130,6 +142,9 @@ DECLARE_FIELD_SIZE( FIELD_MATERIALINDEX,	sizeof(int) )
 #define DEFINE_CUSTOM_FIELD(name,datafuncs)	{ FIELD_CUSTOM, #name, { offsetof(classNameTypedef, name), 0 }, 1, FTYPEDESC_SAVE, NULL, datafuncs, NULL }
 #define DEFINE_CUSTOM_KEYFIELD(name,datafuncs,mapname)	{ FIELD_CUSTOM, #name, { offsetof(classNameTypedef, name), 0 }, 1, FTYPEDESC_SAVE | FTYPEDESC_KEY, mapname, datafuncs, NULL }
 #define DEFINE_AUTO_ARRAY2D(name,fieldtype)		_FIELD(name, fieldtype, ARRAYSIZE2D(((classNameTypedef *)0)->name), FTYPEDESC_SAVE, NULL, 0 )
+// Used by byteswap datadescs
+#define DEFINE_BITFIELD(name,fieldtype,bitcount)	DEFINE_ARRAY(name,fieldtype,((bitcount+FIELD_BITS(fieldtype)-1)&~(FIELD_BITS(fieldtype)-1)) / FIELD_BITS(fieldtype) )
+#define DEFINE_INDEX(name,fieldtype)			_FIELD(name, fieldtype, 1,  FTYPEDESC_INDEX, NULL, 0 )
 
 #define DEFINE_EMBEDDED( name )						\
 	{ FIELD_EMBEDDED, #name, { offsetof(classNameTypedef, name), 0 }, 1, FTYPEDESC_SAVE, NULL, NULL, NULL, &(((classNameTypedef *)0)->name.m_DataMap), sizeof( ((classNameTypedef *)0)->name ), NULL, 0, 0.0f }
@@ -144,7 +159,7 @@ DECLARE_FIELD_SIZE( FIELD_MATERIALINDEX,	sizeof(int) )
 	{ FIELD_EMBEDDED, #name, { offsetof(classNameTypedef, name), 0 }, count, FTYPEDESC_SAVE, NULL, NULL, NULL, &(((classNameTypedef *)0)->name->m_DataMap), sizeof( ((classNameTypedef *)0)->name[0] ), NULL, 0, 0.0f  }
 
 #define DEFINE_EMBEDDED_AUTO_ARRAY( name )			\
-	{ FIELD_EMBEDDED, #name, { offsetof(classNameTypedef, name), 0 }, ARRAYSIZE( ((classNameTypedef *)0)->name ), FTYPEDESC_SAVE, NULL, NULL, NULL, &(((classNameTypedef *)0)->name->m_DataMap), sizeof( ((classNameTypedef *)0)->name[0] ), NULL, 0, 0.0f  }
+	{ FIELD_EMBEDDED, #name, { offsetof(classNameTypedef, name), 0 }, SIZE_OF_ARRAY( ((classNameTypedef *)0)->name ), FTYPEDESC_SAVE, NULL, NULL, NULL, &(((classNameTypedef *)0)->name->m_DataMap), sizeof( ((classNameTypedef *)0)->name[0] ), NULL, 0, 0.0f  }
 
 #ifndef NO_ENTITY_PREDICTION
 
@@ -169,7 +184,6 @@ DECLARE_FIELD_SIZE( FIELD_MATERIALINDEX,	sizeof(int) )
 #define DEFINE_PRED_FIELD_TOL(name,fieldtype, flags,tolerance)			_FIELD(name, fieldtype, 1,  flags, NULL, tolerance )
 #define DEFINE_PRED_ARRAY_TOL(name,fieldtype, count,flags,tolerance)		_FIELD(name, fieldtype, count, flags, NULL, tolerance)
 #define DEFINE_FIELD_NAME_TOL(localname,netname,fieldtolerance)		_FIELD(localname, fieldtype, 1,  0, #netname, tolerance )
-
 
 //#define DEFINE_DATA( name, fieldextname, flags ) _FIELD(name, fieldtype, 1,  flags, extname )
 
@@ -203,7 +217,15 @@ extern ISaveRestoreOps *eventFuncs;
 #define FTYPEDESC_PRIVATE			0x0200		// The field is local to the client or server only (not referenced by prediction code and not replicated by networking)
 #define FTYPEDESC_NOERRORCHECK		0x0400		// The field is part of the prediction typedescription, but doesn't get compared when checking for errors
 
-#define FTYPEDESC_MODELINDEX		0x0800				// The field is a model index (used for debugging output)
+#define FTYPEDESC_MODELINDEX		0x0800		// The field is a model index (used for debugging output)
+
+#define FTYPEDESC_INDEX				0x1000		// The field is an index into file data, used for byteswapping. 
+
+// These flags apply to C_BasePlayer derived objects only
+#define FTYPEDESC_VIEW_OTHER_PLAYER		0x2000		// By default you can only view fields on the local player (yourself), 
+													//   but if this is set, then we allow you to see fields on other players
+#define FTYPEDESC_VIEW_OWN_TEAM			0x4000		// Only show this data if the player is on the same team as the local player
+#define FTYPEDESC_VIEW_NEVER			0x8000		// Never show this field to anyone, even the local player (unusual)
 
 #define TD_MSECTOLERANCE		0.001f		// This is a FIELD_FLOAT and should only be checked to be within 0.001 of the networked info
 
@@ -234,7 +256,7 @@ struct typedescription_t
 	fieldtype_t			fieldType;
 	const char			*fieldName;
 	int					fieldOffset[ TD_OFFSET_COUNT ]; // 0 == normal, 1 == packed offset
-	short				fieldSize;
+	unsigned short		fieldSize;
 	short				flags;
 	// the name of the variable in the map/fgd data, or the name of the action
 	const char			*externalName;	
@@ -339,7 +361,7 @@ struct datamap_t
 		\
 		if ( sizeof( dataDesc ) > sizeof( dataDesc[0] ) ) \
 		{ \
-			classNameTypedef::m_DataMap.dataNumFields = ARRAYSIZE( dataDesc ) - 1; \
+			classNameTypedef::m_DataMap.dataNumFields = SIZE_OF_ARRAY( dataDesc ) - 1; \
 			classNameTypedef::m_DataMap.dataDesc 	  = &dataDesc[1]; \
 		} \
 		else \
@@ -362,6 +384,26 @@ struct datamap_t
 #define IMPLEMENT_NULL_DATADESC( derivedClass ) \
 	BEGIN_DATADESC( derivedClass ) \
 	END_DATADESC()
+
+// helps get the offset of a bitfield
+#define BEGIN_BITFIELD( name ) \
+	union \
+	{ \
+		char name; \
+		struct \
+		{
+
+#define END_BITFIELD() \
+		}; \
+	};
+
+//-----------------------------------------------------------------------------
+// Forward compatability with potential seperate byteswap datadescs
+
+#define DECLARE_BYTESWAP_DATADESC() DECLARE_SIMPLE_DATADESC()
+#define BEGIN_BYTESWAP_DATADESC(name) BEGIN_SIMPLE_DATADESC(name) 
+#define BEGIN_BYTESWAP_DATADESC_(name,base) BEGIN_SIMPLE_DATADESC_(name,base) 
+#define END_BYTESWAP_DATADESC() END_DATADESC()
 
 //-----------------------------------------------------------------------------
 
@@ -401,7 +443,7 @@ public:
 	
 private:
 	const char *m_pszBase;
-	int m_nLenBase;
+	size_t m_nLenBase;
 	CUtlVector<char *> m_Names;
 };
 

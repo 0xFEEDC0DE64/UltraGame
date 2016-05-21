@@ -12,8 +12,8 @@
 #endif
 
 #include "interface.h"
-#include "vector.h"
-#include "vector4d.h"
+#include "mathlib/vector.h"
+#include "mathlib/vector4d.h"
 #include "vcollide.h"
 
 

@@ -24,6 +24,10 @@ struct client_textmessage_t
 	const char *pVGuiSchemeFontName; // If null, use default font for messages
 	const char *pName;
 	const char *pMessage;
+	bool    bRoundedRectBackdropBox;
+	float	flBoxSize; // as a function of font height
+	byte	boxcolor[4];
+	char const *pClearMessage; // message to clear
 };
 
 #endif // CLIENT_TEXTMESSAGE_H

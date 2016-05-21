@@ -37,6 +37,10 @@
 #endif
 
 
+#ifdef _LINUX
+typedef unsigned int uintptr_t;
+#endif
+
 #define ExecuteNTimes( nTimes, x )	\
 	{								\
 		static int __executeCount=0;\
@@ -54,7 +58,7 @@
 template <typename T>
 inline T AlignValue( T val, unsigned alignment )
 {
-	return (T)( ( (unsigned)val + alignment - 1 ) & ~( alignment - 1 ) );
+	return (T)( ( (uintptr_t)val + alignment - 1 ) & ~( alignment - 1 ) );
 }
 
 
@@ -66,12 +70,11 @@ inline T AlignValue( T val, unsigned alignment )
 // In case this ever changes
 #define M_PI			3.14159265358979323846
 
-#ifndef min
-	#define min(a,b)  (((a) < (b)) ? (a) : (b))
-#endif
+#include "valve_minmax_on.h"
 
-#ifndef max
-	#define max(a,b)  (((a) > (b)) ? (a) : (b))
+#if !defined(_X360)
+#define fpmin min
+#define fpmax max
 #endif
 
 #ifdef __cplusplus
@@ -99,6 +102,9 @@ typedef unsigned long ULONG;
 typedef unsigned char BYTE;
 typedef unsigned char byte;
 typedef unsigned short word;
+
+typedef unsigned int uintptr_t;
+
 
 enum ThreeState_t
 {
@@ -334,7 +340,32 @@ protected:
 #define UID_CAT1(a,c) a ## c
 #define UID_CAT2(a,c) UID_CAT1(a,c)
 #define EXPAND_CONCAT(a,c) UID_CAT1(a,c)
+#ifdef _MSC_VER
+#define UNIQUE_ID UID_CAT2(UID_PREFIX,__COUNTER__)
+#else
 #define UNIQUE_ID UID_CAT2(UID_PREFIX,__LINE__)
+#endif
+
+// this allows enumerations to be used as flags, and still remain type-safe!
+#define DEFINE_ENUM_BITWISE_OPERATORS( Type ) \
+	inline Type  operator|  ( Type  a, Type b ) { return Type( int( a ) | int( b ) ); } \
+	inline Type  operator&  ( Type  a, Type b ) { return Type( int( a ) & int( b ) ); } \
+	inline Type  operator^  ( Type  a, Type b ) { return Type( int( a ) ^ int( b ) ); } \
+	inline Type  operator<< ( Type  a, int  b ) { return Type( int( a ) << b ); } \
+	inline Type  operator>> ( Type  a, int  b ) { return Type( int( a ) >> b ); } \
+	inline Type &operator|= ( Type &a, Type b ) { return a = a |  b; } \
+	inline Type &operator&= ( Type &a, Type b ) { return a = a &  b; } \
+	inline Type &operator^= ( Type &a, Type b ) { return a = a ^  b; } \
+	inline Type &operator<<=( Type &a, int  b ) { return a = a << b; } \
+	inline Type &operator>>=( Type &a, int  b ) { return a = a >> b; } \
+	inline Type  operator~( Type a ) { return Type( ~int( a ) ); }
+
+// defines increment/decrement operators for enums for easy iteration
+#define DEFINE_ENUM_INCREMENT_OPERATORS( Type ) \
+	inline Type &operator++( Type &a      ) { return a = Type( int( a ) + 1 ); } \
+	inline Type &operator--( Type &a      ) { return a = Type( int( a ) - 1 ); } \
+	inline Type  operator++( Type &a, int ) { Type t = a; ++a; return t; } \
+	inline Type  operator--( Type &a, int ) { Type t = a; --a; return t; }
 
 #include "tier0/valve_on.h"
 

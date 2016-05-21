@@ -17,8 +17,10 @@ CUtlVector<mapoverlay_t> g_aMapWaterOverlays;
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
-void Overlay_GetFromEntity( entity_t *pMapEnt )
+int Overlay_GetFromEntity( entity_t *pMapEnt )
 {
+	int iAccessorID = -1;
+
 	// Allocate the new overlay.
 	int iOverlay = g_aMapOverlays.AddToTail();
 	mapoverlay_t *pMapOverlay = &g_aMapOverlays[iOverlay];
@@ -26,16 +28,34 @@ void Overlay_GetFromEntity( entity_t *pMapEnt )
 	// Get the overlay data.
 	pMapOverlay->nId = g_aMapOverlays.Count() - 1;
 
+	if ( ValueForKey( pMapEnt, "targetname" )[ 0 ] != '\0' )
+	{
+		// Overlay has a name, remember it's ID for accessing
+		iAccessorID = pMapOverlay->nId;
+	}
+
 	pMapOverlay->flU[0] = FloatForKey( pMapEnt, "StartU" );
 	pMapOverlay->flU[1] = FloatForKey( pMapEnt, "EndU" );
 	pMapOverlay->flV[0] = FloatForKey( pMapEnt, "StartV" );
 	pMapOverlay->flV[1] = FloatForKey( pMapEnt, "EndV" );
 
+	pMapOverlay->flFadeDistMinSq = FloatForKey( pMapEnt, "fademindist" );
+	if ( pMapOverlay->flFadeDistMinSq > 0 )
+	{
+		pMapOverlay->flFadeDistMinSq *= pMapOverlay->flFadeDistMinSq;
+	}
+
+	pMapOverlay->flFadeDistMaxSq = FloatForKey( pMapEnt, "fademaxdist" );
+	if ( pMapOverlay->flFadeDistMaxSq > 0 )
+	{
+		pMapOverlay->flFadeDistMaxSq *= pMapOverlay->flFadeDistMaxSq;
+	}
+
 	GetVectorForKey( pMapEnt, "BasisOrigin", pMapOverlay->vecOrigin );
 
 	pMapOverlay->m_nRenderOrder = IntForKey( pMapEnt, "RenderOrder" );
 	if ( pMapOverlay->m_nRenderOrder < 0 || pMapOverlay->m_nRenderOrder >= OVERLAY_NUM_RENDER_ORDERS )
-		Error( "Overlay at %f %f %f has invalid render order (%d).\n", pMapOverlay->vecOrigin );
+		Error( "Overlay (%s) at %f %f %f has invalid render order (%d).\n", ValueForKey( pMapEnt, "material" ), pMapOverlay->vecOrigin );
 
 	GetVectorForKey( pMapEnt, "uv0", pMapOverlay->vecUVPoints[0] );
 	GetVectorForKey( pMapEnt, "uv1", pMapOverlay->vecUVPoints[1] );
@@ -50,8 +70,8 @@ void Overlay_GetFromEntity( entity_t *pMapEnt )
 	Assert( strlen( pMaterialName ) < OVERLAY_MAP_STRLEN );
 	if ( strlen( pMaterialName ) >= OVERLAY_MAP_STRLEN )
 	{
-		Error( "Overlay Material Name > OVERLAY_MAP_STRLEN" );
-		return;
+		Error( "Overlay Material Name (%s) too long! > OVERLAY_MAP_STRLEN (%d)", pMaterialName, OVERLAY_MAP_STRLEN );
+		return -1;
 	}
 	strcpy( pMapOverlay->szMaterialName, pMaterialName );	
 
@@ -61,7 +81,7 @@ void Overlay_GetFromEntity( entity_t *pMapEnt )
 	strcpy( pTmpList, pSideList );
 	const char *pScan = strtok( pTmpList, " " );
 	if ( !pScan )
-		return;
+		return iAccessorID;
 
 	pMapOverlay->aSideList.Purge();
 	pMapOverlay->aFaceList.Purge();
@@ -74,6 +94,8 @@ void Overlay_GetFromEntity( entity_t *pMapEnt )
 			pMapOverlay->aSideList.AddToTail( nSideId );
 		}
 	} while ( ( pScan = strtok( NULL, " " ) ) );
+
+	return iAccessorID;
 }
 
 //-----------------------------------------------------------------------------
@@ -184,11 +206,13 @@ void Overlay_EmitOverlayFace( mapoverlay_t *pMapOverlay )
 	Assert( g_nOverlayCount < MAX_MAP_OVERLAYS );
 	if ( g_nOverlayCount >= MAX_MAP_OVERLAYS )
 	{
-		Error ( "g_nOverlayCount >= MAX_MAP_OVERLAYS" );
+		Error ( "Too Many Overlays!\nMAX_MAP_OVERLAYS = %d", MAX_MAP_OVERLAYS );
 		return;
 	}
 
 	doverlay_t *pOverlay = &g_Overlays[g_nOverlayCount];
+	doverlayfade_t *pOverlayFade = &g_OverlayFades[g_nOverlayCount];
+
 	g_nOverlayCount++;
 
 	// Conver the map overlay into a .bsp overlay (doverlay_t).
@@ -246,7 +270,7 @@ void Overlay_EmitOverlayFace( mapoverlay_t *pMapOverlay )
 		Assert( nFaceCount < OVERLAY_BSP_FACE_COUNT );
 		if ( nFaceCount >= OVERLAY_BSP_FACE_COUNT )
 		{
-			Error( "Face List Count >= OVERLAY_BSP_FACE_COUNT" );
+			Error( "Overlay touching too many faces (touching %d, max %d)\nOverlay %s at %.1f %.1f %.1f", nFaceCount, OVERLAY_BSP_FACE_COUNT, pMapOverlay->szMaterialName, pMapOverlay->vecOrigin.x, pMapOverlay->vecOrigin.y, pMapOverlay->vecOrigin.z );
 			return;
 		}
 
@@ -255,6 +279,13 @@ void Overlay_EmitOverlayFace( mapoverlay_t *pMapOverlay )
 		{
 			pOverlay->aFaces[iFace] = pMapOverlay->aFaceList.Element( iFace );
 		}
+	}
+
+	// Convert the map overlay fade data into a .bsp overlay fade (doverlayfade_t).
+	if ( pOverlayFade )
+	{
+		pOverlayFade->flFadeDistMinSq = pMapOverlay->flFadeDistMinSq;
+		pOverlayFade->flFadeDistMaxSq = pMapOverlay->flFadeDistMaxSq;
 	}
 }
 
@@ -265,7 +296,7 @@ void OverlayTransition_EmitOverlayFace( mapoverlay_t *pMapOverlay )
 	Assert( g_nWaterOverlayCount < MAX_MAP_WATEROVERLAYS );
 	if ( g_nWaterOverlayCount >= MAX_MAP_WATEROVERLAYS )
 	{
-		Error ( "g_nWaterOverlayCount >= MAX_MAP_WATEROVERLAYS" );
+		Error ( "Too many water overlays!\nMAX_MAP_WATEROVERLAYS = %d", MAX_MAP_WATEROVERLAYS );
 		return;
 	}
 
@@ -327,7 +358,7 @@ void OverlayTransition_EmitOverlayFace( mapoverlay_t *pMapOverlay )
 		Assert( nFaceCount < WATEROVERLAY_BSP_FACE_COUNT );
 		if ( nFaceCount >= WATEROVERLAY_BSP_FACE_COUNT )
 		{
-			Error( "Water Face List Count >= WATEROVERLAY_BSP_FACE_COUNT" );
+			Error( "Water Overlay touching too many faces (touching %d, max %d)\nOverlay %s at %.1f %.1f %.1f", nFaceCount, OVERLAY_BSP_FACE_COUNT, pMapOverlay->szMaterialName, pMapOverlay->vecOrigin.x, pMapOverlay->vecOrigin.y, pMapOverlay->vecOrigin.z );
 			return;
 		}
 

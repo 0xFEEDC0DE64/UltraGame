@@ -1,30 +1,34 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2008, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
 //
-//=============================================================================//
+//===========================================================================//
 
 #include <stdio.h>
 
+
+#include <stdio.h>
 #include "interface.h"
 #include "filesystem.h"
 #include "engine/iserverplugin.h"
-#include "dlls/iplayerinfo.h"
 #include "eiface.h"
 #include "igameevents.h"
 #include "convar.h"
 #include "Color.h"
 #include "vstdlib/random.h"
 #include "engine/IEngineTrace.h"
+#include "tier2/tier2.h"
+#include "game/server/iplayerinfo.h"
 
+// Uncomment this to compile the sample TF2 plugin code, note: most of this is duplicated in serverplugin_tony, but kept here for reference!
+//#define SAMPLE_TF2_PLUGIN
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 // Interfaces from the engine
 IVEngineServer	*engine = NULL; // helper functions (messaging clients, loading content, making entities, running commands, etc)
-IFileSystem		*filesystem = NULL; // file I/O 
 IGameEventManager *gameeventmanager = NULL; // game events interface
 IPlayerInfoManager *playerinfomanager = NULL; // game dll interface to interact with players
 IBotManager *botmanager = NULL; // game dll interface to interact with bots
@@ -36,7 +40,6 @@ IEngineTrace *enginetrace = NULL;
 CGlobalVars *gpGlobals = NULL;
 
 // function to initialize any cvars/command in this plugin
-void InitCVars( CreateInterfaceFn cvarFactory );
 void Bot_RunAll( void ); 
 
 // useful helper func
@@ -44,7 +47,6 @@ inline bool FStrEq(const char *sz1, const char *sz2)
 {
 	return(Q_stricmp(sz1, sz2) == 0);
 }
-
 //---------------------------------------------------------------------------------
 // Purpose: a sample 3rd party plugin class
 //---------------------------------------------------------------------------------
@@ -70,8 +72,13 @@ public:
 	virtual void			SetCommandClient( int index );
 	virtual void			ClientSettingsChanged( edict_t *pEdict );
 	virtual PLUGIN_RESULT	ClientConnect( bool *bAllowConnect, edict_t *pEntity, const char *pszName, const char *pszAddress, char *reject, int maxrejectlen );
-	virtual PLUGIN_RESULT	ClientCommand( edict_t *pEntity );
+	virtual PLUGIN_RESULT	ClientCommand( edict_t *pEntity, const CCommand &args );
 	virtual PLUGIN_RESULT	NetworkIDValidated( const char *pszUserName, const char *pszNetworkID );
+	virtual void			OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue );
+
+	// added with version 3 of the interface.
+	virtual void			OnEdictAllocated( edict_t *edict );
+	virtual void			OnEdictFreed( const edict_t *edict  );	
 
 	// IGameEventListener Interface
 	virtual void FireGameEvent( KeyValues * event );
@@ -105,6 +112,9 @@ CEmptyServerPlugin::~CEmptyServerPlugin()
 //---------------------------------------------------------------------------------
 bool CEmptyServerPlugin::Load(	CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory )
 {
+	ConnectTier1Libraries( &interfaceFactory, 1 );
+	ConnectTier2Libraries( &interfaceFactory, 1 );
+
 	playerinfomanager = (IPlayerInfoManager *)gameServerFactory(INTERFACEVERSION_PLAYERINFOMANAGER,NULL);
 	if ( !playerinfomanager )
 	{
@@ -116,15 +126,14 @@ bool CEmptyServerPlugin::Load(	CreateInterfaceFn interfaceFactory, CreateInterfa
 	{
 		Warning( "Unable to load botcontroller, ignoring\n" ); // this isn't fatal, we just won't be able to access specific bot functions
 	}
+	engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, NULL);
+	gameeventmanager = (IGameEventManager *)interfaceFactory(INTERFACEVERSION_GAMEEVENTSMANAGER,NULL);
+	helpers = (IServerPluginHelpers*)interfaceFactory(INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL);
+	enginetrace = (IEngineTrace *)interfaceFactory(INTERFACEVERSION_ENGINETRACE_SERVER,NULL);
+	randomStr = (IUniformRandomStream *)interfaceFactory(VENGINE_SERVER_RANDOM_INTERFACE_VERSION, NULL);
 
 	// get the interfaces we want to use
-	if(	!(engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, NULL)) ||
-		!(gameeventmanager = (IGameEventManager *)interfaceFactory(INTERFACEVERSION_GAMEEVENTSMANAGER,NULL)) ||
-		!(filesystem = (IFileSystem*)interfaceFactory(FILESYSTEM_INTERFACE_VERSION, NULL)) ||
-		!(helpers = (IServerPluginHelpers*)interfaceFactory(INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL)) || 
-		!(enginetrace = (IEngineTrace *)interfaceFactory(INTERFACEVERSION_ENGINETRACE_SERVER,NULL)) ||
-		!(randomStr = (IUniformRandomStream *)interfaceFactory(VENGINE_SERVER_RANDOM_INTERFACE_VERSION, NULL))
-		)
+	if(	! ( engine && gameeventmanager && g_pFullFileSystem && helpers && enginetrace && randomStr ) )
 	{
 		return false; // we require all these interface to function
 	}
@@ -134,8 +143,8 @@ bool CEmptyServerPlugin::Load(	CreateInterfaceFn interfaceFactory, CreateInterfa
 		gpGlobals = playerinfomanager->GetGlobalVars();
 	}
 
-	InitCVars( interfaceFactory ); // register any cvars we have defined
 	MathLib_Init( 2.2f, 2.2f, 0.0f, 2.0f );
+	ConVar_Register( 0 );
 	return true;
 }
 
@@ -145,6 +154,10 @@ bool CEmptyServerPlugin::Load(	CreateInterfaceFn interfaceFactory, CreateInterfa
 void CEmptyServerPlugin::Unload( void )
 {
 	gameeventmanager->RemoveListener( this ); // make sure we are unloaded from the event system
+
+	ConVar_Unregister( );
+	DisconnectTier2Libraries( );
+	DisconnectTier1Libraries( );
 }
 
 //---------------------------------------------------------------------------------
@@ -242,6 +255,17 @@ void CEmptyServerPlugin::SetCommandClient( int index )
 	m_iClientCommandIndex = index;
 }
 
+void ClientPrint( edict_t *pEdict, char *format, ... )
+{
+	va_list		argptr;
+	static char		string[1024];
+	
+	va_start (argptr, format);
+	Q_vsnprintf(string, sizeof(string), format,argptr);
+	va_end (argptr);
+
+	engine->ClientPrintf( pEdict, string );
+}
 //---------------------------------------------------------------------------------
 // Purpose: called on level start
 //---------------------------------------------------------------------------------
@@ -257,10 +281,9 @@ void CEmptyServerPlugin::ClientSettingsChanged( edict_t *pEdict )
 			 Q_stricmp( name, playerinfo->GetName()) ) // playerinfo may be NULL if the MOD doesn't support access to player data 
 													   // OR if you are accessing the player before they are fully connected
 		{
-			char msg[128];
-			Q_snprintf( msg, sizeof(msg), "Your name changed to \"%s\" (from \"%s\"\n", name, playerinfo->GetName() ); 
-			engine->ClientPrintf( pEdict, msg ); // this is the bad way to check this, the better option it to listen for the "player_changename" event in FireGameEvent()
-												// this is here to give a real example of how to use the playerinfo interface
+			ClientPrint( pEdict, "Your name changed to \"%s\" (from \"%s\"\n", name, playerinfo->GetName() );
+						// this is the bad way to check this, the better option it to listen for the "player_changename" event in FireGameEvent()
+						// this is here to give a real example of how to use the playerinfo interface
 		}
 	}
 }
@@ -273,12 +296,39 @@ PLUGIN_RESULT CEmptyServerPlugin::ClientConnect( bool *bAllowConnect, edict_t *p
 	return PLUGIN_CONTINUE;
 }
 
+CON_COMMAND( DoAskConnect, "Server plugin example of using the ask connect dialog" )
+{
+	if ( args.ArgC() < 2 )
+	{
+		Warning ( "DoAskConnect <server IP>\n" );
+	}
+	else
+	{
+		const char *pServerIP = args.Arg( 1 );
+
+		KeyValues *kv = new KeyValues( "menu" );
+		kv->SetString( "title", pServerIP );	// The IP address of the server to connect to goes in the "title" field.
+		kv->SetInt( "time", 3 );
+
+		for ( int i=1; i < gpGlobals->maxClients; i++ )
+		{
+			edict_t *pEdict = engine->PEntityOfEntIndex( i );
+			if ( pEdict )
+			{
+				helpers->CreateMessage( pEdict, DIALOG_ASKCONNECT, kv, &g_EmtpyServerPlugin );
+			}
+		}
+
+		kv->deleteThis();
+	}
+}
+
 //---------------------------------------------------------------------------------
 // Purpose: called when a client types in a command (only a subset of commands however, not CON_COMMAND's)
 //---------------------------------------------------------------------------------
-PLUGIN_RESULT CEmptyServerPlugin::ClientCommand( edict_t *pEntity )
+PLUGIN_RESULT CEmptyServerPlugin::ClientCommand( edict_t *pEntity, const CCommand &args )
 {
-	const char *pcmd = engine->Cmd_Argv(0);
+	const char *pcmd = args[0];
 
 	if ( !pEntity || pEntity->IsFree() ) 
 	{
@@ -346,8 +396,6 @@ PLUGIN_RESULT CEmptyServerPlugin::ClientCommand( edict_t *pEntity )
 		kv->deleteThis();
 		return PLUGIN_STOP; // we handled this function		
 	}
-
-
 	return PLUGIN_CONTINUE;
 }
 
@@ -357,6 +405,20 @@ PLUGIN_RESULT CEmptyServerPlugin::ClientCommand( edict_t *pEntity )
 PLUGIN_RESULT CEmptyServerPlugin::NetworkIDValidated( const char *pszUserName, const char *pszNetworkID )
 {
 	return PLUGIN_CONTINUE;
+}
+
+//---------------------------------------------------------------------------------
+// Purpose: called when a cvar value query is finished
+//---------------------------------------------------------------------------------
+void CEmptyServerPlugin::OnQueryCvarValueFinished( QueryCvarCookie_t iCookie, edict_t *pPlayerEntity, EQueryCvarValueStatus eStatus, const char *pCvarName, const char *pCvarValue )
+{
+	Msg( "Cvar query (cookie: %d, status: %d) - name: %s, value: %s\n", iCookie, eStatus, pCvarName, pCvarValue );
+}
+void CEmptyServerPlugin::OnEdictAllocated( edict_t *edict )
+{
+}
+void CEmptyServerPlugin::OnEdictFreed( const edict_t *edict  )
+{
 }
 
 //---------------------------------------------------------------------------------
@@ -373,12 +435,12 @@ void CEmptyServerPlugin::FireGameEvent( KeyValues * event )
 //---------------------------------------------------------------------------------
 CON_COMMAND( empty_version, "prints the version of the empty plugin" )
 {
-	Msg( "Version:1.0.0.0\n" );
+	Msg( "Version:2.0.0.0\n" );
 }
 
 CON_COMMAND( empty_log, "logs the version of the empty plugin" )
 {
-	engine->LogPrint( "Version:1.0.0.0\n" );
+	engine->LogPrint( "Version:2.0.0.0\n" );
 }
 
 //---------------------------------------------------------------------------------

@@ -1,22 +1,27 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: Defines a symbol table
 //
 // $Header: $
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef UTLSYMBOL_H
 #define UTLSYMBOL_H
 
+#ifdef _WIN32
+#pragma once
+#endif
+
 #include "tier0/threadtools.h"
 #include "tier1/utlrbtree.h"
 #include "tier1/utlvector.h"
+#include "tier1/stringpool.h"
+
 
 //-----------------------------------------------------------------------------
 // forward declarations
 //-----------------------------------------------------------------------------
-
 class CUtlSymbolTable;
 class CUtlSymbolTableMT;
 
@@ -24,7 +29,6 @@ class CUtlSymbolTableMT;
 //-----------------------------------------------------------------------------
 // This is a symbol, which is a easier way of dealing with strings.
 //-----------------------------------------------------------------------------
-
 typedef unsigned short UtlSymId_t;
 
 #define UTL_INVAL_SYMBOL  ((UtlSymId_t)~0)
@@ -35,7 +39,7 @@ public:
 	// constructor, destructor
 	CUtlSymbol() : m_Id(UTL_INVAL_SYMBOL) {}
 	CUtlSymbol( UtlSymId_t id ) : m_Id(id) {}
-	CUtlSymbol( char const* pStr );
+	CUtlSymbol( const char* pStr );
 	CUtlSymbol( CUtlSymbol const& sym ) : m_Id(sym.m_Id) {}
 	
 	// operator=
@@ -43,7 +47,7 @@ public:
 	
 	// operator==
 	bool operator==( CUtlSymbol const& src ) const { return m_Id == src.m_Id; }
-	bool operator==( char const* pStr ) const;
+	bool operator==( const char* pStr ) const;
 	
 	// Is valid?
 	bool IsValid() const { return m_Id != UTL_INVAL_SYMBOL; }
@@ -52,7 +56,7 @@ public:
 	operator UtlSymId_t const() const { return m_Id; }
 	
 	// Gets the string associated with the symbol
-	char const* String( ) const;
+	const char* String( ) const;
 
 	// Modules can choose to disable the static symbol table so to prevent accidental use of them.
 	static void DisableStaticSymbolTable();
@@ -92,13 +96,13 @@ public:
 	~CUtlSymbolTable();
 	
 	// Finds and/or creates a symbol based on the string
-	CUtlSymbol AddString( char const* pString );
+	CUtlSymbol AddString( const char* pString );
 
 	// Finds the symbol for pString
-	CUtlSymbol Find( char const* pString );
+	CUtlSymbol Find( const char* pString ) const;
 	
 	// Look up the string associated with a particular symbol
-	char const* String( CUtlSymbol id ) const;
+	const char* String( CUtlSymbol id ) const;
 	
 	// Remove all symbols in the table.
 	void  RemoveAll();
@@ -139,8 +143,6 @@ protected:
 		bool operator()( const CStringPoolIndex &left, const CStringPoolIndex &right ) const;
 	};
 
-	friend class CLess;
-
 	// Stores the symbol lookup
 	class CTree : public CUtlRBTree<CStringPoolIndex, unsigned short, CLess>
 	{
@@ -149,29 +151,25 @@ protected:
 		friend class CUtlSymbolTable::CLess; // Needed to allow CLess to calculate pointer to symbol table
 	};
 
-	CTree m_Lookup;
-	bool m_bInsensitive;
-	char const* m_pUserSearchString;
-
-
-	typedef struct
+	struct StringPool_t
 	{	
 		int m_TotalLen;		// How large is 
 		int m_SpaceUsed;
 		char m_Data[1];
-	} StringPool_t;
+	};
+
+	CTree m_Lookup;
+	bool m_bInsensitive;
+	mutable const char* m_pUserSearchString;
 
 	// stores the string data
 	CUtlVector<StringPool_t*> m_StringPools;
 
-
-
 private:
-
 	int FindPoolWithSpace( int len ) const;
-
 	const char* StringFromIndex( const CStringPoolIndex &index ) const;
-		
+
+	friend class CLess;
 };
 
 class CUtlSymbolTableMT : private CUtlSymbolTable
@@ -182,32 +180,32 @@ public:
 	{
 	}
 
-	CUtlSymbol AddString( char const* pString )
+	CUtlSymbol AddString( const char* pString )
 	{
-		m_mutex.Lock();
+		m_lock.LockForWrite();
 		CUtlSymbol result = CUtlSymbolTable::AddString( pString );
-		m_mutex.Unlock();
+		m_lock.UnlockWrite();
 		return result;
 	}
 
-	CUtlSymbol Find( char const* pString )
+	CUtlSymbol Find( const char* pString ) const
 	{
-		m_mutex.Lock();
+		m_lock.LockForWrite();
 		CUtlSymbol result = CUtlSymbolTable::Find( pString );
-		m_mutex.Unlock();
+		m_lock.UnlockWrite();
 		return result;
 	}
 
-	char const* String( CUtlSymbol id ) const
+	const char* String( CUtlSymbol id ) const
 	{
-		m_mutex.Lock();
+		m_lock.LockForRead();
 		const char *pszResult = CUtlSymbolTable::String( id );
-		m_mutex.Unlock();
+		m_lock.UnlockRead();
 		return pszResult;
 	}
-
+	
 private:
-	CThreadMutex m_mutex;
+	mutable CThreadSpinRWLock m_lock;
 };
 
 
@@ -230,7 +228,7 @@ typedef void* FileNameHandle_t;
 class CUtlFilenameSymbolTable
 {
 	// Internal representation of a FileHandle_t
-	//  If we get more than 64K filenames, we'll have to revisit...
+	// If we get more than 64K filenames, we'll have to revisit...
 	// Right now CUtlSymbol is a short, so this packs into an int/void * pointer size...
 	struct FileNameHandleInternal_t
 	{
@@ -246,15 +244,17 @@ class CUtlFilenameSymbolTable
 		unsigned short file;
 	};
 
-	// Symbol table storing the file names:
-	CUtlSymbolTableMT	m_FileNames;
-
 public:
-	FileNameHandle_t	FindOrAddFileName( char const *pFileName );
-	FileNameHandle_t	FindFileName( char const *pFileName );
+	FileNameHandle_t	FindOrAddFileName( const char *pFileName );
+	FileNameHandle_t	FindFileName( const char *pFileName );
 	int					PathIndex(const FileNameHandle_t &handle) { return (( const FileNameHandleInternal_t * )&handle)->path; }
+	bool				String( const FileNameHandle_t& handle, char *buf, int buflen );
+	void				RemoveAll();
+	void				SpewStrings();
 
-	bool				String( const FileNameHandle_t& handle, char *buf, int buflen );	
+private:
+	CCountedStringPool	m_StringPool;
+	mutable CThreadSpinRWLock m_lock;
 };
 
 

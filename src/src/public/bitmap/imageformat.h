@@ -2,8 +2,6 @@
 //
 // Purpose: 
 //
-// $Header: $
-// $NoKeywords: $
 //===========================================================================//
 
 #ifndef IMAGEFORMAT_H
@@ -13,13 +11,23 @@
 #pragma once
 #endif
 
-
 #include <stdio.h>
+
+enum NormalDecodeMode_t
+{
+	NORMAL_DECODE_NONE			= 0,
+	NORMAL_DECODE_ATI2N			= 1,
+	NORMAL_DECODE_ATI2N_ALPHA	= 2
+};
+
+// Forward declaration
+#ifdef _WIN32
+typedef enum _D3DFORMAT D3DFORMAT;
+#endif
 
 //-----------------------------------------------------------------------------
 // The various image format types
 //-----------------------------------------------------------------------------
-
 
 // don't bitch that inline functions aren't used!!!!
 #pragma warning(disable : 4514)
@@ -52,16 +60,31 @@ enum ImageFormat
 	IMAGE_FORMAT_UV88,
 	IMAGE_FORMAT_UVWQ8888,
 	IMAGE_FORMAT_RGBA16161616F,
-	// GR - HDR
 	IMAGE_FORMAT_RGBA16161616,
 	IMAGE_FORMAT_UVLX8888,
-	IMAGE_FORMAT_R32F,	// Single-channel 32-bit floating point
+	IMAGE_FORMAT_R32F,			// Single-channel 32-bit floating point
 	IMAGE_FORMAT_RGB323232F,
 	IMAGE_FORMAT_RGBA32323232F,
 
-#ifdef _XBOX
-	// adds support for these linear formats
-	// non-linear uncompressed formats are swizzled
+	// Depth-stencil texture formats for shadow depth mapping
+	IMAGE_FORMAT_NV_DST16,		// 
+	IMAGE_FORMAT_NV_DST24,		//
+	IMAGE_FORMAT_NV_INTZ,		// Vendor-specific depth-stencil texture
+	IMAGE_FORMAT_NV_RAWZ,		// formats for shadow depth mapping 
+	IMAGE_FORMAT_ATI_DST16,		// 
+	IMAGE_FORMAT_ATI_DST24,		//
+	IMAGE_FORMAT_NV_NULL,		// Dummy format which takes no video memory
+
+	// Compressed normal map formats
+	IMAGE_FORMAT_ATI2N,			// One-surface ATI2N / DXN format
+	IMAGE_FORMAT_ATI1N,			// Two-surface ATI1N format
+
+#if defined( _X360 )
+	// Depth-stencil texture formats
+	IMAGE_FORMAT_X360_DST16,
+	IMAGE_FORMAT_X360_DST24,
+	IMAGE_FORMAT_X360_DST24F,
+	// supporting these specific formats as non-tiled for procedural cpu access
 	IMAGE_FORMAT_LINEAR_BGRX8888,
 	IMAGE_FORMAT_LINEAR_RGBA8888,
 	IMAGE_FORMAT_LINEAR_ABGR8888,
@@ -71,15 +94,19 @@ enum ImageFormat
 	IMAGE_FORMAT_LINEAR_BGR888,
 	IMAGE_FORMAT_LINEAR_BGRX5551,
 	IMAGE_FORMAT_LINEAR_I8,
+	IMAGE_FORMAT_LINEAR_RGBA16161616,
+
+	IMAGE_FORMAT_LE_BGRX8888,
+	IMAGE_FORMAT_LE_BGRA8888,
 #endif
 
 	NUM_IMAGE_FORMATS
 };
 
-
 //-----------------------------------------------------------------------------
 // Color structures
 //-----------------------------------------------------------------------------
+
 struct BGRA8888_t
 {
 	unsigned char b;		// change the order of names to change the 
@@ -145,6 +172,10 @@ struct BGR888_t
 	}
 };
 
+// 360 uses this structure for x86 dxt decoding
+#if defined( _X360 )
+#pragma bitfield_order( push, lsb_to_msb )
+#endif
 struct BGR565_t
 {
 	unsigned short b : 5;		// order of names changes
@@ -157,7 +188,17 @@ struct BGR565_t
 		b = in.b >> 3;
 		return *this;
 	}
+	inline BGR565_t &Set( int red, int green, int blue )
+	{
+		r = red >> 3;
+		g = green >> 2;
+		b = blue >> 3;
+		return *this;
+	}
 };
+#if defined( _X360 )
+#pragma bitfield_order( pop )
+#endif
 
 struct BGRA5551_t
 {
@@ -206,8 +247,6 @@ struct RGBX5551_t
 	}
 };
 
-
-
 //-----------------------------------------------------------------------------
 // some important constants
 //-----------------------------------------------------------------------------
@@ -236,154 +275,191 @@ struct ImageFormatInfo_t
 namespace ImageLoader
 {
 
-bool GetInfo( const char *fileName, int *width, int *height, enum ImageFormat *imageFormat, float *sourceGamma );
-int  GetMemRequired( int width, int height, int depth, ImageFormat imageFormat, bool mipmap );
-int  GetMipMapLevelByteOffset( int width, int height, enum ImageFormat imageFormat, int skipMipLevels );
-void GetMipMapLevelDimensions( int *width, int *height, int skipMipLevels );
-int  GetNumMipMapLevels( int width, int height, int depth = 1 );
-bool Load( unsigned char *imageData, const char *fileName, int width, int height, enum ImageFormat imageFormat, float targetGamma, bool mipmap );
-bool Load( unsigned char *imageData, FILE *fp, int width, int height, 
-			enum ImageFormat imageFormat, float targetGamma, bool mipmap );
+	bool GetInfo( const char *fileName, int *width, int *height, enum ImageFormat *imageFormat, float *sourceGamma );
+	int  GetMemRequired( int width, int height, int depth, ImageFormat imageFormat, bool mipmap );
+	int  GetMipMapLevelByteOffset( int width, int height, enum ImageFormat imageFormat, int skipMipLevels );
+	void GetMipMapLevelDimensions( int *width, int *height, int skipMipLevels );
+	int  GetNumMipMapLevels( int width, int height, int depth = 1 );
+	bool Load( unsigned char *imageData, const char *fileName, int width, int height, enum ImageFormat imageFormat, float targetGamma, bool mipmap );
+	bool Load( unsigned char *imageData, FILE *fp, int width, int height, 
+			   enum ImageFormat imageFormat, float targetGamma, bool mipmap );
 
-// convert from any image format to any other image format.
-// return false if the conversion cannot be performed.
-// Strides denote the number of bytes per each line, 
-// by default assumes width * # of bytes per pixel
-bool ConvertImageFormat( unsigned char *src, enum ImageFormat srcImageFormat,
-		                 unsigned char *dst, enum ImageFormat dstImageFormat, 
-						 int width, int height, int srcStride = 0, int dstStride = 0 );
+	// convert from any image format to any other image format.
+	// return false if the conversion cannot be performed.
+	// Strides denote the number of bytes per each line, 
+	// by default assumes width * # of bytes per pixel
+	bool ConvertImageFormat( const unsigned char *src, enum ImageFormat srcImageFormat,
+							 unsigned char *dst, enum ImageFormat dstImageFormat, 
+							 int width, int height, int srcStride = 0, int dstStride = 0 );
 
-// Flags for ResampleRGBA8888
-enum
-{
-	RESAMPLE_NORMALMAP = 0x1,
-	RESAMPLE_ALPHATEST = 0x2,
-	RESAMPLE_NICE_FILTER = 0x4,
-	RESAMPLE_CLAMPS = 0x8,
-	RESAMPLE_CLAMPT = 0x10,
-	RESAMPLE_CLAMPU = 0x20,
-};
+	// must be used in conjunction with ConvertImageFormat() to pre-swap and post-swap
+	void PreConvertSwapImageData( unsigned char *pImageData, int nImageSize, ImageFormat imageFormat, int width = 0, int stride = 0 );
+	void PostConvertSwapImageData( unsigned char *pImageData, int nImageSize, ImageFormat imageFormat, int width = 0, int stride = 0 );
+	void ByteSwapImageData( unsigned char *pImageData, int nImageSize, ImageFormat imageFormat, int width = 0, int stride = 0 );
+	bool IsFormatValidForConversion( ImageFormat fmt );
 
-struct ResampleInfo_t
-{
-	ResampleInfo_t() : m_flColorScale( 1.0f ), m_nFlags(0), m_flAlphaThreshhold(0.4f),
-		m_flAlphaHiFreqThreshhold(0.4f), m_nSrcDepth(1), m_nDestDepth(1) {}
+	//-----------------------------------------------------------------------------
+	// convert back and forth from D3D format to ImageFormat, regardless of
+	// whether it's supported or not
+	//-----------------------------------------------------------------------------
+	#ifdef _WIN32
+	ImageFormat D3DFormatToImageFormat( D3DFORMAT format );
+	D3DFORMAT ImageFormatToD3DFormat( ImageFormat format );
+	#endif
 
-	unsigned char *m_pSrc;
-	unsigned char *m_pDest;
-	int m_nSrcWidth;
-	int m_nSrcHeight;
-	int m_nSrcDepth;
-	int m_nDestWidth;
-	int m_nDestHeight;
-	int m_nDestDepth;
-	float m_flSrcGamma;
-	float m_flDestGamma;
-	float m_flColorScale;
-	float m_flAlphaThreshhold;
-	float m_flAlphaHiFreqThreshhold;
-	int m_nFlags;
-};
+	// Flags for ResampleRGBA8888
+	enum
+	{
+		RESAMPLE_NORMALMAP = 0x1,
+		RESAMPLE_ALPHATEST = 0x2,
+		RESAMPLE_NICE_FILTER = 0x4,
+		RESAMPLE_CLAMPS = 0x8,
+		RESAMPLE_CLAMPT = 0x10,
+		RESAMPLE_CLAMPU = 0x20,
+	};
 
-bool ResampleRGBA8888( const ResampleInfo_t &info );
-bool ResampleRGBA16161616( const ResampleInfo_t &info );
-bool ResampleRGB323232F( const ResampleInfo_t &info );
+	struct ResampleInfo_t
+	{
 
-void ConvertNormalMapRGBA8888ToDUDVMapUVLX8888( unsigned char *src, int width, int height,
-										                     unsigned char *dst_ );
-void ConvertNormalMapRGBA8888ToDUDVMapUVWQ8888( unsigned char *src, int width, int height,
-										                     unsigned char *dst_ );
-void ConvertNormalMapRGBA8888ToDUDVMapUV88( unsigned char *src, int width, int height,
-										                     unsigned char *dst_ );
+		ResampleInfo_t() : m_nFlags(0), m_flAlphaThreshhold(0.4f), m_flAlphaHiFreqThreshhold(0.4f), m_nSrcDepth(1), m_nDestDepth(1)
+		{
+			m_flColorScale[0] = 1.0f, m_flColorScale[1] = 1.0f, m_flColorScale[2] = 1.0f, m_flColorScale[3] = 1.0f;
+			m_flColorGoal[0] = 0.0f, m_flColorGoal[1] = 0.0f, m_flColorGoal[2] = 0.0f, m_flColorGoal[3] = 0.0f;
+		}
 
-void ConvertIA88ImageToNormalMapRGBA8888( unsigned char *src, int width, 
-														int height, unsigned char *dst,
-														float bumpScale );
+		unsigned char *m_pSrc;
+		unsigned char *m_pDest;
 
-void NormalizeNormalMapRGBA8888( unsigned char *src, int numTexels );
+		int m_nSrcWidth;
+		int m_nSrcHeight;
+		int m_nSrcDepth;
+		
+		int m_nDestWidth;
+		int m_nDestHeight;
+		int m_nDestDepth;
+		
+		float m_flSrcGamma;
+		float m_flDestGamma;
+		
+		float m_flColorScale[4];	// Color scale factors RGBA
+		float m_flColorGoal[4];		// Color goal values RGBA		DestColor = ColorGoal + scale * (SrcColor - ColorGoal)
+		
+		float m_flAlphaThreshhold;
+		float m_flAlphaHiFreqThreshhold;
+		
+		int m_nFlags;
+	};
 
+	bool ResampleRGBA8888( const ResampleInfo_t &info );
+	bool ResampleRGBA16161616( const ResampleInfo_t &info );
+	bool ResampleRGB323232F( const ResampleInfo_t &info );
 
-//-----------------------------------------------------------------------------
-// Gamma correction
-//-----------------------------------------------------------------------------
-void GammaCorrectRGBA8888( unsigned char *src, unsigned char* dst,
-					int width, int height, int depth, float srcGamma, float dstGamma );
+	void ConvertNormalMapRGBA8888ToDUDVMapUVLX8888( const unsigned char *src, int width, int height,
+													unsigned char *dst_ );
+	void ConvertNormalMapRGBA8888ToDUDVMapUVWQ8888( const unsigned char *src, int width, int height,
+													unsigned char *dst_ );
+	void ConvertNormalMapRGBA8888ToDUDVMapUV88( const unsigned char *src, int width, int height,
+												unsigned char *dst_ );
 
+	void ConvertIA88ImageToNormalMapRGBA8888( const unsigned char *src, int width, 
+											  int height, unsigned char *dst,
+											  float bumpScale );
 
-//-----------------------------------------------------------------------------
-// Makes a gamma table
-//-----------------------------------------------------------------------------
-void ConstructGammaTable( unsigned char* pTable, float srcGamma, float dstGamma );
-
-
-//-----------------------------------------------------------------------------
-// Gamma corrects using a previously constructed gamma table
-//-----------------------------------------------------------------------------
-void GammaCorrectRGBA8888( unsigned char* pSrc, unsigned char* pDst,
-						  int width, int height, int depth, unsigned char* pGammaTable );
-
-
-//-----------------------------------------------------------------------------
-// Generates a number of mipmap levels
-//-----------------------------------------------------------------------------
-void GenerateMipmapLevels( unsigned char* pSrc, unsigned char* pDst, int width,
-	int height,	int depth, ImageFormat imageFormat, float srcGamma, float dstGamma, 
-	int numLevels = 0 );
+	void NormalizeNormalMapRGBA8888( unsigned char *src, int numTexels );
 
 
-//-----------------------------------------------------------------------------
-// operations on square images (src and dst can be the same)
-//-----------------------------------------------------------------------------
-bool RotateImageLeft( unsigned char *src, unsigned char *dst, 
-					  int widthHeight, ImageFormat imageFormat );
-bool RotateImage180( unsigned char *src, unsigned char *dst, 
-					 int widthHeight, ImageFormat imageFormat );
-bool FlipImageVertically( void *pSrc, void *pDst, int nWidth, int nHeight, ImageFormat imageFormat, int nDstStride = 0 );
-bool FlipImageHorizontally( void *pSrc, void *pDst, int nWidth, int nHeight, ImageFormat imageFormat, int nDstStride = 0 );
-bool SwapAxes( unsigned char *src, 
-			  int widthHeight, ImageFormat imageFormat );
+	//-----------------------------------------------------------------------------
+	// Gamma correction
+	//-----------------------------------------------------------------------------
+	void GammaCorrectRGBA8888( unsigned char *src, unsigned char* dst,
+							   int width, int height, int depth, float srcGamma, float dstGamma );
 
 
-//-----------------------------------------------------------------------------
-// Returns info about each image format
-//-----------------------------------------------------------------------------
-ImageFormatInfo_t const& ImageFormatInfo( ImageFormat fmt );
+	//-----------------------------------------------------------------------------
+	// Makes a gamma table
+	//-----------------------------------------------------------------------------
+	void ConstructGammaTable( unsigned char* pTable, float srcGamma, float dstGamma );
 
 
-//-----------------------------------------------------------------------------
-// Gets the name of the image format
-//-----------------------------------------------------------------------------
-inline char const* GetName( ImageFormat fmt )
-{
-	return ImageFormatInfo(fmt).m_pName;
-}
+	//-----------------------------------------------------------------------------
+	// Gamma corrects using a previously constructed gamma table
+	//-----------------------------------------------------------------------------
+	void GammaCorrectRGBA8888( unsigned char* pSrc, unsigned char* pDst,
+							   int width, int height, int depth, unsigned char* pGammaTable );
 
 
-//-----------------------------------------------------------------------------
-// Gets the size of the image format in bytes
-//-----------------------------------------------------------------------------
-inline int SizeInBytes( ImageFormat fmt )
-{
-	return ImageFormatInfo(fmt).m_NumBytes;
-}
-
-//-----------------------------------------------------------------------------
-// Does the image format support transparency?
-//-----------------------------------------------------------------------------
-inline bool IsTransparent( ImageFormat fmt )
-{
-	return ImageFormatInfo(fmt).m_NumAlphaBits > 0;
-}
+	//-----------------------------------------------------------------------------
+	// Generates a number of mipmap levels
+	//-----------------------------------------------------------------------------
+	void GenerateMipmapLevels( unsigned char* pSrc, unsigned char* pDst, int width,
+							   int height,	int depth, ImageFormat imageFormat, float srcGamma, float dstGamma, 
+							   int numLevels = 0 );
 
 
-//-----------------------------------------------------------------------------
-// Is the image format compressed?
-//-----------------------------------------------------------------------------
-inline bool IsCompressed( ImageFormat fmt )
-{
-	return ImageFormatInfo(fmt).m_IsCompressed;
-}
+	//-----------------------------------------------------------------------------
+	// operations on square images (src and dst can be the same)
+	//-----------------------------------------------------------------------------
+	bool RotateImageLeft( const unsigned char *src, unsigned char *dst, 
+						  int widthHeight, ImageFormat imageFormat );
+	bool RotateImage180( const unsigned char *src, unsigned char *dst, 
+						 int widthHeight, ImageFormat imageFormat );
+	bool FlipImageVertically( void *pSrc, void *pDst, int nWidth, int nHeight, ImageFormat imageFormat, int nDstStride = 0 );
+	bool FlipImageHorizontally( void *pSrc, void *pDst, int nWidth, int nHeight, ImageFormat imageFormat, int nDstStride = 0 );
+	bool SwapAxes( unsigned char *src, 
+				   int widthHeight, ImageFormat imageFormat );
+
+
+	//-----------------------------------------------------------------------------
+	// Returns info about each image format
+	//-----------------------------------------------------------------------------
+	ImageFormatInfo_t const& ImageFormatInfo( ImageFormat fmt );
+
+
+	//-----------------------------------------------------------------------------
+	// Gets the name of the image format
+	//-----------------------------------------------------------------------------
+	inline char const* GetName( ImageFormat fmt )
+	{
+		return ImageFormatInfo(fmt).m_pName;
+	}
+
+
+	//-----------------------------------------------------------------------------
+	// Gets the size of the image format in bytes
+	//-----------------------------------------------------------------------------
+	inline int SizeInBytes( ImageFormat fmt )
+	{
+		return ImageFormatInfo(fmt).m_NumBytes;
+	}
+
+	//-----------------------------------------------------------------------------
+	// Does the image format support transparency?
+	//-----------------------------------------------------------------------------
+	inline bool IsTransparent( ImageFormat fmt )
+	{
+		return ImageFormatInfo(fmt).m_NumAlphaBits > 0;
+	}
+
+
+	//-----------------------------------------------------------------------------
+	// Is the image format compressed?
+	//-----------------------------------------------------------------------------
+	inline bool IsCompressed( ImageFormat fmt )
+	{
+		return ImageFormatInfo(fmt).m_IsCompressed;
+	}
+
+	//-----------------------------------------------------------------------------
+	// Is any channel > 8 bits?
+	//-----------------------------------------------------------------------------
+	inline bool HasChannelLargerThan8Bits( ImageFormat fmt )
+	{
+		ImageFormatInfo_t info = ImageFormatInfo(fmt);
+		return ( info.m_NumRedBits > 8 || info.m_NumGreeBits > 8 || info.m_NumBlueBits > 8 || info.m_NumAlphaBits > 8 );
+	}
+
 
 } // end namespace ImageLoader
+
 
 #endif // IMAGEFORMAT_H

@@ -11,7 +11,7 @@
 #include "UtlVector.h"
 #include "faces.h"
 #include "builddisp.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "utilmatlib.h"
 #include "utldict.h"
 #include "map.h"
@@ -92,7 +92,7 @@ void EmitMarkFace (dleaf_t *leaf_p, face_t *f)
 	if (i == numleaffaces)
 	{
 		if (numleaffaces >= MAX_MAP_LEAFFACES)
-			Error ("MAX_MAP_LEAFFACES");
+			Error ("Too many detail brush faces, max = %d\n", MAX_MAP_LEAFFACES);
 
 		dleaffaces[numleaffaces] =  facenum;
 		numleaffaces++;
@@ -119,7 +119,7 @@ void EmitLeaf (node_t *node)
 
 	// emit a leaf
 	if (numleafs >= MAX_MAP_LEAFS)
-		Error ("MAX_MAP_LEAFS");
+		Error ("Too many BSP leaves, max = %d", MAX_MAP_LEAFS);
 
 	node->diskId = numleafs;
 	leaf_p = &dleafs[numleafs];
@@ -158,7 +158,7 @@ void EmitLeaf (node_t *node)
 	for (b=node->brushlist ; b ; b=b->next)
 	{
 		if (numleafbrushes >= MAX_MAP_LEAFBRUSHES)
-			Error ("MAX_MAP_LEAFBRUSHES");
+			Error ("Too many brushes in one leaf, max = %d", MAX_MAP_LEAFBRUSHES);
 
 		brushnum = b->original - mapbrushes;
 		for (i=leaf_p->firstleafbrush ; i<numleafbrushes ; i++)
@@ -234,7 +234,7 @@ int CreateOrigFace( face_t *f )
     // get the next original face
     //
     if( numorigfaces >= MAX_MAP_FACES )
-		Error( "numorigfaces == MAX_MAP_FACES" );
+		Error( "Too many faces in map, max = %d", MAX_MAP_FACES );
 	of = &dorigfaces[numorigfaces];
     numorigfaces++;
 
@@ -311,7 +311,7 @@ int CreateOrigFace( face_t *f )
                 // get next surface edge
                 //
                 if( numsurfedges >= MAX_MAP_SURFEDGES )
-                    Error( "numsurfedges == MAX_MAP_SURFEDGES" );                
+                    Error( "Too much brush geometry in bsp, numsurfedges == MAX_MAP_SURFEDGES" );                
                 dsurfedges[numsurfedges] = -j;
                 numsurfedges++;
                 break;
@@ -329,7 +329,7 @@ int CreateOrigFace( face_t *f )
             // get next surface edge
             //
             if( numsurfedges >= MAX_MAP_SURFEDGES )
-                Error( "numsurfedges == MAX_MAP_SURFEDGES" );
+				Error( "Too much brush geometry in bsp, numsurfedges == MAX_MAP_SURFEDGES" );                
             dsurfedges[numsurfedges] = ( numedges - 1 );
             numsurfedges++;
         }
@@ -447,8 +447,13 @@ void EmitFace( face_t *f, qboolean onNode )
     // get the next available .bsp face slot
     //
 	if (numfaces >= MAX_MAP_FACES)
-		Error ("numfaces == MAX_MAP_FACES");
+		Error( "Too many faces in map, max = %d", MAX_MAP_FACES );
 	df = &dfaces[numfaces];
+
+	// Save the correlation between dfaces and faces -- since dfaces doesnt have worldcraft face id
+	dfaceids.AddToTail();
+	dfaceids[numfaces].hammerfaceid = f->originalface->id;
+
 	numfaces++;
 
     //
@@ -472,7 +477,6 @@ void EmitFace( face_t *f, qboolean onNode )
 	if ( f->fogVolumeLeaf )
 	{
 		Assert( f->fogVolumeLeaf->planenum == PLANENUM_LEAF );
-		int x = 5;
 	}
 
     //
@@ -504,7 +508,7 @@ void EmitFace( face_t *f, qboolean onNode )
 		e = GetEdge2 (f->vertexnums[i], f->vertexnums[(i+1)%f->numpoints], f);
 
 		if (numsurfedges >= MAX_MAP_SURFEDGES)
-			Error ("numsurfedges == MAX_MAP_SURFEDGES");
+			Error( "Too much brush geometry in bsp, numsurfedges == MAX_MAP_SURFEDGES" );                
 		dsurfedges[numsurfedges] = e;
 		numsurfedges++;
 	}
@@ -698,6 +702,7 @@ void ComapctTexinfoArray( texinfomap_t *pMap )
 	old.CopyArray( texinfo.Base(), texinfo.Count() );
 	texinfo.RemoveAll();
 	int firstSky = -1;
+	int first2DSky = -1;
 	for ( int i = 0; i < old.Count(); i++ )
 	{
 		if ( !pMap[i].refCount )
@@ -705,7 +710,16 @@ void ComapctTexinfoArray( texinfomap_t *pMap )
 			pMap[i].outputIndex = -1;
 			continue;
 		}
-		// only add one sky texinfo
+		// only add one sky texinfo + one 2D sky texinfo
+		if ( old[i].flags & SURF_SKY2D )
+		{
+			if ( first2DSky < 0 )
+			{
+				first2DSky = texinfo.AddToTail( old[i] );
+			}
+			pMap[i].outputIndex = first2DSky;
+			continue;
+		}
 		if ( old[i].flags & SURF_SKY )
 		{
 			if ( firstSky < 0 )
@@ -819,13 +833,12 @@ void CompactTexinfos()
 	int oldTexdataString = g_TexDataStringData.Count();
 	ComapctTexinfoArray( texinfoMap );
 	CompactTexdataArray( texdataMap );
-	int count = 0;
 	for ( i = 0; i < texinfo.Count(); i++ )
 	{
 		int mapIndex = texdataMap[texinfo[i].texdata].outputIndex;
 		Assert( mapIndex >= 0 );
 		texinfo[i].texdata = mapIndex;
-		const char *pName = TexDataStringTable_GetString( dtexdata[texinfo[i].texdata].nameStringTableID );
+		//const char *pName = TexDataStringTable_GetString( dtexdata[texinfo[i].texdata].nameStringTableID );
 	}
 	// remap texinfos on faces
 	for ( i = 0; i < numfaces; i++ )
@@ -1003,7 +1016,7 @@ void SetLightStyles (void)
 		if (j == stylenum)
 		{
 			if (stylenum == MAX_SWITCHED_LIGHTS)
-				Error ("stylenum == MAX_SWITCHED_LIGHTS");
+				Error ("Too many switched lights (error at light %s), max = %d", t, MAX_SWITCHED_LIGHTS);
 			strcpy (lighttargets[j], t);
 			stylenum++;
 		}
@@ -1294,7 +1307,7 @@ void BeginModel (void)
 	Vector		mins, maxs;
 
 	if (nummodels == MAX_MAP_MODELS)
-		Error ("MAX_MAP_MODELS");
+		Error ("Too many brush models in map, max = %d", MAX_MAP_MODELS);
 	mod = &dmodels[nummodels];
 
 	mod->firstface = numfaces;
@@ -1371,28 +1384,6 @@ static int PointLeafnum_r (const Vector& p, int num)
 int PointLeafnum ( dmodel_t* pModel, const Vector& p )
 {
 	return PointLeafnum_r (p, pModel->headnode);
-}
-
-
-//-----------------------------------------------------------------------------
-// Compute the 3D skybox areas
-//-----------------------------------------------------------------------------
-static void Compute3DSkyboxAreas( dmodel_t* pModel, CUtlVector<int>& areas )
-{
-	for (int i = 0; i < num_entities; ++i)
-	{
-		char* pEntity = ValueForKey(&entities[i], "classname");
-		if (!strcmp(pEntity, "sky_camera"))
-		{
-			// Found a 3D skybox camera, get a leaf that lies in it
-			int leaf = PointLeafnum( pModel, entities[i].origin );
-			if (dleafs[leaf].contents & CONTENTS_SOLID)
-			{
-				Error ("Error! Entity sky_camera in solid volume!\n");
-			}
-			areas.AddToTail( dleafs[leaf].area );
-		}
-	}
 }
 
 
@@ -1536,15 +1527,11 @@ void AddDispsToBounds( int nHeadNode, CUtlVector<int>& skipAreas, Vector &vecMin
 //-----------------------------------------------------------------------------
 void ComputeBoundsNoSkybox( )
 {
-	// determine areas which are 3D skybox
-	CUtlVector<int> areas;
-	Compute3DSkyboxAreas( &dmodels[0], areas );
-
 	// Iterate over all world leaves, skip those which are part of skybox
 	Vector mins, maxs;
 	ClearBounds (mins, maxs);
-	AddNodeToBounds( dmodels[0].headnode, areas, mins, maxs );
-	AddDispsToBounds( dmodels[0].headnode, areas, mins, maxs );
+	AddNodeToBounds( dmodels[0].headnode, g_SkyAreas, mins, maxs );
+	AddDispsToBounds( dmodels[0].headnode, g_SkyAreas, mins, maxs );
 
 	// Add the bounds to the worldspawn data
 	for (int i = 0; i < num_entities; ++i)

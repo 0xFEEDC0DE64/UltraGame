@@ -12,7 +12,7 @@
 #pragma once
 #endif
 
-#include <UtlVector.h>
+#include <utlvector.h>
 #include <vgui/VGUI.h>
 #include <vgui/IImage.h>
 

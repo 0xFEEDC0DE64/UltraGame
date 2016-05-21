@@ -4,7 +4,7 @@
 //
 //=============================================================================//
 
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "macro_texture.h"
 #include "bsplib.h"
 #include "cmdlib.h"
@@ -84,7 +84,7 @@ void InitMacroTexture( const char *pBSPFilename )
 {
 	// Get the world bounds (same ones used by minimaps and level designers know how to use).
 	int i = 0;
-	for (i = 0; i < num_entities; ++i)
+	for (i; i < num_entities; ++i)
 	{
 		char* pEntity = ValueForKey(&entities[i], "classname");
 		if( !strcmp(pEntity, "worldspawn") )

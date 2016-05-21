@@ -23,6 +23,10 @@ class Vector;
 
 #define VDEBUG_OVERLAY_INTERFACE_VERSION	"VDebugOverlay003"
 
+// When used as a duration by a server-side NDebugOverlay:: call, 
+// causes the overlay to persist until the next server update.
+#define NDEBUG_PERSIST_TILL_NEXT_SERVER (0.01023f)
+
 class OverlayText_t;
 
 abstract_class IVDebugOverlay
@@ -47,6 +51,9 @@ public:
 
 	virtual void AddTextOverlayRGB(const Vector& origin, int line_offset, float duration, float r, float g, float b, float alpha, const char *format, ...) = 0;
 	virtual void AddTextOverlayRGB(const Vector& origin, int line_offset, float duration, int r, int g, int b, int a, const char *format, ...) = 0;
+
+	virtual void AddLineOverlayAlpha(const Vector& origin, const Vector& dest, int r, int g, int b, int a, bool noDepthTest, float duration) = 0;
+	virtual void AddBoxOverlay2( const Vector& origin, const Vector& mins, const Vector& max, QAngle const& orientation, const Color& faceColor, const Color& edgeColor, float duration ) = 0;
 
 private:
 	inline void AddTextOverlay(const Vector& origin, int line_offset, float duration, int r, int g, int b, int a, const char *format, ...) {} /* catch improper use of bad interface. Needed because '0' duration can be resolved by compiler to NULL format string (i.e., compiles but calls wrong function) */

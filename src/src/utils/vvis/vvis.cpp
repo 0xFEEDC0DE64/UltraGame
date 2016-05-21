@@ -14,13 +14,14 @@
 #include "pacifier.h"
 #include "vmpi.h"
 #include "mpivis.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "collisionutils.h"
-#include "vstdlib/icommandline.h"
+#include "tier0/icommandline.h"
 #include "vmpi_tools_shared.h"
 #include "ilaunchabledll.h"
 #include "tools_minidump.h"
 #include "loadcmdline.h"
+#include "byteswap.h"
 
 
 int			g_numportals;
@@ -81,7 +82,7 @@ winding_t *NewWinding (int points)
 	int			size;
 	
 	if (points > MAX_POINTS_ON_WINDING)
-		Error ("NewWinding: %i points", points);
+		Error ("NewWinding: %i points, max %d", points, MAX_POINTS_ON_WINDING);
 	
 	size = (int)(&((winding_t *)0)->points[points]);
 	w = (winding_t*)malloc (size);
@@ -103,7 +104,8 @@ void prl(leaf_t *l)
 	portal_t	*p;
 	plane_t		pl;
 	
-	for (i=0 ; i<l->numportals ; i++)
+	int count = l->portals.Count();
+	for (i=0 ; i<count ; i++)
 	{
 		p = l->portals[i];
 		pl = p->plane;
@@ -130,6 +132,16 @@ int PComp (const void *a, const void *b)
 		return -1;
 
 	return 1;
+}
+
+void BuildTracePortals( int clusterStart )
+{
+	leaf_t *leaf = &leafs[g_TraceClusterStart];
+	g_numportals = leaf->portals.Count();
+	for ( int i = 0; i < g_numportals; i++ )
+	{
+		sorted_portals[i] = leaf->portals[i];
+	}
 }
 
 void SortPortals (void)
@@ -196,7 +208,7 @@ void ClusterMerge (int clusternum)
 
 	memset (portalvector, 0, portalbytes);
 	leaf = &leafs[clusternum];
-	for (i=0 ; i<leaf->numportals ; i++)
+	for (i=0 ; i < leaf->portals.Count(); i++)
 	{
 		p = leaf->portals[i];
 		if (p->status != stat_done)
@@ -210,8 +222,12 @@ void ClusterMerge (int clusternum)
 	// convert portal bits to leaf bits
 	numvis = LeafVectorFromPortalVector (portalvector, uncompressed);
 
+#if 0
+	// func_viscluster makes this happen all the time because it allows a non-convex set of portals
+	// My analysis says this is ok, but it does make this check for errors in vis kind of useless
 	if ( CheckBit( uncompressed, clusternum ) )
 		Warning("WARNING: Cluster portals saw into cluster\n");
+#endif
 		
 	SetBit( uncompressed, clusternum );
 	numvis++;		// count the leaf itself
@@ -296,6 +312,15 @@ void CalcPortalVis (void)
 	}
 }
 
+
+void CalcVisTrace (void)
+{
+    RunThreadsOnIndividual (g_numportals*2, true, BasePortalVis);
+	BuildTracePortals( g_TraceClusterStart );
+	// NOTE: We only schedule the one-way portals out of the start cluster here
+	// so don't run g_numportals*2 in this case
+	RunThreadsOnIndividual (g_numportals, true, PortalFlow);
+}
 
 /*
 ==================
@@ -431,9 +456,9 @@ void LoadPortals (char *name)
 		Error ("LoadPortals: couldn't read %s\n",name);
 
 	if (fscanf (f,"%79s\n%i\n%i\n",magic, &portalclusters, &g_numportals) != 3)
-		Error ("LoadPortals: failed to read header");
+		Error ("LoadPortals %s: failed to read header", name);
 	if (stricmp(magic,PORTALFILE))
-		Error ("LoadPortals: not a portal file");
+		Error ("LoadPortals %s: not a portal file", name);
 
 	Msg ("%4i portalclusters\n", portalclusters);
 	Msg ("%4i numportals\n", g_numportals);
@@ -501,10 +526,7 @@ void LoadPortals (char *name)
 
 	// create forward portal
 		l = &leafs[leafnums[0]];
-		if (l->numportals == MAX_PORTALS_ON_LEAF)
-			Error ("Leaf %d (portal %d) with too many portals. Use vbsp -glview to compile, then glview -portal -portalhighlight X or -leafhighlight L to view the problem.", leafnums[0], i );
-		l->portals[l->numportals] = p;
-		l->numportals++;
+		l->portals.AddToTail(p);
 		
 		p->winding = w;
 		VectorSubtract (vec3_origin, plane.normal, p->plane.normal);
@@ -515,10 +537,7 @@ void LoadPortals (char *name)
 		
 	// create backwards portal
 		l = &leafs[leafnums[1]];
-		if (l->numportals == MAX_PORTALS_ON_LEAF)
-			Error ("Leaf %d (portal %d) with too many portals. Use vbsp -glview to compile, then glview -portal -portalhighlight X or -leafhighlight L to view the problem.", leafnums[1], i );
-		l->portals[l->numportals] = p;
-		l->numportals++;
+		l->portals.AddToTail(p);
 		
 		p->winding = NewWinding(w->numpoints);
 		p->winding->numpoints = w->numpoints;
@@ -892,22 +911,22 @@ int ParseCommandLine( int argc, char **argv )
 	int i;
 	for (i=1 ; i<argc ; i++)
 	{
-		if (!stricmp(argv[i],"-threads"))
+		if (!Q_stricmp(argv[i],"-threads"))
 		{
 			numthreads = atoi (argv[i+1]);
 			i++;
 		}
-		else if (!stricmp(argv[i], "-fast"))
+		else if (!Q_stricmp(argv[i], "-fast"))
 		{
 			Msg ("fastvis = true\n");
 			fastvis = true;
 		}
-		else if (!stricmp(argv[i], "-v") || !stricmp(argv[i], "-verbose"))
+		else if (!Q_stricmp(argv[i], "-v") || !Q_stricmp(argv[i], "-verbose"))
 		{
 			Msg ("verbose = true\n");
 			verbose = true;
 		}
-		else if( !stricmp( argv[i], "-radius_override" ) )
+		else if( !Q_stricmp( argv[i], "-radius_override" ) )
 		{
 			g_bUseRadius = true;
 			g_VisRadius = atof( argv[i+1] );
@@ -915,14 +934,22 @@ int ParseCommandLine( int argc, char **argv )
 			Msg( "Vis Radius = %4.2f\n", g_VisRadius );
 			g_VisRadius = g_VisRadius * g_VisRadius;   // so distance check can be squared
 		}
-		else if (!stricmp (argv[i],"-nosort"))
+		else if( !Q_stricmp( argv[i], "-trace" ) )
+		{
+			g_TraceClusterStart = atoi( argv[i+1] );
+			i++;
+			g_TraceClusterStop = atoi( argv[i+1] );
+			i++;
+			Msg( "Tracing vis from cluster %d to %d\n", g_TraceClusterStart, g_TraceClusterStop );
+		}
+		else if (!Q_stricmp (argv[i],"-nosort"))
 		{
 			Msg ("nosort = true\n");
 			nosort = true;
 		}
-		else if (!stricmp (argv[i],"-tmpin"))
+		else if (!Q_stricmp (argv[i],"-tmpin"))
 			strcpy (inbase, "/tmp");
-		else if( !stricmp( argv[i], "-low" ) )
+		else if( !Q_stricmp( argv[i], "-low" ) )
 		{
 			g_bLowPriority = true;
 		}
@@ -933,11 +960,11 @@ int ParseCommandLine( int argc, char **argv )
 		else if ( !Q_stricmp( argv[i], CMDLINEOPTION_NOVCONFIG ) )
 		{
 		}
-		else if ( !stricmp( argv[i], "-vproject" ) || !stricmp( argv[i], "-game" ) )
+		else if ( !Q_stricmp( argv[i], "-vproject" ) || !Q_stricmp( argv[i], "-game" ) )
 		{
 			++i;
 		}
-		else if ( !stricmp( argv[i], "-allowdebug" ) || !stricmp( argv[i], "-steam" ) )
+		else if ( !Q_stricmp( argv[i], "-allowdebug" ) || !Q_stricmp( argv[i], "-steam" ) )
 		{
 			// nothing to do here, but don't bail on this option
 		}
@@ -1005,8 +1032,39 @@ void PrintUsage( int argc, char **argv )
 		"  -nosort         : Don't sort portals (sorting is an optimization).\n"
 		"  -tmpin          : Make portals come from \\tmp\\<mapname>.\n"
 		"  -tmpout         : Make portals come from \\tmp\\<mapname>.\n"
+		"  -trace <start cluster> <end cluster> : Writes a linefile that traces the vis from one cluster to another for debugging map vis.\n"
 		"  -FullMinidumps  : Write large minidumps on crash.\n"
+		"  -x360		   : Generate Xbox360 version of vsp\n"
+		"  -nox360		   : Disable generation Xbox360 version of vsp (default)\n"
+		"\n"
+#if 1 // Disabled for the initial SDK release with VMPI so we can get feedback from selected users.
 		);
+#else
+		"  -mpi_ListParams : Show a list of VMPI parameters.\n"
+		"\n"
+		);
+
+	// Show VMPI parameters?
+	for ( int i=1; i < argc; i++ )
+	{
+		if ( V_stricmp( argv[i], "-mpi_ListParams" ) == 0 )
+		{
+			Warning( "VMPI-specific options:\n\n" );
+
+			bool bIsSDKMode = VMPI_IsSDKMode();
+			for ( int i=k_eVMPICmdLineParam_FirstParam+1; i < k_eVMPICmdLineParam_LastParam; i++ )
+			{
+				if ( (VMPI_GetParamFlags( (EVMPICmdLineParam)i ) & VMPI_PARAM_SDK_HIDDEN) && bIsSDKMode )
+					continue;
+					
+				Warning( "[%s]\n", VMPI_GetParamString( (EVMPICmdLineParam)i ) );
+				Warning( VMPI_GetParamHelpString( (EVMPICmdLineParam)i ) );
+				Warning( "\n\n" );
+			}
+			break;
+		}
+	}
+#endif
 }
 
 
@@ -1097,21 +1155,38 @@ int RunVVis( int argc, char **argv )
 	Msg ("reading %s\n", portalfile);
 	LoadPortals (portalfile);
 
-	CalcVis ();
-	CalcPAS ();
+	// don't write out results when simply doing a trace
+	if ( g_TraceClusterStart < 0 )
+	{
+		CalcVis ();
+		CalcPAS ();
 
-	// We need a mapping from cluster to leaves, since the PVS
-	// deals with clusters for both CalcVisibleFogVolumes and 
-	BuildClusterTable();
+		// We need a mapping from cluster to leaves, since the PVS
+		// deals with clusters for both CalcVisibleFogVolumes and 
+		BuildClusterTable();
 
-	CalcVisibleFogVolumes();
-	CalcDistanceFromLeavesToWater();
+		CalcVisibleFogVolumes();
+		CalcDistanceFromLeavesToWater();
 
-	visdatasize = vismap_p - dvisdata;	
-	Msg ("visdatasize:%i  compressed from %i\n", visdatasize, originalvismapsize*2);
+		visdatasize = vismap_p - dvisdata;	
+		Msg ("visdatasize:%i  compressed from %i\n", visdatasize, originalvismapsize*2);
 
-	Msg ("writing %s\n", targetPath);
-	WriteBSPFile (targetPath);	
+		Msg ("writing %s\n", targetPath);
+		WriteBSPFile (targetPath);	
+	}
+	else
+	{
+		if ( g_TraceClusterStart < 0 || g_TraceClusterStart >= portalclusters || g_TraceClusterStop < 0 || g_TraceClusterStop >= portalclusters )
+		{
+			Error("Invalid cluster trace: %d to %d, valid range is 0 to %d\n", g_TraceClusterStart, g_TraceClusterStop, portalclusters-1 );
+		}
+		if ( g_bUseMPI )
+		{
+			Warning("Can't compile trace in MPI mode\n");
+		}
+		CalcVisTrace ();
+		WritePortalTrace(source);
+	}
 	
 	end = Plat_FloatTime();
 	
@@ -1119,6 +1194,7 @@ int RunVVis( int argc, char **argv )
 	GetHourMinuteSecondsString( (int)( end - start ), str, sizeof( str ) );
 	Msg( "%s elapsed\n", str );
 
+	ReleasePakFileLumps();
 	DeleteCmdLine( argc, argv );
 	CmdLib_Cleanup();
 	return 0;

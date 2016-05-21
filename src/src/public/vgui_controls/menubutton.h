@@ -39,9 +39,9 @@ public:
 
 	virtual void SetMenu(Menu *menu);
 	virtual void HideMenu(void);
-	virtual void OnKillFocus();
 	virtual void DrawFocusBorder(int tx0, int ty0, int tx1, int ty1);
 	MESSAGE_FUNC( OnMenuClose, "MenuClose" );
+	MESSAGE_FUNC_PARAMS( OnKillFocus, "KillFocus", kv );		// called after the panel loses the keyboard focus
 	virtual void DoClick();
 	virtual void SetOpenOffsetY(int yOffset);
 

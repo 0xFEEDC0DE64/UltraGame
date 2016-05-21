@@ -123,12 +123,25 @@ public:
 	void		SetLength( int nLen );
 	char		*Get();
 
+	// Strips the trailing slash
+	void		StripTrailingSlash();
+
 	CUtlString &operator=( const CUtlString &src );
 	CUtlString &operator=( const char *src );
 
 	// Test for equality
 	bool operator==( const CUtlString &src ) const;
 	bool operator==( const char *src ) const;
+	bool operator!=( const CUtlString &src ) const { return !operator==( src ); }
+	bool operator!=( const char *src ) const { return !operator==( src ); }
+
+	CUtlString &operator+=( const CUtlString &rhs );
+	CUtlString &operator+=( const char *rhs );
+	CUtlString &operator+=( char c );
+	CUtlString &operator+=( int rhs );
+	CUtlString &operator+=( double rhs );
+
+	int Format( const char *pFormat, ... );
 
 private:
 	CUtlBinaryBlock m_Storage;

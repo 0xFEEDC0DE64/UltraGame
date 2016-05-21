@@ -16,7 +16,7 @@
 #include "bspfile.h"
 #include "utilmatlib.h"
 #include "gamebspfile.h"
-#include "VMatrix.h"
+#include "mathlib/VMatrix.h"
 #include "materialpatch.h"
 #include "pacifier.h"
 #include "vstdlib/random.h"
@@ -26,7 +26,8 @@
 #include "CollisionUtils.h"
 #include <float.h>
 #include "UtlLinkedList.h"
-
+#include "byteswap.h"
+#include "writebsp.h"
 
 //-----------------------------------------------------------------------------
 // Information about particular detail object types
@@ -169,7 +170,7 @@ static void ParseDetailGroup( int detailId, KeyValues* pGroupKeyValues )
 					int nValid = sscanf( pSpriteData, "%f %f %f %f %f", &x, &y, &flWidth, &flHeight, &flTextureSize ); 
 					if ( (nValid != 5) || (flTextureSize == 0) )
 					{
-						Error( "Invalid arguments to \"sprite\" in detail.vbsp!\n" );
+						Error( "Invalid arguments to \"sprite\" in detail.vbsp (model %s)!\n", model.m_ModelName );
 					}
 
 					model.m_Tex[0].x = ( x + 0.5f ) / flTextureSize;
@@ -482,7 +483,7 @@ static void AddDetailToLump( const char* pModelName, const Vector& pt, const QAn
 	objectLump.m_Lighting.g = 255;
 	objectLump.m_Lighting.b = 255;
 	objectLump.m_Lighting.exponent = 0;
-	objectLump.m_LightStyles = -1;
+	objectLump.m_LightStyles = 0;
 	objectLump.m_LightStyleCount = 0;
 	objectLump.m_Orientation = nOrientation;
 	objectLump.m_Type = DETAIL_PROP_TYPE_MODEL;
@@ -501,7 +502,7 @@ static void AddDetailSpriteToLump( const Vector &vecOrigin, const QAngle &vecAng
 
 	if (i >= 65535)
 	{
-		Error( "Error! Too many detail props emitted on this map!\n" );
+		Error( "Error! Too many detail props emitted on this map! (64K max!)n" );
 	}
 
 	DetailObjectLump_t& objectLump = s_DetailObjectLump[i];
@@ -513,7 +514,7 @@ static void AddDetailSpriteToLump( const Vector &vecOrigin, const QAngle &vecAng
 	objectLump.m_Lighting.g = 255;
 	objectLump.m_Lighting.b = 255;
 	objectLump.m_Lighting.exponent = 0;
-	objectLump.m_LightStyles = -1;
+	objectLump.m_LightStyles = 0;
 	objectLump.m_LightStyleCount = 0;
 	objectLump.m_Orientation = nOrientation;
 	objectLump.m_Type = iType;
@@ -796,20 +797,20 @@ static void SetLumpData( )
 	// Sort detail props by leaf
 	qsort( s_DetailObjectLump.Base(), s_DetailObjectLump.Count(), sizeof(DetailObjectLump_t), SortFunc );
 
-	GameLumpHandle_t handle = GetGameLumpHandle(GAMELUMP_DETAIL_PROPS);
-	if (handle != InvalidGameLump())
+	GameLumpHandle_t handle = g_GameLumps.GetGameLumpHandle(GAMELUMP_DETAIL_PROPS);
+	if (handle != g_GameLumps.InvalidGameLump())
 	{
-		DestroyGameLump(handle);
+		g_GameLumps.DestroyGameLump(handle);
 	}
 	int nDictSize = s_DetailObjectDictLump.Count() * sizeof(DetailObjectDictLump_t);
 	int nSpriteDictSize = s_DetailSpriteDictLump.Count() * sizeof(DetailSpriteDictLump_t);
 	int nObjSize = s_DetailObjectLump.Count() * sizeof(DetailObjectLump_t);
 	int nSize = nDictSize + nSpriteDictSize + nObjSize + (3 * sizeof(int));
 
-	handle = CreateGameLump( GAMELUMP_DETAIL_PROPS, nSize, 0, GAMELUMP_DETAIL_PROPS_VERSION );
+	handle = g_GameLumps.CreateGameLump( GAMELUMP_DETAIL_PROPS, nSize, 0, GAMELUMP_DETAIL_PROPS_VERSION );
 
 	// Serialize the data
-	CUtlBuffer buf( GetGameLump(handle), nSize );
+	CUtlBuffer buf( g_GameLumps.GetGameLump(handle), nSize );
 	buf.PutInt( s_DetailObjectDictLump.Count() );
 	if (nDictSize)
 	{
@@ -873,6 +874,14 @@ void EmitDetailModels()
 		// Emit objects on a particular face
 		DetailObject_t& detail = s_DetailObjectDict[objectType];
 
+		// Initialize the Random Number generators for detail prop placement based on the hammer Face num.
+		int	detailpropseed = dfaceids[j].hammerfaceid;
+#ifdef WARNSEEDNUMBER
+		Warning( "[%d]\n",detailpropseed );
+#endif
+		srand( detailpropseed );
+		RandomSeed( detailpropseed );
+
 		if (pFace[j].dispinfo < 0)
 		{
 			EmitDetailObjectsOnFace( &pFace[j], detail );
@@ -882,7 +891,7 @@ void EmitDetailModels()
 			// Get a CCoreDispInfo. All we need is the triangles and lightmap texture coordinates.
 			mapdispinfo_t *pMapDisp = &mapdispinfo[pFace[j].dispinfo];
 			CCoreDispInfo coreDispInfo;
-			DispMapToCoreDispInfo( pMapDisp, &coreDispInfo, &pFace[j] );
+			DispMapToCoreDispInfo( pMapDisp, &coreDispInfo, NULL, NULL );
 
 			EmitDetailObjectsOnDisplacementFace( &pFace[j], detail, coreDispInfo );
 		}
@@ -945,10 +954,6 @@ void EmitDetailModels()
 //-----------------------------------------------------------------------------
 void EmitDetailObjects()
 {
-	// Guarantee identical random emission...
-	srand(1);
-	RandomSeed( 1 );
-
 	EmitDetailModels();
 
 	// Done! Now lets add the lumps (destroy previous ones)

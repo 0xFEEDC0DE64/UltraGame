@@ -4,10 +4,7 @@
 //
 //=============================================================================//
 
-#if !defined(_STATIC_LINKED) || defined(_SHARED_LIB)
-
-
-#if defined(_WIN32) && !defined(_XBOX)
+#if defined(_WIN32) && !defined(_X360)
 #include <winsock.h>
 #elif _LINUX
 #define INVALID_SOCKET -1
@@ -17,9 +14,6 @@
 #include <netinet/in.h>
 #include <unistd.h>
 #define closesocket close
-#elif defined(_XBOX)
-#include "xbox/xbox_platform.h"
-#include "xbox/xbox_win32stubs.h"
 #endif
 
 #include "blockingudpsocket.h"
@@ -154,5 +148,3 @@ bool CBlockingUDPSocket::SendSocketMessage( const struct sockaddr_in & rRecipien
 
 	return true;
 }
-
-#endif // !_STATIC_LINKED || _SHARED_LIB

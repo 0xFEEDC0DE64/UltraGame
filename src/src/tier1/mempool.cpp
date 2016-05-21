@@ -1,9 +1,8 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
-//
-//=============================================================================//
+//===========================================================================//
 
 #include "mempool.h"
 #include <stdio.h>
@@ -11,8 +10,7 @@
 #include <memory.h>
 #include "tier0/dbg.h"
 #include <ctype.h>
-#include "vstdlib/strtools.h"
-#include "minmax.h" // max()
+#include "tier1/strtools.h"
 
 // Should be last include
 #include "tier0/memdbgon.h"
@@ -31,24 +29,28 @@ void CMemoryPool::SetErrorReportFunc( MemoryPoolReportFunc_t func )
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
-
-CMemoryPool::CMemoryPool(int blockSize, int numElements, int growMode, const char *pszAllocOwner)
+CMemoryPool::CMemoryPool( int blockSize, int numElements, int growMode, const char *pszAllocOwner, int nAlignment )
 {
-#ifdef _XBOX
+#ifdef _X360
 	if( numElements > 0 && growMode != GROW_NONE )
 	{
 		numElements = 1;
 	}
 #endif
 
+	m_nAlignment = ( nAlignment != 0 ) ? nAlignment : 1;
+	Assert( IsPowerOfTwo( m_nAlignment ) );
 	m_BlockSize = blockSize < sizeof(void*) ? sizeof(void*) : blockSize;
+	m_BlockSize = AlignValue( m_BlockSize, m_nAlignment );
 	m_BlocksPerBlob = numElements;
 	m_PeakAlloc = 0;
 	m_GrowMode = growMode;
-	Init();
 	if ( !pszAllocOwner )
+	{
 		pszAllocOwner = __FILE__;
+	}
 	m_pszAllocOwner = pszAllocOwner;
+	Init();
 	AddNewBlob();
 }
 
@@ -178,7 +180,7 @@ void CMemoryPool::AddNewBlob()
 	// maybe use something other than malloc?
 	int nElements = m_BlocksPerBlob * sizeMultiplier;
 	int blobSize = m_BlockSize * nElements;
-	CBlob *pBlob = (CBlob*)malloc( sizeof(CBlob) + blobSize - 1 );
+	CBlob *pBlob = (CBlob*)malloc( sizeof(CBlob) - 1 + blobSize + ( m_nAlignment - 1 ) );
 	Assert( pBlob );
 	
 	// Link it in at the end of the blob list.
@@ -188,7 +190,7 @@ void CMemoryPool::AddNewBlob()
 	pBlob->m_pNext->m_pPrev = pBlob->m_pPrev->m_pNext = pBlob;
 
 	// setup the free list
-	m_pHeadOfFreeList = pBlob->m_Data;
+	m_pHeadOfFreeList = AlignValue( pBlob->m_Data, m_nAlignment );
 	Assert (m_pHeadOfFreeList);
 
 	void **newBlob = (void**)m_pHeadOfFreeList;

@@ -6,16 +6,12 @@
 //
 //=============================================================================//
 
-#ifdef _WIN32
-#include <windows.h>
-#endif
-
 #include "vrad.h"
 #include "lightmap.h"
 #include "radial.h"
-#include <bumpvects.h>
+#include "mathlib/bumpvects.h"
 #include "UtlRBTree.h"
-#include "VMatrix.h"
+#include "mathlib/VMatrix.h"
 #include "macro_texture.h"
 
 
@@ -38,13 +34,44 @@ void LuxelSpaceToWorld( lightinfo_t const *l, float s, float t, Vector &world )
 	VectorMA( pos, t, l->luxelToWorldSpace[1], world );
 }
 
+void WorldToLuxelSpace( lightinfo_t const *l, FourVectors const &world, FourVectors &coord )
+{
+	FourVectors luxelOrigin;
+	luxelOrigin.DuplicateVector ( l->luxelOrigin );
+
+	FourVectors pos = world;
+	pos -= luxelOrigin;
+
+	coord.x = pos * l->worldToLuxelSpace[0];
+	coord.x = SubSIMD ( coord.x, ReplicateX4 ( l->face->m_LightmapTextureMinsInLuxels[0] ) );
+	coord.y = pos * l->worldToLuxelSpace[1];
+	coord.y = SubSIMD ( coord.y, ReplicateX4 ( l->face->m_LightmapTextureMinsInLuxels[1] ) );
+	coord.z = Four_Zeros;
+}
+
+void LuxelSpaceToWorld( lightinfo_t const *l, fltx4 s, fltx4 t, FourVectors &world )
+{
+	world.DuplicateVector ( l->luxelOrigin );
+	FourVectors st;
+
+	s = AddSIMD ( s, ReplicateX4 ( l->face->m_LightmapTextureMinsInLuxels[0] ) );
+	st.DuplicateVector ( l->luxelToWorldSpace[0] );
+	st *= s;
+	world += st;
+
+	t = AddSIMD ( t, ReplicateX4 ( l->face->m_LightmapTextureMinsInLuxels[1] ) );
+	st.DuplicateVector ( l->luxelToWorldSpace[1] );
+	st *= t;
+	world += st;
+}
+
 
 
 void AddDirectToRadial( radial_t *rad, 
-				  Vector const &pnt, 
-				  Vector2D const &coordmins, Vector2D const &coordmaxs, 
-				  Vector const light[NUM_BUMP_VECTS+1],
-				  bool hasBumpmap, bool neighborHasBumpmap  )
+						Vector const &pnt, 
+						Vector2D const &coordmins, Vector2D const &coordmaxs, 
+						LightingValue_t const light[NUM_BUMP_VECTS+1],
+						bool hasBumpmap, bool neighborHasBumpmap  )
 {
 	int     s_min, s_max, t_min, t_max;
 	Vector2D  coord;
@@ -102,21 +129,21 @@ void AddDirectToRadial( radial_t *rad,
 					{
 						for( bumpSample = 0; bumpSample < NUM_BUMP_VECTS + 1; bumpSample++ )
 						{
-							VectorMA( rad->light[bumpSample][i], r, light[bumpSample], rad->light[bumpSample][i] );
+							rad->light[bumpSample][i].AddWeighted( light[bumpSample], r );
 						}
 					}
 					else
 					{
-						VectorMA( rad->light[0][i], r, light[0], rad->light[0][i] );
+						rad->light[0][i].AddWeighted(light[0],r );
 						for( bumpSample = 1; bumpSample < NUM_BUMP_VECTS + 1; bumpSample++ )
 						{
-							VectorMA( rad->light[bumpSample][i], r * OO_SQRT_3, light[0], rad->light[bumpSample][i] );
+							rad->light[bumpSample][i].AddWeighted( light[0], r * OO_SQRT_3 );
 						}
 					}
 				}
 				else
 				{
-					VectorMA( rad->light[0][i], r, light[0], rad->light[0][i] );
+					rad->light[0][i].AddWeighted( light[0], r );
 				}
 				
 				rad->weight[i] += r;
@@ -128,10 +155,10 @@ void AddDirectToRadial( radial_t *rad,
 
 
 void AddBouncedToRadial( radial_t *rad, 
-				  Vector const &pnt, 
-				  Vector2D const &coordmins, Vector2D const &coordmaxs, 
-				  Vector const light[NUM_BUMP_VECTS+1],
-				  bool hasBumpmap, bool neighborHasBumpmap  )
+						 Vector const &pnt, 
+						 Vector2D const &coordmins, Vector2D const &coordmaxs, 
+						 Vector const light[NUM_BUMP_VECTS+1],
+						 bool hasBumpmap, bool neighborHasBumpmap  )
 {
 	int     s_min, s_max, t_min, t_max;
 	Vector2D  coord;
@@ -184,21 +211,21 @@ void AddBouncedToRadial( radial_t *rad,
 					{
 						for( bumpSample = 0; bumpSample < NUM_BUMP_VECTS + 1; bumpSample++ )
 						{
-							VectorMA( rad->light[bumpSample][i], r, light[bumpSample], rad->light[bumpSample][i] );
+							rad->light[bumpSample][i].AddWeighted( light[bumpSample], r );
 						}
 					}
 					else
 					{
-						VectorMA( rad->light[0][i], r, light[0], rad->light[0][i] );
+						rad->light[0][i].AddWeighted( light[0], r );
 						for( bumpSample = 1; bumpSample < NUM_BUMP_VECTS + 1; bumpSample++ )
 						{
-							VectorMA( rad->light[bumpSample][i], r * OO_SQRT_3, light[0], rad->light[bumpSample][i] );
+							rad->light[bumpSample][i].AddWeighted( light[0], r * OO_SQRT_3 );
 						}
 					}
 				}
 				else
 				{
-					VectorMA( rad->light[0][i], r, light[0], rad->light[0][i] );
+					rad->light[0][i].AddWeighted( light[0], r );
 				}
 				
 				rad->weight[i] += r;
@@ -216,7 +243,7 @@ void PatchLightmapCoordRange( radial_t *rad, int ndxPatch, Vector2D &mins, Vecto
 	mins.Init( 1E30, 1E30 );
 	maxs.Init( -1E30, -1E30 );
 
-	patch_t *patch = &patches.Element( ndxPatch );
+	CPatch *patch = &g_Patches.Element( ndxPatch );
 	w = patch->winding;
 
 	for (i = 0; i < w->numpoints; i++)
@@ -255,7 +282,7 @@ radial_t *BuildPatchRadial( int facenum )
 {
 	int             j;
 	radial_t        *rad;
-	patch_t	        *patch;
+	CPatch	        *patch;
 	faceneighbor_t  *fn;
 	Vector2D        mins, maxs;
 	bool			needsBumpmap, neighborNeedsBumpmap;
@@ -266,25 +293,25 @@ radial_t *BuildPatchRadial( int facenum )
 	
 	fn = &faceneighbor[ rad->facenum ];
 
-	patch_t *pNextPatch;
+	CPatch *pNextPatch;
 
-	if( facePatches.Element( rad->facenum ) != facePatches.InvalidIndex() )
+	if( g_FacePatches.Element( rad->facenum ) != g_FacePatches.InvalidIndex() )
 	{
-		for( patch = &patches.Element( facePatches.Element( rad->facenum ) ); patch; patch = pNextPatch )
+		for( patch = &g_Patches.Element( g_FacePatches.Element( rad->facenum ) ); patch; patch = pNextPatch )
 		{
 			// next patch
 			pNextPatch = NULL;
-			if( patch->ndxNext != patches.InvalidIndex() )
+			if( patch->ndxNext != g_Patches.InvalidIndex() )
 			{
-				pNextPatch = &patches.Element( patch->ndxNext );
+				pNextPatch = &g_Patches.Element( patch->ndxNext );
 			}
 			
 			// skip patches with children
-			if (patch->child1 != patches.InvalidIndex() )
+			if (patch->child1 != g_Patches.InvalidIndex() )
 				continue;
 			
 			// get the range of patch lightmap texture coords
-			int ndxPatch = patch - patches.Base();
+			int ndxPatch = patch - g_Patches.Base();
 			PatchLightmapCoordRange( rad, ndxPatch, mins, maxs );
 			
 			if (patch->numtransfers == 0)
@@ -315,23 +342,23 @@ radial_t *BuildPatchRadial( int facenum )
 
 	for (j=0 ; j<fn->numneighbors; j++)
 	{
-		if( facePatches.Element( fn->neighbor[j] ) != facePatches.InvalidIndex() )
+		if( g_FacePatches.Element( fn->neighbor[j] ) != g_FacePatches.InvalidIndex() )
 		{
-			for( patch = &patches.Element( facePatches.Element( fn->neighbor[j] ) ); patch; patch = pNextPatch )
+			for( patch = &g_Patches.Element( g_FacePatches.Element( fn->neighbor[j] ) ); patch; patch = pNextPatch )
 			{
 				// next patch
 				pNextPatch = NULL;
-				if( patch->ndxNext != patches.InvalidIndex() )
+				if( patch->ndxNext != g_Patches.InvalidIndex() )
 				{
-					pNextPatch = &patches.Element( patch->ndxNext );
+					pNextPatch = &g_Patches.Element( patch->ndxNext );
 				}
 				
 				// skip patches with children
-				if (patch->child1 != patches.InvalidIndex() )
+				if (patch->child1 != g_Patches.InvalidIndex() )
 					continue;
 				
 				// get the range of patch lightmap texture coords
-				int ndxPatch = patch - patches.Base();
+				int ndxPatch = patch - g_Patches.Base();
 				PatchLightmapCoordRange( rad, ndxPatch, mins, maxs  );
 				
 				neighborNeedsBumpmap = texinfo[g_pFaces[facenum].texinfo].flags & SURF_BUMPLIGHT ? true : false;
@@ -363,40 +390,33 @@ radial_t *BuildPatchRadial( int facenum )
 
 radial_t *BuildLuxelRadial( int facenum, int style )
 {
-	int		        j, k;
-	facelight_t	    *fl;
-	faceneighbor_t  *fn;
+	LightingValue_t light[NUM_BUMP_VECTS + 1];
 
-	radial_t        *rad;
-	Vector			light[NUM_BUMP_VECTS + 1];
-	int				bumpSample;
-	Vector2D		coordmins, coordmaxs;
+	facelight_t *fl = &facelight[facenum];
+	faceneighbor_t *fn = &faceneighbor[facenum];
 
-	fl = &facelight[facenum];
-	fn = &faceneighbor[facenum];
-
-	rad = AllocateRadial( facenum );
+	radial_t *rad = AllocateRadial( facenum );
 
 	bool needsBumpmap = texinfo[g_pFaces[facenum].texinfo].flags & SURF_BUMPLIGHT ? true : false;
 
-	for (k=0 ; k<fl->numsamples ; k++)
+	for (int k=0 ; k<fl->numsamples ; k++)
 	{
 		if( needsBumpmap )
 		{
-			for( bumpSample = 0; bumpSample < NUM_BUMP_VECTS + 1; bumpSample++ )
+			for( int bumpSample = 0; bumpSample < NUM_BUMP_VECTS + 1; bumpSample++ )
 			{
-				VectorCopy( fl->light[style][bumpSample][k], light[bumpSample] );
+				light[bumpSample] = fl->light[style][bumpSample][k];
 			}
 		}
 		else
 		{
-			VectorCopy( fl->light[style][0][k], light[0] );
+			light[0] = fl->light[style][0][k];
 		}
 
 		AddDirectToRadial( rad, fl->sample[k].pos, fl->sample[k].mins, fl->sample[k].maxs, light, needsBumpmap, needsBumpmap );
 	}
 
-	for (j = 0; j < fn->numneighbors; j++)
+	for (int j = 0; j < fn->numneighbors; j++)
 	{
 		fl = &facelight[fn->neighbor[j]];
 
@@ -425,18 +445,18 @@ radial_t *BuildLuxelRadial( int facenum, int style )
 
 		InitLightinfo( &l, fn->neighbor[j] );
 
-		for (k=0 ; k<fl->numsamples ; k++)
+		for (int k=0 ; k<fl->numsamples ; k++)
 		{
 			if( neighborHasBumpmap )
 			{
-				for( bumpSample = 0; bumpSample < NUM_BUMP_VECTS + 1; bumpSample++ )
+				for( int bumpSample = 0; bumpSample < NUM_BUMP_VECTS + 1; bumpSample++ )
 				{
-					VectorCopy( fl->light[nstyle][bumpSample][k], light[bumpSample] );
+					light[bumpSample] = fl->light[nstyle][bumpSample][k];
 				}
 			}
 			else
 			{
-				VectorCopy( fl->light[nstyle][0][k], light[0] );
+				light[0]=fl->light[nstyle][0][k];
 			}
 
 			Vector tmp;
@@ -460,7 +480,7 @@ radial_t *BuildLuxelRadial( int facenum, int style )
 // Purpose: returns the closest light value for a given point on the surface
 //			this is normally a 1:1 mapping
 //-----------------------------------------------------------------------------
-bool SampleRadial( radial_t *rad, Vector& pnt, Vector light[NUM_BUMP_VECTS + 1], int bumpSampleCount )
+bool SampleRadial( radial_t *rad, Vector& pnt, LightingValue_t light[NUM_BUMP_VECTS + 1], int bumpSampleCount )
 {
 	int bumpSample;
 	Vector2D coord;
@@ -482,9 +502,7 @@ bool SampleRadial( radial_t *rad, Vector& pnt, Vector light[NUM_BUMP_VECTS + 1],
 		}
 		for( bumpSample = 0; bumpSample < bumpSampleCount; bumpSample++ )
 		{
-			light[bumpSample][0] = 2550;
-			light[bumpSample][1] = 0;
-			light[bumpSample][2] = 0;
+			light[bumpSample].m_vecLighting.Init( 2550, 0, 0 );
 		}
 		return false;
 	}
@@ -492,28 +510,25 @@ bool SampleRadial( radial_t *rad, Vector& pnt, Vector light[NUM_BUMP_VECTS + 1],
 	bool baseSampleOk = true;
 	for( bumpSample = 0; bumpSample < bumpSampleCount; bumpSample++ )
 	{
-		VectorFill( light[bumpSample], 0 );
-		
+		light[bumpSample].Zero();
+
 		if (rad->weight[i] > WEIGHT_EPS)
 		{
-			VectorScale( rad->light[bumpSample][i], 1.0 / rad->weight[i], light[bumpSample] );
+			light[bumpSample]= rad->light[bumpSample][i];
+			light[bumpSample].Scale( 1.0 / rad->weight[i] );
 		}
 		else
 		{
 			if ( bRed2Black )
 			{
 				// Error, luxel has no samples
-				light[bumpSample][0] = 0;
-				light[bumpSample][1] = 0;
-				light[bumpSample][2] = 0;
+				light[bumpSample].m_vecLighting.Init( 0, 0, 0 );
 			}
 			else
 			{
 				// Error, luxel has no samples
 				// Yes, it actually should be 2550
-				light[bumpSample][0] = 2550;
-				light[bumpSample][1] = 0;
-				light[bumpSample][2] = 0;
+				light[bumpSample].m_vecLighting.Init( 2550, 0, 0 );
 			}
 
 			if (bumpSample == 0)
@@ -579,6 +594,43 @@ void DumpLuxels( facelight_t *pFaceLight, Vector *luxelColors, int ndxFace )
 #endif
 
 
+static FileHandle_t pFileLuxels[4] = { NULL, NULL, NULL, NULL };
+
+void DumpDispLuxels( int iFace, Vector &color, int iLuxel, int nBump )
+{
+	// Lock the thread and dump the luxel data.
+	ThreadLock();
+
+	// Get the face and facelight data.
+	facelight_t *pFaceLight = &facelight[iFace];
+
+	// Open the luxel files.
+	char szFileName[512];
+	for ( int iBump = 0; iBump < ( NUM_BUMP_VECTS+1 ); ++iBump )
+	{
+		if ( pFileLuxels[iBump] == NULL )
+		{
+			sprintf( szFileName, "luxels_bump%d.txt", iBump );
+			pFileLuxels[iBump] = g_pFileSystem->Open( szFileName, "w" );
+		}
+	}
+
+	WriteWinding( pFileLuxels[nBump], pFaceLight->sample[iLuxel].w, color );
+
+	ThreadUnlock();
+}
+
+void CloseDispLuxels()
+{
+	for ( int iBump = 0; iBump < ( NUM_BUMP_VECTS+1 ); ++iBump )
+	{
+		if ( pFileLuxels[iBump] )
+		{
+			g_pFileSystem->Close( pFileLuxels[iBump] );
+		}
+	}
+}
+
 /*
 =============
 FinalLightFace
@@ -594,7 +646,7 @@ void FinalLightFace( int iThread, int facenum )
 	facelight_t	    *fl;
 	float		    minlight;
 	int			    lightstyles;
-	Vector		    lb[NUM_BUMP_VECTS + 1], v[NUM_BUMP_VECTS + 1];
+	LightingValue_t lb[NUM_BUMP_VECTS + 1], v[NUM_BUMP_VECTS + 1];
 	unsigned char   *pdata[NUM_BUMP_VECTS + 1];
 	int				bumpSample;
 	radial_t	    *rad = NULL;
@@ -711,7 +763,7 @@ void FinalLightFace( int iThread, int facenum )
 			{
 				for ( int iBump = 0 ; iBump < bumpSampleCount; iBump++ )
 				{
-					VectorCopy( fl->light[0][iBump][j], lb[iBump] );
+					lb[iBump] = fl->light[0][iBump][j];
 				}
 			}
 
@@ -730,7 +782,15 @@ void FinalLightFace( int iThread, int facenum )
 
 				for( bumpSample = 0; bumpSample < bumpSampleCount; ++bumpSample )
 				{
-					VectorAdd( lb[bumpSample], v[bumpSample], lb[bumpSample] );
+					lb[bumpSample].AddLight( v[bumpSample] );
+				}
+			}
+
+			if ( bDisp && g_bDumpPatches )
+			{
+				for( bumpSample = 0; bumpSample < bumpSampleCount; ++bumpSample )
+				{
+					DumpDispLuxels( facenum, lb[bumpSample].m_vecLighting, j, bumpSample );
 				}
 			}
 
@@ -738,9 +798,7 @@ void FinalLightFace( int iThread, int facenum )
 			{
 				for( i = 0; i < bumpSampleCount; i++ )
 				{
-					lb[i][0] = 255;
-					lb[i][1] = 0;
-					lb[i][2] = 0;
+					lb[i].Init( 255, 0, 0 );
 				}
 				baseSampleOk = false;
 			}
@@ -752,10 +810,7 @@ void FinalLightFace( int iThread, int facenum )
 				// garymct: minlight is a per entity minimum light value?
 				for( i=0; i<3; i++ )
 				{
-					if( lb[bumpSample][i] < minlight )
-					{
-						lb[bumpSample][i] = minlight;
-					}
+					lb[bumpSample].m_vecLighting[i] = max( lb[bumpSample].m_vecLighting[i], minlight );
 				}
 				
 				// Do the average light computation, I'm assuming (perhaps incorrectly?)
@@ -768,12 +823,12 @@ void FinalLightFace( int iThread, int facenum )
 				{
 					++avgCount;
 
-					ApplyMacroTextures( facenum, fl->luxel[j], lb[0] );
+					ApplyMacroTextures( facenum, fl->luxel[j], lb[0].m_vecLighting );
 
 					// For median computation
-					m_Red.Insert( lb[bumpSample][0] );
-					m_Green.Insert( lb[bumpSample][1] );
-					m_Blue.Insert( lb[bumpSample][2] );
+					m_Red.Insert( lb[bumpSample].m_vecLighting[0] );
+					m_Green.Insert( lb[bumpSample].m_vecLighting[1] );
+					m_Blue.Insert( lb[bumpSample].m_vecLighting[2] );
 				}
 
 #ifdef RANDOM_COLOR
@@ -783,7 +838,8 @@ void FinalLightFace( int iThread, int facenum )
 				pdata[bumpSample][3] = 0;
 #else
 				// convert to a 4 byte r,g,b,signed exponent format
-				VectorToColorRGBExp32( lb[bumpSample], *( ColorRGBExp32 *)pdata[bumpSample] );
+				VectorToColorRGBExp32( Vector( lb[bumpSample].m_vecLighting.x, lb[bumpSample].m_vecLighting.y,
+											   lb[bumpSample].m_vecLighting.z ), *( ColorRGBExp32 *)pdata[bumpSample] );
 #endif
 
 				pdata[bumpSample] += 4;

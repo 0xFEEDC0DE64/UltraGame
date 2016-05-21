@@ -12,7 +12,7 @@
 #pragma once
 #endif
 
-#include "UtlVector.h"
+#include "utlvector.h"
 #include "vgui/VGUI.h"
 #include "vgui_controls/Panel.h"
 #include "vgui_controls/PHandle.h"
@@ -39,7 +39,7 @@ public:
 	virtual void SetText(const char *tokenName);
 
 	// Set unicode text directly
-	virtual void SetText(const wchar_t *unicodeString);
+	virtual void SetText(const wchar_t *unicodeString, bool bClearUnlocalizedSymbol = false );
 
 	// Get the current text
 	virtual void GetText(char *textOut, int bufferLen);
@@ -149,6 +149,9 @@ public:
 		Content = 8,
 	};
 
+	void SetWrap( bool bWrap );
+	void SetCenterWrap( bool bWrap );
+
 protected:
 	virtual void PerformLayout();
 	virtual wchar_t CalculateHotkey(const char *text);
@@ -202,8 +205,8 @@ private:
 
 	wchar_t	   _hotkey;		// the hotkey contained in the text
 
-	void SetWrap( bool bWrap );
 	bool	m_bWrap;
+	bool	m_bCenterWrap;
 };
 
 } // namespace vgui

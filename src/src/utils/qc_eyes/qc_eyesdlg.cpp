@@ -73,8 +73,8 @@ void CQC_EyesDlg::AddText( const char *pFormat, ... )
 	_vsnprintf( tempMsg, sizeof( tempMsg ), pFormat, marker );
 	va_end( marker );
 
-	int nCharsInBuf = strlen( m_Buf );
-	int nCharsInMsg = strlen( tempMsg );
+	size_t nCharsInBuf = strlen( m_Buf );
+	size_t nCharsInMsg = strlen( tempMsg );
 
 	if ( nCharsInBuf + nCharsInMsg + 1 > m_BufSize )
 	{
@@ -91,7 +91,7 @@ void CQC_EyesDlg::AddText( const char *pFormat, ... )
 
 void SendToEditControl( HWND hEditControl, const char *pText )
 {
-	int nLen = SendMessage( hEditControl, EM_GETLIMITTEXT, 0, 0 );
+	LRESULT nLen = SendMessage( hEditControl, EM_GETLIMITTEXT, 0, 0 );
 	SendMessage( hEditControl, EM_SETSEL, nLen, nLen );
 	SendMessage( hEditControl, EM_REPLACESEL, FALSE, (LPARAM)pText );
 }
@@ -454,7 +454,7 @@ void CQC_EyesDlg::OnCreateQcText()
 	GenerateQCText();
 
 	// Clear the edit control.
-	int nLen = ::SendMessage( m_hOutputText, EM_GETLIMITTEXT, 0, 0 );
+	LRESULT nLen = ::SendMessage( m_hOutputText, EM_GETLIMITTEXT, 0, 0 );
 	::SendMessage( m_hOutputText, EM_SETSEL, 0, nLen );
 	::SendMessage( m_hOutputText, EM_REPLACESEL, FALSE, (LPARAM)"" );
 
@@ -590,7 +590,7 @@ void CQC_EyesDlg::OnCopyTextToClipboard()
 	if ( !OpenClipboard() )
 		return;
 	
-	int textLen = strlen( m_Buf );
+	size_t textLen = strlen( m_Buf );
 	HANDLE hmem = GlobalAlloc( GMEM_MOVEABLE | GMEM_DDESHARE, textLen + 1 );
 	if ( hmem )
 	{
@@ -651,7 +651,7 @@ void CQC_EyesDlg::OnDefaultControls()
 		GetDlgItem( g_AdvancedControls[i] )->ShowWindow( SW_HIDE );
 	}
 
-	for (int i=0; i < NUM_LEFT_LID_POSITION_CONTROLS; i++ )
+	for ( int i=0; i < NUM_LEFT_LID_POSITION_CONTROLS; i++ )
 	{
 		GetDlgItem( g_LeftLidPositionControls[i] )->ShowWindow( SW_HIDE );
 	}

@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef BUTTON_H
 #define BUTTON_H
@@ -16,11 +16,10 @@
 #include <vgui/Dar.h>
 #include <Color.h>
 #include <vgui_controls/Label.h>
+#include "vgui/MouseCode.h"
 
 namespace vgui
 {
-
-enum MouseCode;
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -53,6 +52,9 @@ public:
 	virtual void SetSelected(bool state);
 	// Check selected state
 	virtual bool IsSelected( void );
+
+	virtual void SetBlink(bool state);
+	virtual bool IsBlinking( void );
 
 	//Set whether or not the button captures all mouse input when depressed.
 	virtual void SetUseCaptureMouse( bool state );
@@ -107,6 +109,8 @@ public:
 	virtual void SetArmedColor(Color fgColor, Color bgColor);
 	// Set depressed button colors
 	virtual void SetDepressedColor(Color fgColor, Color bgColor);
+	// Set blink button color
+	virtual void SetBlinkColor(Color fgColor);
 
 	// Get button foreground color
 	virtual Color GetButtonFgColor();
@@ -145,6 +149,11 @@ public:
 	bool IsDrawingFocusBox();
 	void DrawFocusBox( bool bEnable );
 
+	bool ShouldPaint(){ return _paint; }
+	void SetShouldPaint( bool paint ){ _paint = paint; }
+
+	virtual void ApplySettings( KeyValues *inResourceData );
+
 protected:
 	virtual void DrawFocusBorder(int tx0, int ty0, int tx1, int ty1);
 
@@ -164,8 +173,10 @@ protected:
 
 	// Get control settings for editing
 	virtual void GetSettings( KeyValues *outResourceData );
-	virtual void ApplySettings( KeyValues *inResourceData );
 	virtual const char *GetDescription( void );
+
+	KeyValues *GetActionMessage();
+	void PlayButtonReleasedSound();
 
 private:
 	enum ButtonFlags_t
@@ -179,6 +190,7 @@ private:
 		DEFAULT_BUTTON			= 0x0040,
 		SELECTED				= 0x0080,
 		DRAW_FOCUS_BOX			= 0x0100,
+		BLINK					= 0x0200,
 		ALL_FLAGS				= 0xFFFF,
 	};
 
@@ -195,6 +207,9 @@ private:
 	Color			   _armedFgColor, _armedBgColor;
 	Color              _depressedFgColor, _depressedBgColor;
 	Color              _keyboardFocusColor;
+	Color			   _blinkFgColor;
+
+	bool				_paint;
 
 	unsigned short	   m_sArmedSoundName, m_sDepressedSoundName, m_sReleasedSoundName;
 	bool m_bSelectionStateSaved;

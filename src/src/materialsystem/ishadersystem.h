@@ -1,4 +1,4 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
@@ -6,7 +6,7 @@
 // $NoKeywords: $
 // An interface that should not ever be accessed directly from shaders
 // but instead is visible only to shaderlib.
-//=============================================================================//
+//===========================================================================//
 
 #ifndef ISHADERSYSTEM_H
 #define ISHADERSYSTEM_H
@@ -21,7 +21,7 @@
 //-----------------------------------------------------------------------------
 // Forward declarations
 //-----------------------------------------------------------------------------
-enum TextureStage_t;
+enum Sampler_t;
 class ITexture;
 class IShader;
 
@@ -51,14 +51,17 @@ enum
 abstract_class IShaderSystem
 {
 public:
+	virtual ShaderAPITextureHandle_t GetShaderAPITextureBindHandle( ITexture *pTexture, int nFrameVar, int nTextureChannel = 0 ) =0;
+
 	// Binds a texture
-	virtual void BindTexture( TextureStage_t stage, ITexture *pTexture, int nFrameVar = 0 ) = 0;
+	virtual void BindTexture( Sampler_t sampler1, ITexture *pTexture, int nFrameVar = 0 ) = 0;
+	virtual void BindTexture( Sampler_t sampler1, Sampler_t sampler2, ITexture *pTexture, int nFrameVar = 0 ) = 0;
 
 	// Takes a snapshot
 	virtual void TakeSnapshot( ) = 0;
 
 	// Draws a snapshot
-	virtual void DrawSnapshot() = 0;
+	virtual void DrawSnapshot( bool bMakeActualDrawCall = true ) = 0;
 
 	// Are we using graphics?
 	virtual bool IsUsingGraphics() const = 0;
@@ -71,7 +74,7 @@ public:
 //-----------------------------------------------------------------------------
 // The Shader plug-in DLL interface version
 //-----------------------------------------------------------------------------
-#define SHADER_DLL_INTERFACE_VERSION	"ShaderDLL003"
+#define SHADER_DLL_INTERFACE_VERSION	"ShaderDLL004"
 
 
 //-----------------------------------------------------------------------------
@@ -81,42 +84,14 @@ abstract_class IShaderDLLInternal
 {
 public:
 	// Here's where the app systems get to learn about each other 
-	virtual bool Connect( CreateInterfaceFn factory ) = 0;
-	virtual void Disconnect() = 0;
+	virtual bool Connect( CreateInterfaceFn factory, bool bIsMaterialSystem ) = 0;
+	virtual void Disconnect( bool bIsMaterialSystem ) = 0;
 
 	// Returns the number of shaders defined in this DLL
 	virtual int ShaderCount() const = 0;
 
 	// Returns information about each shader defined in this DLL
 	virtual IShader *GetShader( int nShader ) = 0;
-};
-
-
-//-----------------------------------------------------------------------------
-// This is the version of IShaderDLLInternal at the time of ship
-//-----------------------------------------------------------------------------
-#define SHADER_DLL_INTERFACE_VERSION_2	"ShaderDLL002"
-
-namespace ShaderV2
-{
-	class IShader;
-}
-
-//-----------------------------------------------------------------------------
-// The Shader interface versions
-//-----------------------------------------------------------------------------
-abstract_class IShaderDLLInternalV2
-{
-public:
-	// Here's where the app systems get to learn about each other 
-	virtual bool Connect( CreateInterfaceFn factory ) = 0;
-	virtual void Disconnect() = 0;
-
-	// Returns the number of shaders defined in this DLL
-	virtual int ShaderCount() const = 0;
-
-	// Returns information about each shader defined in this DLL
-	virtual ShaderV2::IShader *GetShader( int nShader ) = 0;
 };
 
 

@@ -50,13 +50,11 @@ BOOL CQC_EyesApp::InitInstance()
 
 #ifdef _AFXDLL
 	Enable3dControls();			// Call this when using MFC in a shared DLL
-#else
-	Enable3dControlsStatic();	// Call this when linking to MFC statically
 #endif
 
 	CQC_EyesDlg dlg;
 	m_pMainWnd = &dlg;
-	int nResponse = dlg.DoModal();
+	INT_PTR nResponse = dlg.DoModal();
 	if (nResponse == IDOK)
 	{
 		// TODO: Place code here to handle when the dialog is

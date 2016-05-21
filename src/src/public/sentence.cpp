@@ -14,8 +14,8 @@
 #include "sentence.h"
 #include "utlbuffer.h"
 #include <stdlib.h>
-#include "vector.h"
-#include "mathlib.h"
+#include "mathlib/vector.h"
+#include "mathlib/mathlib.h"
 #include <ctype.h>
 #include "checksum_crc.h"
 // memdbgon must be the last include file in a .cpp file!!!
@@ -584,7 +584,6 @@ void CSentence::ParseCloseCaption( CUtlBuffer& buf )
 		buf.GetString( token );
 		while ( 1 )
 		{
-
 			if ( !stricmp( token, "}" ) )
 				break;
 
@@ -623,10 +622,8 @@ void CSentence::ParseCloseCaption( CUtlBuffer& buf )
 			buf.GetString( token );
 			buf.GetString( token );
 
-
 			buf.GetString( token );
 		}
-
 	}
 }
 
@@ -707,53 +704,87 @@ void CSentence::ParseDataVersionOnePointZero( CUtlBuffer& buf )
 	}
 }
 
-#define CACHED_SENTENCE_VERSION	1
-
 // This is a compressed save of just the data needed to drive phonemes in the engine (no word / sentence text, etc )
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : buf - 
 //-----------------------------------------------------------------------------
-void CSentence::CacheSaveToBuffer( CUtlBuffer& buf )
+void CSentence::CacheSaveToBuffer( CUtlBuffer& buf, int version )
 {
 	Assert( !buf.IsText() );
 	Assert( m_bIsCached );
 
-	buf.PutChar( CACHED_SENTENCE_VERSION );
-
 	int i;
 	unsigned short pcount = GetRuntimePhonemeCount();
 
-	buf.PutShort( pcount );
-
-	for ( i = 0; i < pcount; ++i )
+	// header
+	if ( version == CACHED_SENTENCE_VERSION_ALIGNED )
 	{
-		const CBasePhonemeTag *phoneme = GetRuntimePhoneme( i );
-		Assert( phoneme );
-
-		buf.PutShort( phoneme->GetPhonemeCode() );
-		buf.PutFloat( phoneme->GetStartTime() );
-		buf.PutFloat( phoneme->GetEndTime() );
+		buf.PutChar( version );
+		buf.PutChar( 0 );
+		buf.PutChar( 0 );
+		buf.PutChar( 0 );
+		buf.PutInt( pcount );
+	}
+	else
+	{
+		buf.PutChar( version );
+		buf.PutShort( pcount );
 	}
 
-	// Now save out emphasis samples
+	// phoneme
+	if ( version == CACHED_SENTENCE_VERSION_ALIGNED )
+	{
+		for ( i = 0; i < pcount; ++i )
+		{
+			const CBasePhonemeTag *phoneme = GetRuntimePhoneme( i );
+			Assert( phoneme );
+			buf.PutInt( phoneme->GetPhonemeCode() );
+			buf.PutFloat( phoneme->GetStartTime() );
+			buf.PutFloat( phoneme->GetEndTime() );
+		}
+	}
+	else
+	{
+		for ( i = 0; i < pcount; ++i )
+		{
+			const CBasePhonemeTag *phoneme = GetRuntimePhoneme( i );
+			Assert( phoneme );
+			buf.PutShort( phoneme->GetPhonemeCode() );
+			buf.PutFloat( phoneme->GetStartTime() );
+			buf.PutFloat( phoneme->GetEndTime() );
+		}
+	}
+
+	// emphasis samples and voice duck
 	int c = m_EmphasisSamples.Count();
 	Assert( c <= 32767 );
-	buf.PutShort( c );
 
-	for ( i = 0; i < c; i++ )
+	if ( version == CACHED_SENTENCE_VERSION_ALIGNED )
 	{
-		CEmphasisSample *sample = &m_EmphasisSamples[ i ];
-		Assert( sample );
-
-		buf.PutFloat( sample->time );
-		short scaledValue = clamp( (short)( sample->value * 32767 ), 0, 32767 );
-
-		buf.PutShort( scaledValue );
+		buf.PutInt( c );
+		for ( i = 0; i < c; i++ )
+		{
+			CEmphasisSample *sample = &m_EmphasisSamples[i];
+			Assert( sample );
+			buf.PutFloat( sample->time );
+			buf.PutFloat( sample->value );
+		}
+		buf.PutInt( GetVoiceDuck() ? 1 : 0 );
 	}
-
-	// And voice duck
-	buf.PutChar( GetVoiceDuck() ? 1 : 0 );
+	else
+	{
+		buf.PutShort( c );
+		for ( i = 0; i < c; i++ )
+		{
+			CEmphasisSample *sample = &m_EmphasisSamples[i];
+			Assert( sample );
+			buf.PutFloat( sample->time );
+			short scaledValue = clamp( (short)( sample->value * 32767 ), 0, 32767 );
+			buf.PutShort( scaledValue );
+		}
+		buf.PutChar( GetVoiceDuck() ? 1 : 0 );
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -768,48 +799,89 @@ void CSentence::CacheRestoreFromBuffer( CUtlBuffer& buf )
 
 	m_bIsCached = true;
 
+	// determine format
 	int version = buf.GetChar();
-	if ( version != CACHED_SENTENCE_VERSION )
+	if ( version != CACHED_SENTENCE_VERSION && version != CACHED_SENTENCE_VERSION_ALIGNED )
 	{
 		// Uh oh, version changed...
 		m_bIsValid = false;
 		return;
 	}
 
-	unsigned short pcount = (unsigned short)buf.GetShort();
-	
+	unsigned short pcount;
+	if ( version == CACHED_SENTENCE_VERSION_ALIGNED )
+	{
+		buf.GetChar();
+		buf.GetChar();
+		buf.GetChar();
+		pcount = buf.GetInt();
+	}
+	else
+	{
+		pcount = (unsigned short)buf.GetShort();
+	}
+
+	// phonemes
 	CPhonemeTag pt;
 	int i;
-
-	for ( i = 0; i < pcount; ++i )
+	if ( version == CACHED_SENTENCE_VERSION_ALIGNED )
 	{
-		unsigned short code = buf.GetShort();
-		float st = buf.GetFloat();
-		float et = buf.GetFloat();
+		for ( i = 0; i < pcount; ++i )
+		{
+			int code = buf.GetInt();
+			float st = buf.GetFloat();
+			float et = buf.GetFloat();
 
-		pt.SetPhonemeCode( code );
-		pt.SetStartTime( st );
-		pt.SetEndTime( et );
+			pt.SetPhonemeCode( code );
+			pt.SetStartTime( st );
+			pt.SetEndTime( et );
+			AddRuntimePhoneme( &pt );
+		}
+	}
+	else
+	{
+		for ( i = 0; i < pcount; ++i )
+		{
+			unsigned short code = buf.GetShort();
+			float st = buf.GetFloat();
+			float et = buf.GetFloat();
 
-		AddRuntimePhoneme( &pt );
+			pt.SetPhonemeCode( code );
+			pt.SetStartTime( st );
+			pt.SetEndTime( et );
+			AddRuntimePhoneme( &pt );
+		}
 	}
 
-	// Now read emphasis samples
-	int c = buf.GetShort();
-
-	for ( i = 0; i < c; i++ )
+	// emphasis samples and voice duck
+	int c;
+	if ( version == CACHED_SENTENCE_VERSION_ALIGNED )
 	{
-		CEmphasisSample sample;
-		sample.SetSelected( false );
-
-		sample.time = buf.GetFloat();
-		sample.value = (float)buf.GetShort() / 32767.0f;
-
-		m_EmphasisSamples.AddToTail( sample );
+		c = buf.GetInt();
+		for ( i = 0; i < c; i++ )
+		{
+			CEmphasisSample sample;
+			sample.SetSelected( false );
+			sample.time = buf.GetFloat();
+			sample.value = buf.GetFloat();
+			m_EmphasisSamples.AddToTail( sample );
+		}
+		SetVoiceDuck( buf.GetInt() == 0 ? false : true );
+	}
+	else
+	{
+		c = buf.GetShort();
+		for ( i = 0; i < c; i++ )
+		{
+			CEmphasisSample sample;
+			sample.SetSelected( false );
+			sample.time = buf.GetFloat();
+			sample.value = (float)buf.GetShort() / 32767.0f;
+			m_EmphasisSamples.AddToTail( sample );
+		}
+		SetVoiceDuck( buf.GetChar() == 0 ? false : true );
 	}
 
-	// And voice duck
-	SetVoiceDuck( buf.GetChar() == 0 ? false : true );
 	m_bIsValid = true;
 }
 
@@ -1563,5 +1635,130 @@ unsigned int CSentence::GetDataCheckSum() const
 	return 0;
 #endif
 }
+
+#define STARTEND_TIMEGAP 0.1
+
+int CSentence::CountWords( char const *str )
+{
+	if ( !str || !str[ 0 ] )
+		return 0;
+
+	int c = 1;
+	
+	unsigned char *p = (unsigned char *)str;
+	while ( *p )
+	{
+		if ( *p <= 32 )
+		{
+			c++;
+
+			while ( *p && *p <= 32 )
+			{
+				p++;
+			}
+		}
+
+		if ( !(*p) )
+			break;
+
+		p++;
+	}
+	
+	return c;
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: Static method
+// Input  : in - 
+// Output : Returns true on success, false on failure.
+//-----------------------------------------------------------------------------
+bool CSentence::ShouldSplitWord( char in )
+{
+	if ( in <= 32 )
+		return true;
+
+	if ( in >= 128 )
+		return true;
+
+	if ( ispunct( in ) )
+	{
+		// don't split on apostrophe
+		if ( in == '\'' )
+			return false;
+		return true;
+	}
+
+	return false;
+}
+
+void CSentence::CreateEventWordDistribution( char const *pszText, float flSentenceDuration )
+{
+	Assert( pszText );
+	if ( !pszText )
+		return;
+
+	int wordCount = CountWords( pszText );
+	if ( wordCount <= 0 )
+		return;
+
+	float wordLength = ( flSentenceDuration - 2 * STARTEND_TIMEGAP) / (float)wordCount;
+	float wordStart = STARTEND_TIMEGAP;
+
+	Reset();
+
+	char word[ 256 ];
+	unsigned char const *in = (unsigned char *)pszText;
+	char *out = word;
+	
+	while ( *in )
+	{
+		if ( !ShouldSplitWord( *in ) )
+		{
+			*out++ = *in++;
+		}
+		else
+		{
+			*out = 0;
+
+			// Skip over splitters
+			while ( *in && ( ShouldSplitWord( *in ) ) )
+			{
+				in++;
+			}
+			
+			if ( strlen( word ) > 0 )
+			{
+				CWordTag *w = new CWordTag();
+				Assert( w );
+				w->SetWord( word );
+				w->m_flStartTime = wordStart;
+				w->m_flEndTime = wordStart + wordLength;
+				
+				AddWordTag( w );
+				
+				wordStart += wordLength;
+			}
+			
+			out = word;
+		}
+	}
+	
+	*out = 0;
+
+	if ( strlen( word ) > 0 )
+	{
+		CWordTag *w = new CWordTag();
+		Assert( w );
+		w->SetWord( word );
+		w->m_flStartTime = wordStart;
+		w->m_flEndTime = wordStart + wordLength;
+		
+		AddWordTag( w );
+		
+		wordStart += wordLength;
+	}
+}
+
 
 #endif // !_STATIC_LINKED || _SHARED_LIB

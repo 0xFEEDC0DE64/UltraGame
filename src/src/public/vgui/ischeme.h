@@ -73,9 +73,6 @@ public:
 	// returns a pointer to an image
 	virtual IImage *GetImage(const char *imageName, bool hardwareFiltered) = 0;
 	virtual HTexture GetImageID(const char *imageName, bool hardwareFiltered) = 0;
-#ifdef _XBOX
-	virtual void DeleteImage( const char *pImageName ) = 0;
-#endif
 
 	// This can only be called at certain times, like during paint()
 	// It will assert-fail if you call it at the wrong time...
@@ -101,6 +98,9 @@ public:
 	virtual int GetProportionalScaledValueEx( HScheme scheme, int normalizedValue ) = 0;
 	virtual int GetProportionalNormalizedValueEx( HScheme scheme, int scaledValue ) = 0;
 
+#ifdef _XBOX
+	virtual void DeleteImage( const char *pImageName ) = 0;
+#endif
 };
 
 #define VGUI_SCHEME_INTERFACE_VERSION "VGUI_Scheme010"

@@ -119,6 +119,10 @@ public:
 
 	virtual bool IsEnabled(VPANEL vguiPanel) = 0;
 	virtual void SetEnabled(VPANEL vguiPanel, bool state) = 0;
+
+	// Used by the drag/drop manager to always draw on top
+	virtual bool IsTopmostPopup( VPANEL vguiPanel) = 0;
+	virtual void SetTopmostPopup( VPANEL vguiPanel, bool state ) = 0;
 };
 
 #define VGUI_PANEL_INTERFACE_VERSION "VGUI_Panel009"

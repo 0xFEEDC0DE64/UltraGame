@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include "KeyValues.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "FileSystem_Tools.h"
 #include "tier1/utlstring.h"
 

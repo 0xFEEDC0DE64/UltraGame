@@ -18,7 +18,7 @@
 
 
 #include "interface.h"
-#include "vector.h" // Solely to get at define for QAngle
+#include "mathlib/vector.h" // Solely to get at define for QAngle
 
 
 class IMoveHelper;
@@ -52,7 +52,6 @@ public:
 	virtual void	OnReceivedUncompressedPacket( void ) = 0;
 
 	// The engine needs to be able to access a few predicted values
-	virtual int		GetWaterLevel( void ) = 0;
 	virtual void	GetViewOrigin( Vector& org ) = 0;
 	virtual void	SetViewOrigin( Vector& org ) = 0;
 	virtual void	GetViewAngles( QAngle& ang ) = 0;

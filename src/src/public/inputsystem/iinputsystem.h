@@ -28,7 +28,7 @@ public:
 	// This window should be the root window for the application
 	// Only 1 window should be attached at any given time.
 	virtual void AttachToWindow( void* hWnd ) = 0;
-	virtual void DetachFromWindow( void* hWnd ) = 0;
+	virtual void DetachFromWindow( ) = 0;
 
 	// Enables/disables input. PollInputState will not update current 
 	// button/analog states when it is called if the system is disabled.
@@ -79,13 +79,36 @@ public:
 	// Sample the joystick and append events to the input queue
 	virtual void SampleDevices( void ) = 0;
 
-	// FIXME: Should force-feedback occur here also?
-	virtual void SetRumble( float fLeftMotor, float fRightMotor ) = 0;
+	// FIXME: Currently force-feedback is only supported on the Xbox 360
+	virtual void SetRumble( float fLeftMotor, float fRightMotor, int userId = INVALID_USER_ID ) = 0;
 	virtual void StopRumble( void ) = 0;
 
 	// Resets the input state
 	virtual void ResetInputState() = 0;
 
+	// Sets a player as the primary user - all other controllers will be ignored.
+	virtual void SetPrimaryUserId( int userId ) = 0;
+
+	// Convert back + forth between ButtonCode/AnalogCode + strings
+	virtual const char *ButtonCodeToString( ButtonCode_t code ) const = 0;
+	virtual const char *AnalogCodeToString( AnalogCode_t code ) const = 0;
+	virtual ButtonCode_t StringToButtonCode( const char *pString ) const = 0;
+	virtual AnalogCode_t StringToAnalogCode( const char *pString ) const = 0;
+
+	// Sleeps until input happens. Pass a negative number to sleep infinitely
+	virtual void SleepUntilInput( int nMaxSleepTimeMS = -1 ) = 0;
+
+	// Convert back + forth between virtual codes + button codes
+	// FIXME: This is a temporary piece of code
+	virtual ButtonCode_t VirtualKeyToButtonCode( int nVirtualKey ) const = 0;
+	virtual int ButtonCodeToVirtualKey( ButtonCode_t code ) const = 0;
+	virtual ButtonCode_t ScanCodeToButtonCode( int lParam ) const = 0;
+
+	// How many times have we called PollInputState?
+	virtual int GetPollCount() const = 0;
+
+	// Sets the cursor position
+	virtual void SetCursorPosition( int x, int y ) = 0;
 };
 
 

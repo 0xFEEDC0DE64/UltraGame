@@ -58,6 +58,7 @@ private:
 	char *m_pImageName;
 	bool m_bAnimating;
 	bool m_bFiltered;
+	bool m_bScaleImage;
 };
 
 }; // namespace vgui

@@ -11,11 +11,11 @@
 #elif _LINUX
 #define stricmp strcasecmp
 #endif
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "tier0/dbg.h"
 #include "KeyValues.h"
 #include "cmdlib.h"
-#include "vstdlib/ICommandLine.h"
+#include "tier0/icommandline.h"
 #include "vcprojconvert.h"
 #include "makefilecreator.h"
 
@@ -60,6 +60,7 @@ public:
 	long GetFileTime( const char *pFileName, const char *pPathID = 0 ) { return 0; }
 	bool ReadFile( const char *pFileName, const char *pPath, CUtlBuffer &buf, int nMaxBytes = 0, int nStartingByte = 0, FSAllocFunc_t pfnAlloc = NULL ) {return false;}
 	bool WriteFile( const char *pFileName, const char *pPath, CUtlBuffer &buf ) {return false;}
+	bool UnzipFile( const char *,const char *,const char * ) {return false;}
 };
 
 MyFileSystem g_MyFS;

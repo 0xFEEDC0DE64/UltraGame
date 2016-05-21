@@ -1,30 +1,25 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // NetAdr.cpp: implementation of the CNetAdr class.
 //
-//=============================================================================//
-
-#ifdef _WIN32
+//===========================================================================//
+#if defined( _WIN32 ) && !defined( _X360 )
 #include <windows.h>
 #endif
 
-#ifdef _XBOX
-#include "xbox/xbox_platform.h"
-#include "xbox/xbox_win32stubs.h"
-#endif
 #include "tier0/dbg.h"
 #include "netadr.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 
-#if defined(_WIN32) && !defined(_XBOX)
+#if defined( _WIN32 ) && !defined( _X360 )
 #define WIN32_LEAN_AND_MEAN
 #include <winsock.h>
 typedef int socklen_t;
-#elif !defined(_XBOX)
+#elif !defined( _X360 )
 #include <netinet/in.h> // ntohs()
-#include <netdb.h>	// gethostbyname()
+#include <netdb.h>		// gethostbyname()
 #include <sys/socket.h>	// getsockname()
 #endif
 
@@ -75,6 +70,22 @@ bool netadr_t::CompareClassBAdr (const netadr_t &a) const
 	return false;
 }
 
+bool netadr_t::CompareClassCAdr (const netadr_t &a) const
+{
+	if ( a.type != type )
+		return false;
+
+	if ( type == NA_LOOPBACK )
+		return true;
+
+	if ( type == NA_IP )
+	{
+		if (a.ip[0] == ip[0] && a.ip[1] == ip[1] && a.ip[2] == ip[2] )
+			return true;
+	}
+
+	return false;
+}
 // reserved addresses are not routeable, so they can all be used in a LAN game
 bool netadr_t::IsReservedAdr () const
 {
@@ -114,11 +125,7 @@ const char * netadr_t::ToString(bool baseOnly) const
 		}
 		else
 		{
-#ifndef _XBOX
 			Q_snprintf (s, sizeof( s ), "%i.%i.%i.%i:%i", ip[0], ip[1], ip[2], ip[3], ntohs(port));
-#else
-			Q_snprintf (s, sizeof( s ), "%i.%i.%i.%i:%i", ip[0], ip[1], ip[2], ip[3], port);
-#endif
 		}
 	}
 
@@ -176,6 +183,17 @@ unsigned int netadr_t::GetIP() const
 {
 	return *(unsigned int *)&ip;;
 }
+
+unsigned long netadr_t::addr_ntohl() const
+{
+	return ntohl( GetIP() );
+}
+
+unsigned long netadr_t::addr_htonl() const
+{
+	return htonl( GetIP() );
+}
+
 
 void netadr_t::ToSockadr (struct sockaddr * s) const
 {
@@ -258,6 +276,8 @@ void netadr_t::SetFromString( const char *pch, bool bUseDNS )
 	}
 	else if ( bUseDNS )
 	{
+// X360TBD:
+#if !defined( _X360 )
 		char szHostName[ 256 ];
 		Q_strncpy( szHostName, pch, sizeof(szHostName) );
 		char *pchColon = strchr( szHostName, ':' );
@@ -277,6 +297,9 @@ void netadr_t::SetFromString( const char *pch, bool bUseDNS )
 		{
 			SetPort( atoi( ++pchColon ) );
 		}
+#else
+		Assert( 0 );
+#endif
 	}
 }
 
@@ -292,6 +315,7 @@ bool netadr_t::operator<(const netadr_t &netadr) const
 
 void netadr_t::SetFromSocket( int hSocket )
 {	
+#if !defined(_X360)
 	Clear();
 	type = NA_IP;
 
@@ -301,4 +325,7 @@ void netadr_t::SetFromSocket( int hSocket )
 	{
 		SetFromSockadr( &address );
 	}
+#else
+	Assert(0);
+#endif
 }

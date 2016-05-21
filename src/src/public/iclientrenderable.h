@@ -11,7 +11,7 @@
 #pragma once
 #endif
 
-#include "mathlib.h"
+#include "mathlib/mathlib.h"
 #include "interface.h"
 #include "iclientunknown.h"
 #include "client_render_handle.h"
@@ -74,7 +74,8 @@ public:
 	virtual QAngle const&			GetRenderAngles( void ) = 0;
 	virtual bool					ShouldDraw( void ) = 0;
 	virtual bool					IsTransparent( void ) = 0;
-	virtual bool					UsesFrameBufferTexture() = 0;
+	virtual bool					UsesPowerOfTwoFrameBufferTexture() = 0;
+	virtual bool					UsesFullFrameBufferTexture() = 0;
 
 	virtual ClientShadowHandle_t	GetShadowHandle() const = 0;
 
@@ -105,7 +106,7 @@ public:
 	// equal to studiohdr_t::numbones. Use MAXSTUDIOBONES to be safe.)
 	virtual bool	SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime ) = 0;
 
-	virtual void	SetupWeights( void ) = 0;
+	virtual void	SetupWeights( const matrix3x4_t *pBoneToWorld, int nFlexWeightCount, float *pFlexWeights, float *pFlexDelayedWeights ) = 0;
 	virtual void	DoAnimationEvents( void ) = 0;
 	
 	// Return this if you want PVS notifications. See IPVSNotify for more info.	
@@ -158,6 +159,15 @@ public:
 
 	// Get the skin parameter
 	virtual int		GetSkin() = 0;
+
+	// Is this a two-pass renderable?
+	virtual bool	IsTwoPass( void ) = 0;
+
+	virtual void	OnThreadedDrawSetup() = 0;
+
+	virtual bool	UsesFlexDelayedWeights() = 0;
+
+	virtual void	RecordToolMessage() = 0;
 };
 
 
@@ -176,7 +186,10 @@ public:
 	virtual const matrix3x4_t &		RenderableToWorldTransform() = 0;
 	virtual bool					ShouldDraw( void ) = 0;
 	virtual bool					IsTransparent( void ) = 0;
-	virtual bool					UsesFrameBufferTexture( void ) { return false; }
+	virtual bool					IsTwoPass( void ) { return false; }
+	virtual void					OnThreadedDrawSetup() {}
+	virtual bool					UsesPowerOfTwoFrameBufferTexture( void ) { return false; }
+	virtual bool					UsesFullFrameBufferTexture( void ) { return false; }
 
 	virtual ClientShadowHandle_t	GetShadowHandle() const
 	{
@@ -190,6 +203,7 @@ public:
 
 	virtual int						GetBody() { return 0; }
 	virtual int						GetSkin() { return 0; }
+	virtual bool					UsesFlexDelayedWeights() { return false; }
 
 	virtual const model_t*			GetModel( ) const		{ return NULL; }
 	virtual int						DrawModel( int flags )	{ return 0; }
@@ -197,7 +211,7 @@ public:
 	virtual int						GetFxBlend( )			{ return 255; }
 	virtual bool					LODTest()				{ return true; }
 	virtual bool					SetupBones( matrix3x4_t *pBoneToWorldOut, int nMaxBones, int boneMask, float currentTime )	{ return true; }
-	virtual void					SetupWeights( void )							{}
+	virtual void					SetupWeights( const matrix3x4_t *pBoneToWorld, int nFlexWeightCount, float *pFlexWeights, float *pFlexDelayedWeights ) {}
 	virtual void					DoAnimationEvents( void )						{}
 	virtual IPVSNotify*				GetPVSNotifyInterface() { return NULL; }
 	virtual void					GetRenderBoundsWorldspace( Vector& absMins, Vector& absMaxs ) { DefaultRenderBoundsWorldspace( this, absMins, absMaxs ); }
@@ -239,7 +253,9 @@ public:
 	virtual bool GetAttachment( int number, matrix3x4_t &matrix ) {	return false; }
 
 	// Rendering clip plane, should be 4 floats, return value of NULL indicates a disabled render clip plane
-	virtual float *GetRenderClipPlane( void ) { return NULL; }
+	virtual float *GetRenderClipPlane() { return NULL; }
+
+	virtual void RecordToolMessage() {}
 
 // IClientUnknown implementation.
 public:

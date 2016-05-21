@@ -8,8 +8,8 @@
 //=============================================================================//
 #include "glquake.h"
 #include "cl_demosmootherpanel.h"
-#include "vid.h"
-#include "demo.h"
+//#include "vid.h"
+#include "../engine/demo.h"
 #include <vgui_controls/Button.h>
 #include <vgui_controls/CheckButton.h>
 #include <KeyValues.h>
@@ -2052,6 +2052,11 @@ void CDemoSmootherPanel::OnToggleKeyFrame( void )
 			g_pDemoUI->GetDriveViewPoint( p->vecmoved, p->angmoved );
 		}
 
+		if ( g_pDemoUI2->IsInDriveMode() )
+		{
+			g_pDemoUI2->GetDriveViewPoint( p->vecmoved, p->angmoved );
+		}
+
 		p->samplepoint = true;
 	}
 	else
@@ -2081,6 +2086,7 @@ void CDemoSmootherPanel::OnToggleLookTarget( void )
 	{
 		QAngle angles;
 		g_pDemoUI->GetDriveViewPoint( p->vectarget, angles );
+		g_pDemoUI2->GetDriveViewPoint( p->vectarget, angles );
 
 		p->targetpoint = true;
 	}
@@ -2420,6 +2426,7 @@ void CDemoSmootherPanel::OnSetView()
 	QAngle angle = p->info.GetViewAngles();
 
 	g_pDemoUI->SetDriveViewPoint( origin, angle );
+	g_pDemoUI2->SetDriveViewPoint( origin, angle );
 }
 
 //-----------------------------------------------------------------------------

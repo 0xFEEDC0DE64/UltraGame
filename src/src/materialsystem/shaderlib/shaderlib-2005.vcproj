@@ -3,7 +3,7 @@
 	ProjectType="Visual C++"
 	Version="8.00"
 	Name="shaderlib-2005"
-	ProjectGUID="{524F280F-2300-4B72-A6EB-6EF08C0DE615}"
+	ProjectGUID="{1A1149D9-CB1B-BF85-19CA-C9C2996BFDE8}"
 	>
 	<Platforms>
 		<Platform
@@ -14,13 +14,10 @@
 	</ToolFiles>
 	<Configurations>
 		<Configuration
-			Name="Release|Win32"
-			OutputDirectory=".\Release"
-			IntermediateDirectory=".\Release"
+			Name="Debug|Win32"
+			OutputDirectory=".\Debug"
+			IntermediateDirectory=".\Debug"
 			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
@@ -40,109 +37,133 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				UseUnicodeResponseFiles="false"
+				Optimization="0"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\"
+				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;fopen=dont_use_fopen;FAST_MATERIALVAR_ACCESS"
+				StringPooling="true"
+				MinimalRebuild="true"
+				ExceptionHandling="0"
+				BasicRuntimeChecks="3"
+				RuntimeLibrary="1"
+				BufferSecurityCheck="false"
+				FloatingPointModel="2"
+				TreatWChar_tAsBuiltInType="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
+				OpenMP="false"
+				UsePrecompiledHeader="0"
+				ExpandAttributedSource="false"
+				AssemblerOutput="0"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				GenerateXMLDocumentationFiles="false"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
+				WarningLevel="4"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="4"
+				CompileAs="2"
+				ErrorReporting="1"
+			/>
+			<Tool
+				Name="VCManagedResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCResourceCompilerTool"
+			/>
+			<Tool
+				Name="VCPreLinkEventTool"
+				CommandLine="if exist ..\..\lib\public\shaderlib.lib attrib -r ..\..\lib\public\shaderlib.lib"
+			/>
+			<Tool
+				Name="VCLibrarianTool"
+				UseUnicodeResponseFiles="false"
+				OutputFile="..\..\lib\public\shaderlib.lib"
+				SuppressStartupBanner="true"
+			/>
+			<Tool
+				Name="VCALinkTool"
+			/>
+			<Tool
+				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
+			/>
+			<Tool
+				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/shaderlib.bsc"
+			/>
+			<Tool
+				Name="VCFxCopTool"
+			/>
+			<Tool
+				Name="VCPostBuildEventTool"
+				ExcludedFromBuild="false"
+			/>
+		</Configuration>
+		<Configuration
+			Name="Release|Win32"
+			OutputDirectory=".\Release"
+			IntermediateDirectory=".\Release"
+			ConfigurationType="4"
+			CharacterSet="2"
+			>
+			<Tool
+				Name="VCPreBuildEventTool"
+			/>
+			<Tool
+				Name="VCCustomBuildTool"
+			/>
+			<Tool
+				Name="VCXMLDataGeneratorTool"
+			/>
+			<Tool
+				Name="VCWebServiceProxyGeneratorTool"
+			/>
+			<Tool
+				Name="VCMIDLTool"
+			/>
+			<Tool
+				Name="VCCLCompilerTool"
+				UseUnicodeResponseFiles="false"
 				Optimization="2"
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="./,../,../../public,../../public/tier1"
-				PreprocessorDefinitions="NDEBUG;_WINDOWS;fopen=dont_use_fopen;_WIN32"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;..\"
+				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_LIB;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;fopen=dont_use_fopen;FAST_MATERIALVAR_ACCESS"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Release/shaderlib.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				FloatingPointModel="2"
+				TreatWChar_tAsBuiltInType="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
+				OpenMP="false"
+				UsePrecompiledHeader="0"
+				ExpandAttributedSource="false"
+				AssemblerOutput="0"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				GenerateXMLDocumentationFiles="false"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
 				WarningLevel="4"
-				SuppressStartupBanner="true"
-				DebugInformationFormat="0"
-				CompileAs="0"
-			/>
-			<Tool
-				Name="VCManagedResourceCompilerTool"
-			/>
-			<Tool
-				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
-				Culture="1033"
-			/>
-			<Tool
-				Name="VCPreLinkEventTool"
-				CommandLine="if exist ..\..\lib\public\shaderlib.lib attrib -r ..\..\lib\public\shaderlib.lib"
-			/>
-			<Tool
-				Name="VCLibrarianTool"
-				OutputFile="..\..\lib\public\shaderlib.lib"
-				SuppressStartupBanner="true"
-			/>
-			<Tool
-				Name="VCALinkTool"
-			/>
-			<Tool
-				Name="VCXDCMakeTool"
-			/>
-			<Tool
-				Name="VCBscMakeTool"
-			/>
-			<Tool
-				Name="VCFxCopTool"
-			/>
-			<Tool
-				Name="VCPostBuildEventTool"
-			/>
-		</Configuration>
-		<Configuration
-			Name="Debug|Win32"
-			OutputDirectory=".\Debug"
-			IntermediateDirectory=".\Debug"
-			ConfigurationType="4"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
-			CharacterSet="2"
-			>
-			<Tool
-				Name="VCPreBuildEventTool"
-			/>
-			<Tool
-				Name="VCCustomBuildTool"
-			/>
-			<Tool
-				Name="VCXMLDataGeneratorTool"
-			/>
-			<Tool
-				Name="VCWebServiceProxyGeneratorTool"
-			/>
-			<Tool
-				Name="VCMIDLTool"
-			/>
-			<Tool
-				Name="VCCLCompilerTool"
-				Optimization="0"
-				AdditionalIncludeDirectories="./,../,../../public,../../public/tier1"
-				PreprocessorDefinitions="_DEBUG;_WINDOWS;fopen=dont_use_fopen;_WIN32"
-				ExceptionHandling="0"
-				BasicRuntimeChecks="0"
-				RuntimeLibrary="1"
-				PrecompiledHeaderFile=".\Debug/shaderlib.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
-				BrowseInformation="1"
-				WarningLevel="4"
-				SuppressStartupBanner="true"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="1"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
-				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
@@ -150,6 +171,7 @@
 			/>
 			<Tool
 				Name="VCLibrarianTool"
+				UseUnicodeResponseFiles="false"
 				OutputFile="..\..\lib\public\shaderlib.lib"
 				SuppressStartupBanner="true"
 			/>
@@ -158,15 +180,19 @@
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/shaderlib.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 	</Configurations>
@@ -178,23 +204,15 @@
 			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath="BaseShader.cpp"
+				RelativePath=".\BaseShader.cpp"
 				>
 			</File>
 			<File
-				RelativePath="ShaderDLL.cpp"
+				RelativePath=".\ShaderDLL.cpp"
 				>
 			</File>
 			<File
-				RelativePath="shaderDLL_Global.h"
-				>
-			</File>
-			<File
-				RelativePath="shaderlib_cvar.cpp"
-				>
-			</File>
-			<File
-				RelativePath="shaderlib_cvar.h"
+				RelativePath=".\shaderlib_cvar.cpp"
 				>
 			</File>
 		</Filter>
@@ -207,11 +225,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\tier0\basetypes.h"
+				RelativePath="..\..\public\tier0\basetypes.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\commonmacros.h"
+				RelativePath="..\..\public\commonmacros.h"
 				>
 			</File>
 			<File
@@ -235,11 +253,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\icvar.h"
+				RelativePath="..\..\public\icvar.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\ImageLoader.h"
+				RelativePath="..\..\public\ImageLoader.h"
 				>
 			</File>
 			<File
@@ -283,7 +301,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\MATHLIB.H"
+				RelativePath="..\..\public\MATHLIB.H"
 				>
 			</File>
 			<File
@@ -307,6 +325,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\shaderDLL_Global.h"
+				>
+			</File>
+			<File
+				RelativePath=".\shaderlib_cvar.h"
+				>
+			</File>
+			<File
 				RelativePath="..\..\public\string_t.h"
 				>
 			</File>
@@ -323,23 +349,23 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector.h"
+				RelativePath="..\..\public\vector.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector2d.h"
+				RelativePath="..\..\public\vector2d.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector4d.h"
+				RelativePath="..\..\public\vector4d.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vmatrix.h"
+				RelativePath="..\..\public\vmatrix.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vplane.h"
+				RelativePath="..\..\public\vplane.h"
 				>
 			</File>
 			<File
@@ -348,6 +374,4 @@
 			</File>
 		</Filter>
 	</Files>
-	<Globals>
-	</Globals>
 </VisualStudioProject>

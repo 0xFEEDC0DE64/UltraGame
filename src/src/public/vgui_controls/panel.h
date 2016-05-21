@@ -26,8 +26,8 @@
 #include "vgui_controls/PanelAnimationVar.h"
 #include "Color.h"
 #include "vstdlib/IKeyValuesSystem.h"
-#include "tier1/UtlSymbol.h"
-#include "vgui_controls/buildgroup.h"
+#include "tier1/utlsymbol.h"
+#include "vgui_controls/BuildGroup.h"
 
 // undefine windows function macros that overlap 
 #ifdef PostMessage
@@ -43,7 +43,7 @@ class CUtlBuffer;
 namespace vgui
 {
 
-#if !defined( _XBOX )
+#if !defined( _X360 )
 #define VGUI_USEDRAGDROP 1
 #endif
 
@@ -78,6 +78,24 @@ class Menu;
 #endif
 
 //-----------------------------------------------------------------------------
+// Purpose: Macro to handle Colors that can be overridden in .res files
+//-----------------------------------------------------------------------------
+struct OverridableColorEntry
+{
+	char const *name() { return m_pszScriptName; }
+
+	char const	*m_pszScriptName;
+	Color		*m_pColor;
+	Color		m_colFromScript;
+	bool		m_bOverridden;
+};
+
+#define REGISTER_COLOR_AS_OVERRIDABLE( name, scriptname )			\
+	AddToOverridableColors( &name, scriptname );
+
+
+
+//-----------------------------------------------------------------------------
 // Purpose: For hudanimations.txt scripting of vars
 //-----------------------------------------------------------------------------
 class IPanelAnimationPropertyConverter
@@ -101,7 +119,6 @@ enum KeyBindingContextHandle_t
 //			This is designed as an easy-access to the vgui-functionality; for more
 //			low-level access to vgui functions use the IPanel/IClientPanel interfaces directly
 //-----------------------------------------------------------------------------
-#pragma pack(1)
 class Panel : public IClientPanel
 {
 	DECLARE_CLASS_SIMPLE_NOBASE( Panel );
@@ -125,6 +142,7 @@ public:
 
 	// returns pointer to Panel's vgui VPanel interface handle
 	virtual VPANEL GetVPanel() { return _vpanel; }
+	HPanel ToHandle() const;
 
 	//-----------------------------------------------------------------------------
 	// PANEL METHODS
@@ -156,6 +174,7 @@ public:
 	void SetBuildModeDeletable(bool state);	// set buildModeDialog deletable
 	bool IsBuildModeActive();	// true if we're currently in edit mode
 	void SetZPos(int z);	// sets Z ordering - lower numbers are always behind higher z's
+	int  GetZPos( void );
 	void SetAlpha(int alpha);	// sets alpha modifier for panel and all child panels [0..255]
 	int GetAlpha();	// returns the current alpha
 
@@ -185,6 +204,7 @@ public:
 	
 	int GetChildCount();
 	Panel *GetChild(int index);
+	int FindChildIndexByName( const char *childName );
 	Panel *FindChildByName(const char *childName, bool recurseDown = false);
 	Panel *FindSiblingByName(const char *siblingName);
 	void CallParentFunction(KeyValues *message);
@@ -203,6 +223,7 @@ public:
 	virtual void PostMessage(Panel *target, KeyValues *message, float delaySeconds = 0.0f);
 	virtual bool RequestInfo(KeyValues *outputData);				// returns true if output is successfully written.  You should always chain back to the base class if info request is not handled
 	virtual bool SetInfo(KeyValues *inputData);						// sets a specified value in the control - inverse of the above
+	virtual void SetSilentMode( bool bSilent );						//change the panel's silent mode; if silent, the panel will not post any action signals
 
 	// drawing state
 	virtual void   SetEnabled(bool state);
@@ -369,6 +390,10 @@ public:
 
 	// OnKeyCodeTyped hooks into here for action
 	virtual bool		IsKeyRebound( KeyCode code, int modifiers );
+	// If a panel implements this and returns true, then the IsKeyRebound check will fail and OnKeyCodeTyped messages will pass through..
+	//  sort of like setting the SetAllowKeyBindingChainToParent flag to false for specific keys
+	virtual bool		IsKeyOverridden( KeyCode code, int modifiers );
+
 	virtual void		AddKeyBinding( char const *bindingName, int keycode, int modifiers );
 
 	KeyBindingMap_t		*LookupBinding( char const *bindingName );
@@ -437,6 +462,7 @@ public:
 
 	virtual void DrawTexturedBox( int x, int y, int wide, int tall, Color color, float normalizedAlpha );
 	virtual void DrawBox(int x, int y, int wide, int tall, Color color, float normalizedAlpha, bool hollow = false );
+	virtual void DrawBoxFade(int x, int y, int wide, int tall, Color color, float normalizedAlpha, unsigned int alpha0, unsigned int alpha1, bool bHorizontal, bool hollow = false );
 	virtual void DrawHollowBox(int x, int y, int wide, int tall, Color color, float normalizedAlpha );
 
 // Drag Drop Public interface
@@ -451,6 +477,9 @@ public:
 	//  draggable parent.
 	virtual void SetBlockDragChaining( bool block );
 	virtual bool IsBlockingDragChaining() const;
+
+	virtual int GetDragStartTolerance() const;
+	virtual void SetDragSTartTolerance( int nTolerance );
 
 	// If hover context time is non-zero, then after the drop cursor is hovering over the panel for that amount of time
 	// the Show hover context menu function will be invoked
@@ -489,6 +518,7 @@ public:
 	// Chains up to first parent marked DragEnabled
 	virtual Panel *GetDragPanel();
 	virtual bool	IsBeingDragged();
+	virtual HCursor GetDropCursor( CUtlVector< KeyValues * >& msglist );
 
 	Color GetDropFrameColor();
 	Color GetDragFrameColor();
@@ -528,10 +558,23 @@ protected:
 	virtual void GetDragData( CUtlVector< KeyValues * >& list );
 	virtual void CreateDragData();
 
+	virtual void PaintTraverse(bool Repaint, bool allowForce = true);
+
 protected:
 	MESSAGE_FUNC_ENUM_ENUM( OnRequestFocus, "OnRequestFocus", VPANEL, subFocus, VPANEL, defaultPanel);
 	MESSAGE_FUNC_INT_INT( OnScreenSizeChanged, "OnScreenSizeChanged", oldwide, oldtall );
 	virtual void *QueryInterface(EInterfaceID id);
+
+	void AddToOverridableColors( Color *pColor, char const *scriptname )
+	{
+		int iIdx = m_OverridableColorEntries.AddToTail();
+		m_OverridableColorEntries[iIdx].m_pszScriptName = scriptname;
+		m_OverridableColorEntries[iIdx].m_pColor = pColor;
+		m_OverridableColorEntries[iIdx].m_bOverridden = false;
+	}
+
+	void ApplyOverridableColors( void );
+	void SetOverridableColor( Color *pColor, Color &newColor );
 
 private:
 	enum BuildModeFlags_t
@@ -542,6 +585,7 @@ private:
 		BUILDMODE_SAVE_XPOS_CENTERALIGNED	= 0x08,
 		BUILDMODE_SAVE_YPOS_BOTTOMALIGNED	= 0x10,
 		BUILDMODE_SAVE_YPOS_CENTERALIGNED	= 0x20,
+		BUILDMODE_SAVE_WIDE_FULL			= 0x40,
 	};
 
 	enum PanelFlags_t
@@ -599,7 +643,6 @@ private:
 
 	MESSAGE_FUNC( InternalMove, "Move" );
 	virtual void InternalFocusChanged(bool lost);	// called when the focus gets changed
-	virtual void PaintTraverse(bool Repaint, bool allowForce = true);
 
 	void Init( int x, int y, int wide, int tall );
 	void PreparePanelMap( PanelMap_t *panelMap );
@@ -643,6 +686,8 @@ private:
 	CUtlFlags< unsigned short > _flags;	// see PanelFlags_t
 	Dar<HPanel>		_actionSignalTargetDar;	// the panel to direct notify messages to ("Command", "TextChanged", etc.)
 
+	CUtlVector<OverridableColorEntry>	m_OverridableColorEntries;
+
 	Color			_fgColor;		// foreground color
 	Color			_bgColor;		// background color
 
@@ -662,6 +707,8 @@ private:
 	unsigned char	_tabPosition;		// the panel's place in the tab ordering
 	HScheme			 m_iScheme; // handle to the scheme to use
 
+	bool			m_bIsSilent; // should this panel PostActionSignals?
+
 	CPanelAnimationVar( float, m_flAlpha, "alpha", "255" );
 
 	// 1 == Textured (TextureId1 only)
@@ -680,7 +727,6 @@ private:
 	// obselete, remove soon
 	void OnOldMessage(KeyValues *params, VPANEL ifromPanel);
 };
-#pragma pack()
 
 inline void Panel::DisableMouseInputForThisPanel( bool bDisable )
 {

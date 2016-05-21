@@ -124,13 +124,11 @@ enum SoundFlags_t
 	SND_SPEAKER			= (1<<6),		// being played again by a microphone through a speaker
  
 	SND_SHOULDPAUSE		= (1<<7),		// this sound should be paused if the game is paused
-#if defined( _XBOX )
-	SND_XBOX_UI			= (1<<8),		// It's an xbox UI sound, don't suppress when game UI is active (in the menu system) ... all other sounds are paused
-	SND_XBOX_LOOP		= (1<<8)
-#endif
+	SND_IGNORE_PHONEMES	= (1<<8),
+	SND_IGNORE_NAME		= (1<<9),		// used to change all sounds emitted by an entity, regardless of scriptname
 };
 
-#define SND_FLAG_BITS_ENCODE 8
+#define SND_FLAG_BITS_ENCODE 9
 
 #define MAX_SOUND_INDEX_BITS	13
 #define	MAX_SOUNDS				(1<<MAX_SOUND_INDEX_BITS)

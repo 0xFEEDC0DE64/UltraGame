@@ -11,13 +11,17 @@
 
 	   
 #include "cmdlib.h"
-#include "vector.h"
+#include "mathlib/vector.h"
 #include "scriplib.h"
 #include "polylib.h"
 #include "threads.h"
 #include "bsplib.h"
 #include "qfiles.h"
-#include "materialpatch.h"
+#include "utilmatlib.h"
+
+#ifdef WIN32
+#pragma warning( disable: 4706 )
+#endif
 
 class CUtlBuffer;
 
@@ -149,6 +153,12 @@ struct mapdispinfo_t
 	int				brushSideID;
 	unsigned short	triTags[MAX_DISPTRIS];
 	int				flags;
+
+#ifdef VSVMFIO
+	float			m_elevation;						// "elevation"
+	Vector			m_offsetNormals[ MAX_DISPTRIS ];	// "offset_normals"
+#endif // VSVMFIO
+
 };
 
 extern int              nummapdispinfo;
@@ -246,6 +256,11 @@ extern	Vector		map_mins, map_maxs;
 
 extern	int			nummapbrushsides;
 extern	side_t		brushsides[MAX_MAP_BRUSHSIDES];
+
+#ifdef VSVMFIO
+extern	brush_texture_t side_brushtextures[MAX_MAP_BRUSHSIDES];
+#endif // VSVMFIO
+
 extern	int			g_nMapFileVersion;
 
 extern	qboolean	noprune;
@@ -263,6 +278,7 @@ extern	qboolean	noopt;
 extern  qboolean	dumpcollide;
 extern	qboolean	nodetailcuts;
 extern  qboolean	g_DumpStaticProps;
+extern	qboolean	g_bSkyVis;
 extern	vec_t		microvolume;
 extern	bool		g_snapAxialPlanes;
 extern	bool		g_NodrawTriggers;
@@ -273,10 +289,12 @@ extern	char		outbase[32];
 
 extern	char	source[1024];
 extern char		mapbase[ 64 ];
+extern CUtlVector<int> g_SkyAreas;
 
 void 	LoadMapFile(const char *filename);
 int		FindFloatPlane (Vector& normal, vec_t dist);
 int		GetVertexnum( Vector& v );
+bool Is3DSkyboxArea( int area );
 
 //=============================================================================
 
@@ -382,6 +400,7 @@ node_t *NodeForPoint (node_t *node, Vector& origin);
 
 void BoundBrush (bspbrush_t *brush);
 void FreeBrushList (bspbrush_t *brushes);
+node_t	*PointInLeaf (node_t *node, Vector& point);
 
 tree_t *BrushBSP (bspbrush_t *brushlist, Vector& mins, Vector& maxs);
 
@@ -419,8 +438,10 @@ void MakeTreePortals (tree_t *tree);
 // glfile.c
 
 void OutputWinding (winding_t *w, FileHandle_t glview);
+void OutputWindingColor (winding_t *w, FileHandle_t glview, int r, int g, int b);
 void WriteGLView (tree_t *tree, char *source);
 void WriteGLViewFaces (tree_t *tree, const char *source);
+void WriteGLViewBrushList( bspbrush_t *pList, const char *pName );
 //=============================================================================
 
 // leakfile.c
@@ -432,6 +453,7 @@ void AreaportalLeakFile( tree_t *tree, portal_t *pStartPortal, portal_t *pEndPor
 
 // prtfile.c
 
+void AddVisCluster( entity_t *pFuncVisCluster );
 void WritePortalFile (tree_t *tree);
 
 //=============================================================================
@@ -511,8 +533,6 @@ void Cubemap_CreateDefaultCubemaps( void );
 void Cubemap_SaveBrushSides( const char *pSideListStr );
 void Cubemap_FixupBrushSidesMaterials( void );
 void Cubemap_AttachDefaultCubemapToSpecularSides( void );
-// Collapse down unused texinfos + texdatas (cubemaps will make them unused)
-void Cubemap_ClearUnusedTexInfos( void );
 // Add skipped cubemaps that are referenced by the engine
 void Cubemap_AddUnreferencedCubemaps( void );
 
@@ -527,6 +547,8 @@ struct mapoverlay_t
 	char				szMaterialName[OVERLAY_MAP_STRLEN];
 	float				flU[2];
 	float				flV[2];
+	float				flFadeDistMinSq;
+	float				flFadeDistMaxSq;
 	Vector				vecUVPoints[4];
 	Vector				vecOrigin;
 	Vector				vecBasis[3];
@@ -537,7 +559,7 @@ struct mapoverlay_t
 extern CUtlVector<mapoverlay_t>	g_aMapOverlays;
 extern CUtlVector<mapoverlay_t> g_aMapWaterOverlays;
 
-void Overlay_GetFromEntity( entity_t *pMapEnt );
+int Overlay_GetFromEntity( entity_t *pMapEnt );
 void Overlay_UpdateSideLists( void );
 void Overlay_AddFaceToLists( int iFace, side_t *pSide );
 void Overlay_EmitOverlayFaces( void );

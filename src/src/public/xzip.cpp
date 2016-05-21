@@ -93,19 +93,24 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
+#if defined( PROTECTED_THINGS_ENABLE )
+#undef PROTECTED_THINGS_ENABLE // from protected_things.h
+#endif
 
+#include "tier0/platform.h"
+
+#ifdef IS_WINDOWS_PC
 #define STRICT
 #define WIN32_LEAN_AND_MEAN
-#ifdef _XBOX
-#include "xbox/xbox_platform.h"
-#include "xbox/xbox_win32stubs.h"
-#endif
-#ifndef _XBOX
 #include <windows.h>
 #endif
 #include <time.h>
-#include "zip/xzip.h"
+#include "zip/XZip.h"
+#if defined( _X360 )
+#include "xbox/xbox_win32stubs.h"
+#endif
 
+#include "tier1/strtools.h"
 
 typedef unsigned char uch;      // unsigned 8-bit value
 typedef unsigned short ush;     // unsigned 16-bit value
@@ -2153,23 +2158,28 @@ ulg crc32(ulg crc, const uch *buf, extent len)
 
 
 bool HasZipSuffix(const char *fn)
-{ const char *ext = fn+strlen(fn);
-  while (ext>fn && *ext!='.') ext--;
-  if (ext==fn && *ext!='.') return false;
-  if (stricmp(ext,".Z")==0) return true;
-  if (stricmp(ext,".zip")==0) return true;
-  if (stricmp(ext,".zoo")==0) return true;
-  if (stricmp(ext,".arc")==0) return true;
-  if (stricmp(ext,".lzh")==0) return true;
-  if (stricmp(ext,".arj")==0) return true;
-  if (stricmp(ext,".gz")==0) return true;
-  if (stricmp(ext,".tgz")==0) return true;
-  return false;
+{ 
+	const char *ext = fn+strlen(fn);
+	while (ext>fn && *ext!='.') 
+	{
+		ext--;
+	}
+	if (ext==fn && *ext!='.') return false;
+	if (Q_stricmp(ext,".Z")==0) return true;
+	if (Q_stricmp(ext,".zip")==0) return true;
+	if (Q_stricmp(ext,".zoo")==0) return true;
+	if (Q_stricmp(ext,".arc")==0) return true;
+	if (Q_stricmp(ext,".lzh")==0) return true;
+	if (Q_stricmp(ext,".arj")==0) return true;
+	if (Q_stricmp(ext,".gz")==0) return true;
+	if (Q_stricmp(ext,".tgz")==0) return true;
+	return false;
 }
 
 
 time_t filetime2timet(const FILETIME ft)
-{ SYSTEMTIME st; FileTimeToSystemTime(&ft,&st);
+{ 
+	SYSTEMTIME st; FileTimeToSystemTime(&ft,&st);
   if (st.wYear<1970) {st.wYear=1970; st.wMonth=1; st.wDay=1;}
   if (st.wYear>=2038) {st.wYear=2037; st.wMonth=12; st.wDay=31;}
   struct tm tm;
@@ -2596,7 +2606,7 @@ ZRESULT TZip::Add(const char *odstzn, void *src,unsigned int len, DWORD flags)
 
 	// zip has its own notion of what its names should look like: i.e. dir/file.stuff
 	char dstzn[MAX_PATH]; 
-	strcpy(dstzn, odstzn);
+	Q_strncpy(dstzn, odstzn, sizeof(dstzn));
 	if (*dstzn == 0) 
 		return ZR_ARGS;
 	char *d=dstzn; 
@@ -2630,15 +2640,15 @@ ZRESULT TZip::Add(const char *odstzn, void *src,unsigned int len, DWORD flags)
 
 	// Initialize the local header
 	TZipFileInfo zfi; zfi.nxt=NULL;
-	strcpy(zfi.name,"");
-	strcpy(zfi.iname,dstzn); 
+	Q_strncpy(zfi.name, "",sizeof(zfi.name));
+	Q_strncpy(zfi.iname, dstzn,sizeof(zfi.iname)); 
 	zfi.nam=strlen(zfi.iname);
 	if (needs_trailing_slash) 
 	{
-		strcat(zfi.iname,"/"); 
+		Q_strncat(zfi.iname, "/",sizeof(zfi.iname)); 
 		zfi.nam++;
 	}
-	strcpy(zfi.zname,"");
+	Q_strncpy(zfi.zname,"",sizeof(zfi.zname));
 	zfi.extra=NULL; zfi.ext=0;   // extra header to go after this compressed data, and its length
 	zfi.cextra=NULL; zfi.cext=0; // extra header to go in the central end-of-zip directory, and its length
 	zfi.comment=NULL; zfi.com=0; // comment, and its length
@@ -2832,7 +2842,7 @@ unsigned int FormatZipMessageZ(ZRESULT code, char *buf,unsigned int len)
   unsigned int mlen=(unsigned int)strlen(msg);
   if (buf==0 || len==0) return mlen;
   unsigned int n=mlen; if (n+1>len) n=len-1;
-  strncpy(buf,msg,n); buf[n]=0;
+  Q_strncpy(buf, msg,n); buf[n]=0;
   return mlen;
 }
 
@@ -2846,7 +2856,7 @@ typedef struct
 
 HZIP CreateZipZ(void *z,unsigned int len,DWORD flags)
 { 
-	tzset();
+	_tzset();
 	TZip *zip = new TZip();
 	lasterrorZ = zip->Create(z,len,flags);
 	if (lasterrorZ != ZR_OK) 
@@ -2894,7 +2904,7 @@ ZRESULT ZipAdd(HZIP hz, const TCHAR *dstzn, void *src, unsigned int len, DWORD f
 		if (nActualChars == 0)
 			return ZR_ARGS; 
 #else
-		strcpy(szDest, dstzn);
+		Q_strncpy(szDest, dstzn, sizeof(szDest));
 #endif
 
 		lasterrorZ = zip->Add(szDest, src, len, flags);

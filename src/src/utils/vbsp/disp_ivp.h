@@ -43,5 +43,6 @@ public:
 
 
 extern void Disp_AddCollisionModels( CUtlVector<CPhysCollisionEntry *> &collisionList, dmodel_t *pModel, int contentsMask );
+extern void Disp_BuildVirtualMesh( int contentsMask );
 
 #endif // DISP_IVP_H

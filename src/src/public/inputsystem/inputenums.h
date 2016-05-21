@@ -13,6 +13,12 @@
 // Standard maximum +/- value of a joystick axis
 #define MAX_BUTTONSAMPLE			32768
 
+#if !defined( _X360 )
+#define INVALID_USER_ID		-1
+#else
+#define INVALID_USER_ID		XBX_INVALID_USER_ID
+#endif
+
 //-----------------------------------------------------------------------------
 // Forward declarations: 
 //-----------------------------------------------------------------------------
@@ -56,11 +62,15 @@ enum InputEventType_t
 	IE_ButtonPressed = 0,	// m_nData contains a ButtonCode_t
 	IE_ButtonReleased,		// m_nData contains a ButtonCode_t
 	IE_ButtonDoubleClicked,	// m_nData contains a ButtonCode_t
-	IE_JoyButtonPressed,	// m_nData contains a ButtonCode_t
-	IE_JoyButtonReleased,	// m_nData contains a ButtonCode_t
 	IE_AnalogValueChanged,	// m_nData contains an AnalogCode_t, m_nData2 contains the value
 
-	IE_EventTypeCount,
+	IE_FirstSystemEvent = 100,
+	IE_Quit = IE_FirstSystemEvent,
+	IE_ControllerInserted,	// m_nData contains the controller ID
+	IE_ControllerUnplugged,	// m_nData contains the controller ID
+
+	IE_FirstVguiEvent = 1000,	// Assign ranges for other systems that post user events here
+	IE_FirstAppEvent = 2000,
 };
 
 struct InputEvent_t

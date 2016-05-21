@@ -16,7 +16,7 @@
 #include "utlrbtree.h"
 #include "utlbuffer.h"
 #include "UtlSortVector.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 
 #include "tier0/memdbgon.h"
 
@@ -97,13 +97,13 @@ public:
 		if ( !m_Elements.IsValidIndex( i ) )
 			return;
 
-		filesystem->String( m_Elements[ i ].handle, buf, buflen );
+		g_pFullFileSystem->String( m_Elements[ i ].handle, buf, buflen );
 	}
 
 	bool EntryExists( char const *filename ) const
 	{
 		ElementType_t element;
-		element.handle = filesystem->FindOrAddFileName( filename );
+		element.handle = g_pFullFileSystem->FindOrAddFileName( filename );
 		int idx = m_Elements.Find( element );
 		return idx != m_Elements.InvalidIndex() ? true : false;
 	}
@@ -118,7 +118,7 @@ public:
 
 		ElementType_t& e = m_Elements[ idx ];
 
-		CUtlBuffer buf( 0, 0, false );
+		CUtlBuffer buf( 0, 0, 0 );
 
 		Assert( e.dataIndex != m_Data.InvalidIndex() );
 
@@ -162,7 +162,7 @@ public:
 	long	GetFileInfo( char const *filename )
 	{
 		ElementType_t element;
-		element.handle = filesystem->FindOrAddFileName( filename );
+		element.handle = g_pFullFileSystem->FindOrAddFileName( filename );
 		int idx = m_Elements.Find( element );
 		if ( idx == m_Elements.InvalidIndex() )
 		{
@@ -192,7 +192,7 @@ private:
 	int			GetIndex( const char *filename )
 	{
 		ElementType_t element;
-		element.handle = filesystem->FindOrAddFileName( filename );
+		element.handle = g_pFullFileSystem->FindOrAddFileName( filename );
 		int idx = m_Elements.Find( element );
 		if ( idx == m_Elements.InvalidIndex() )
 		{
@@ -276,7 +276,7 @@ T* CUtlCachedFileData<T>::Get( char const *filename )
 		{
 			if ( m_fileCheckType == UTL_CACHED_FILE_USE_FILESIZE ) 
 			{
-				e.diskfileinfo = filesystem->Size( filename, "GAME" );
+				e.diskfileinfo = g_pFullFileSystem->Size( filename, "GAME" );
 				// Missing files get a disk file size of 0
 				if ( e.diskfileinfo == -1 )
 				{
@@ -285,7 +285,7 @@ T* CUtlCachedFileData<T>::Get( char const *filename )
 			}
 			else
 			{
-				e.diskfileinfo = filesystem->GetFileTime( filename, "GAME" );
+				e.diskfileinfo = g_pFullFileSystem->GetFileTime( filename, "GAME" );
 			}
 		}
 	}
@@ -357,7 +357,7 @@ bool CUtlCachedFileData<T>::IsUpToDate()
 
 	FileHandle_t fh;
 
-	fh = filesystem->Open( m_pszRepositoryFileName, "rb", "MOD" );
+	fh = g_pFullFileSystem->Open( m_pszRepositoryFileName, "rb", "MOD" );
 	if ( fh == FILESYSTEM_INVALID_HANDLE )
 	{
 		return false;
@@ -365,8 +365,8 @@ bool CUtlCachedFileData<T>::IsUpToDate()
 
 	// Version data is in first 12 bytes of file
 	byte	header[ 12 ];
-	filesystem->Read( header, sizeof( header ), fh );
-	filesystem->Close( fh );
+	g_pFullFileSystem->Read( header, sizeof( header ), fh );
+	g_pFullFileSystem->Close( fh );
 
 	int cacheversion = *( int *)&header[ 0 ];
 
@@ -376,7 +376,7 @@ bool CUtlCachedFileData<T>::IsUpToDate()
 		Assert( !m_bReadOnly );
 		if ( !m_bReadOnly )
 		{
-			filesystem->RemoveFile( m_pszRepositoryFileName, "MOD" );
+			g_pFullFileSystem->RemoveFile( m_pszRepositoryFileName, "MOD" );
 		}
 		return false;
 	}
@@ -389,7 +389,7 @@ bool CUtlCachedFileData<T>::IsUpToDate()
 		Assert( !m_bReadOnly );
 		if ( !m_bReadOnly )
 		{
-			filesystem->RemoveFile( m_pszRepositoryFileName, "MOD" );
+			g_pFullFileSystem->RemoveFile( m_pszRepositoryFileName, "MOD" );
 		}
 		return false;
 	}
@@ -404,7 +404,7 @@ bool CUtlCachedFileData<T>::IsUpToDate()
 		Assert( !m_bReadOnly );
 		if ( !m_bReadOnly )
 		{
-			filesystem->RemoveFile( m_pszRepositoryFileName, "MOD" );
+			g_pFullFileSystem->RemoveFile( m_pszRepositoryFileName, "MOD" );
 		}
 		return false;
 	}
@@ -419,8 +419,8 @@ void CUtlCachedFileData<T>::InitSmallBuffer( FileHandle_t& fh, int fileSize, boo
 	deleteFile = false;
 
 	CUtlBuffer loadBuf;
-	filesystem->ReadToBuffer( fh, loadBuf );
-	filesystem->Close( fh );
+	g_pFullFileSystem->ReadToBuffer( fh, loadBuf );
+	g_pFullFileSystem->Close( fh );
 
 	int cacheversion = 0;
 	loadBuf.Get( &cacheversion, sizeof( cacheversion ) );
@@ -442,7 +442,7 @@ void CUtlCachedFileData<T>::InitSmallBuffer( FileHandle_t& fh, int fileSize, boo
 				
 				Assert( count < 2000000 );
 
-				CUtlBuffer buf( 0, 0, false );
+				CUtlBuffer buf( 0, 0, 0 );
 
 				for ( int i = 0 ; i < count; ++i )
 				{
@@ -509,13 +509,13 @@ void CUtlCachedFileData<T>::InitLargeBuffer( FileHandle_t& fh, bool& deleteFile 
 	deleteFile = false;
 
 	int cacheversion = 0;
-	filesystem->Read( &cacheversion, sizeof( cacheversion ), fh );
+	g_pFullFileSystem->Read( &cacheversion, sizeof( cacheversion ), fh );
 
 	if ( UTL_CACHE_SYSTEM_VERSION == cacheversion )
 	{
 		// Now parse data from the buffer
 		int version = 0;
-		filesystem->Read( &version, sizeof( version ), fh );
+		g_pFullFileSystem->Read( &version, sizeof( version ), fh );
 		
 		if ( version == m_nVersion )
 		{
@@ -523,13 +523,13 @@ void CUtlCachedFileData<T>::InitLargeBuffer( FileHandle_t& fh, bool& deleteFile 
 			//  meta data function
 			unsigned int cache_meta_checksum = 0;
 			
-			filesystem->Read( &cache_meta_checksum, sizeof( cache_meta_checksum ), fh );
+			g_pFullFileSystem->Read( &cache_meta_checksum, sizeof( cache_meta_checksum ), fh );
 
 			if ( cache_meta_checksum == m_uCurrentMetaChecksum )
 			{
 				int count = 0;
 				
-				filesystem->Read( &count, sizeof( count ), fh );
+				g_pFullFileSystem->Read( &count, sizeof( count ), fh );
 
 				Assert( count < 2000000 );
 
@@ -538,14 +538,14 @@ void CUtlCachedFileData<T>::InitLargeBuffer( FileHandle_t& fh, bool& deleteFile 
 				for ( int i = 0 ; i < count; ++i )
 				{
 					int bufsize = 0;
-					filesystem->Read( &bufsize, sizeof( bufsize ), fh );
+					g_pFullFileSystem->Read( &bufsize, sizeof( bufsize ), fh );
 
 					Assert( bufsize < 1000000 );
 
 					buf.Clear();
 					buf.EnsureCapacity( bufsize );
 					
-					int nBytesRead = filesystem->Read( buf.Base(), bufsize, fh );
+					int nBytesRead = g_pFullFileSystem->Read( buf.Base(), bufsize, fh );
 
 					buf.SeekGet( CUtlBuffer::SEEK_HEAD, 0 );
 					buf.SeekPut( CUtlBuffer::SEEK_HEAD, nBytesRead );
@@ -595,7 +595,7 @@ void CUtlCachedFileData<T>::InitLargeBuffer( FileHandle_t& fh, bool& deleteFile 
 		deleteFile = true;
 	}
 
-	filesystem->Close( fh );
+	g_pFullFileSystem->Close( fh );
 }
 
 template <class T>
@@ -619,15 +619,15 @@ bool CUtlCachedFileData<T>::Init()
 
 	FileHandle_t fh;
 
-	fh = filesystem->Open( m_pszRepositoryFileName, "rb", "MOD" );
+	fh = g_pFullFileSystem->Open( m_pszRepositoryFileName, "rb", "MOD" );
 	if ( fh == FILESYSTEM_INVALID_HANDLE )
 	{
 		// Nothing on disk, we'll recreate everything from scratch...
 		SetDirty( true );
 		return true;
 	}
-	long fileTime = filesystem->GetFileTime( m_pszRepositoryFileName, "MOD" );
-	int size = filesystem->Size( fh );
+	long fileTime = g_pFullFileSystem->GetFileTime( m_pszRepositoryFileName, "MOD" );
+	int size = g_pFullFileSystem->Size( fh );
 
 	bool deletefile = false;
 
@@ -645,7 +645,7 @@ bool CUtlCachedFileData<T>::Init()
 		Assert( !m_bReadOnly );
 		if ( !m_bReadOnly )
 		{
-			filesystem->RemoveFile( m_pszRepositoryFileName, "MOD" );
+			g_pFullFileSystem->RemoveFile( m_pszRepositoryFileName, "MOD" );
 		}
 		SetDirty( true );
 	}
@@ -660,17 +660,17 @@ void CUtlCachedFileData<T>::Save()
 	Q_strncpy( path, m_pszRepositoryFileName, sizeof( path ) );
 	Q_StripFilename( path );
 
-	filesystem->CreateDirHierarchy( path, "MOD" );
+	g_pFullFileSystem->CreateDirHierarchy( path, "MOD" );
 
-	if ( filesystem->FileExists( m_pszRepositoryFileName, "MOD" ) && 
-		!filesystem->IsFileWritable( m_pszRepositoryFileName, "MOD" ) )
+	if ( g_pFullFileSystem->FileExists( m_pszRepositoryFileName, "MOD" ) && 
+		!g_pFullFileSystem->IsFileWritable( m_pszRepositoryFileName, "MOD" ) )
 	{
-		filesystem->SetFileWritable( m_pszRepositoryFileName, true, "MOD" );
+		g_pFullFileSystem->SetFileWritable( m_pszRepositoryFileName, true, "MOD" );
 	}
 
 	// Now write to file
 	FileHandle_t fh;
-	fh = filesystem->Open( m_pszRepositoryFileName, "wb" );
+	fh = g_pFullFileSystem->Open( m_pszRepositoryFileName, "wb" );
 	if ( FILESYSTEM_INVALID_HANDLE == fh )
 	{
 		Warning( "Unable to persist cache '%s', check file permissions\n", m_pszRepositoryFileName );
@@ -680,19 +680,19 @@ void CUtlCachedFileData<T>::Save()
 		SetDirty( false );
 
 		int v = UTL_CACHE_SYSTEM_VERSION;
-		filesystem->Write( &v, sizeof( v ), fh );
+		g_pFullFileSystem->Write( &v, sizeof( v ), fh );
 		v = m_nVersion;
-		filesystem->Write( &v, sizeof( v ), fh );
+		g_pFullFileSystem->Write( &v, sizeof( v ), fh );
 		v = (int)m_uCurrentMetaChecksum;
-		filesystem->Write( &v, sizeof( v ), fh );
+		g_pFullFileSystem->Write( &v, sizeof( v ), fh );
 
 		// Element count
 		int c = Count();
 
-		filesystem->Write( &c, sizeof( c ), fh );
+		g_pFullFileSystem->Write( &c, sizeof( c ), fh );
 
 		// Save repository back out to disk...
-		CUtlBuffer buf( 0, 0, false );
+		CUtlBuffer buf( 0, 0, 0 );
 
 		for ( int i = m_Elements.FirstInorder(); i != m_Elements.InvalidIndex(); i = m_Elements.NextInorder( i ) )
 		{
@@ -701,7 +701,7 @@ void CUtlCachedFileData<T>::Save()
 			ElementType_t& element = m_Elements[ i ];
 
 			char fn[ 512 ];
-			filesystem->String( element.handle, fn, sizeof( fn ) );
+			g_pFullFileSystem->String( element.handle, fn, sizeof( fn ) );
 
 			buf.PutString( fn );
 			buf.PutInt( element.fileinfo );
@@ -715,11 +715,11 @@ void CUtlCachedFileData<T>::Save()
 			((IBaseCacheInfo *)data)->Save( buf );
 
 			int bufsize = buf.TellPut();
-			filesystem->Write( &bufsize, sizeof( bufsize ), fh );
-			filesystem->Write( buf.Base(), bufsize, fh );
+			g_pFullFileSystem->Write( &bufsize, sizeof( bufsize ), fh );
+			g_pFullFileSystem->Write( buf.Base(), bufsize, fh );
 		}
 
-		filesystem->Close( fh );
+		g_pFullFileSystem->Close( fh );
 	}
 
 	if ( m_bSaveManifest )
@@ -757,7 +757,7 @@ bool CUtlCachedFileData<T>::ManifestExists()
 
 	Q_SetExtension( manifest_name, ".manifest", sizeof( manifest_name ) );
 
-	return filesystem->FileExists( manifest_name, "MOD" );
+	return g_pFullFileSystem->FileExists( manifest_name, "MOD" );
 }
 
 template <class T>
@@ -771,7 +771,7 @@ void CUtlCachedFileData<T>::SaveManifest()
 		ElementType_t& element = m_Elements[ i ];
 
 		char fn[ 512 ];
-		filesystem->String( element.handle, fn, sizeof( fn ) );
+		g_pFullFileSystem->String( element.handle, fn, sizeof( fn ) );
 
 		buf.Printf( "\"%s\"\r\n", fn );
 	}
@@ -780,26 +780,26 @@ void CUtlCachedFileData<T>::SaveManifest()
 	Q_strncpy( path, m_pszRepositoryFileName, sizeof( path ) );
 	Q_StripFilename( path );
 
-	filesystem->CreateDirHierarchy( path, "MOD" );
+	g_pFullFileSystem->CreateDirHierarchy( path, "MOD" );
 
 	char manifest_name[ 512 ];
 	Q_strncpy( manifest_name, m_pszRepositoryFileName, sizeof( manifest_name ) );
 
 	Q_SetExtension( manifest_name, ".manifest", sizeof( manifest_name ) );
 
-	if ( filesystem->FileExists( manifest_name, "MOD" ) && 
-		!filesystem->IsFileWritable( manifest_name, "MOD" ) )
+	if ( g_pFullFileSystem->FileExists( manifest_name, "MOD" ) && 
+		!g_pFullFileSystem->IsFileWritable( manifest_name, "MOD" ) )
 	{
-		filesystem->SetFileWritable( manifest_name, true, "MOD" );
+		g_pFullFileSystem->SetFileWritable( manifest_name, true, "MOD" );
 	}
 
 	// Now write to file
 	FileHandle_t fh;
-	fh = filesystem->Open( manifest_name, "wb" );
+	fh = g_pFullFileSystem->Open( manifest_name, "wb" );
 	if ( FILESYSTEM_INVALID_HANDLE != fh )
 	{
-		filesystem->Write( buf.Base(), buf.TellPut(), fh );
-		filesystem->Close( fh );
+		g_pFullFileSystem->Write( buf.Base(), buf.TellPut(), fh );
+		g_pFullFileSystem->Close( fh );
 
 		// DevMsg( "Persisting cache manifest '%s' (%d entries)\n", manifest_name, c );
 	}
@@ -829,7 +829,7 @@ T *CUtlCachedFileData<T>::RebuildItem( const char *filename )
 		{
 			if ( m_fileCheckType == UTL_CACHED_FILE_USE_FILESIZE ) 
 			{
-				e.diskfileinfo = filesystem->Size( filename, "GAME" );
+				e.diskfileinfo = g_pFullFileSystem->Size( filename, "GAME" );
 				// Missing files get a disk file size of 0
 				if ( e.diskfileinfo == -1 )
 				{
@@ -838,7 +838,7 @@ T *CUtlCachedFileData<T>::RebuildItem( const char *filename )
 			}
 			else
 			{
-				e.diskfileinfo = filesystem->GetFileTime( filename, "GAME" );
+				e.diskfileinfo = g_pFullFileSystem->GetFileTime( filename, "GAME" );
 			}
 		}
 	}
@@ -890,8 +890,8 @@ public:
 	 {
 		 char name0[ 512 ];
 		 char name1[ 512 ];
-		 filesystem->String( file0.handle, name0, sizeof( name0 ) );
-		 filesystem->String( file1.handle, name1, sizeof( name1 ) );
+		 g_pFullFileSystem->String( file0.handle, name0, sizeof( name0 ) );
+		 g_pFullFileSystem->String( file1.handle, name1, sizeof( name1 ) );
 		 return Q_stricmp( name0, name1 ) < 0 ? true : false;
 	 }
 };
@@ -907,7 +907,7 @@ void	CUtlCachedFileData<T>::CheckDiskInfo( bool forcerebuild, long cacheFileTime
 		for ( i = m_Elements.FirstInorder(); i != m_Elements.InvalidIndex(); i = m_Elements.NextInorder( i ) )
 		{
 			ElementType_t& element = m_Elements[ i ];
-			filesystem->String( element.handle, fn, sizeof( fn ) );
+			g_pFullFileSystem->String( element.handle, fn, sizeof( fn ) );
 			Get(fn);
 		}
 		return;
@@ -927,20 +927,20 @@ void	CUtlCachedFileData<T>::CheckDiskInfo( bool forcerebuild, long cacheFileTime
 	if ( !list.Count() )
 		return;
 
-	bool bSteam = filesystem->IsSteam();
+	bool bSteam = g_pFullFileSystem->IsSteam();
 
 	for ( int listStart = 0, listEnd = 0; listStart < list.Count(); listStart = listEnd+1 )
 	{
-		int pathIndex = filesystem->GetPathIndex( m_Elements[list[listStart].index].handle );
+		int pathIndex = g_pFullFileSystem->GetPathIndex( m_Elements[list[listStart].index].handle );
 		for ( listEnd = listStart; listEnd < list.Count(); listEnd++ )
 		{
 			ElementType_t& element = m_Elements[ list[listEnd].index ];
 
-			int pathTest = filesystem->GetPathIndex( element.handle );
+			int pathTest = g_pFullFileSystem->GetPathIndex( element.handle );
 			if ( pathTest != pathIndex )
 				break;
 		}
-		filesystem->String( m_Elements[list[listStart].index].handle, fn, sizeof( fn ) );
+		g_pFullFileSystem->String( m_Elements[list[listStart].index].handle, fn, sizeof( fn ) );
 		Q_StripFilename( fn );
 		bool bCheck = true;
 		
@@ -950,7 +950,7 @@ void	CUtlCachedFileData<T>::CheckDiskInfo( bool forcerebuild, long cacheFileTime
 		}
 		else if ( !bSteam )
 		{
-			long pathTime = filesystem->GetPathTime( fn, "GAME" );
+			long pathTime = g_pFullFileSystem->GetPathTime( fn, "GAME" );
 			bCheck = (pathTime > cacheFileTime) ? true : false;
 		}
 
@@ -966,10 +966,10 @@ void	CUtlCachedFileData<T>::CheckDiskInfo( bool forcerebuild, long cacheFileTime
 				}
 				else
 				{
-					filesystem->String( element.handle, fn, sizeof( fn ) );
+					g_pFullFileSystem->String( element.handle, fn, sizeof( fn ) );
 					if ( m_fileCheckType == UTL_CACHED_FILE_USE_FILESIZE ) 
 					{
-						element.diskfileinfo = filesystem->Size( fn, "GAME" );
+						element.diskfileinfo = g_pFullFileSystem->Size( fn, "GAME" );
 
 						// Missing files get a disk file size of 0
 						if ( element.diskfileinfo == -1 )
@@ -979,7 +979,7 @@ void	CUtlCachedFileData<T>::CheckDiskInfo( bool forcerebuild, long cacheFileTime
 					}
 					else
 					{
-						element.diskfileinfo = filesystem->GetFileTime( fn, "GAME" );
+						element.diskfileinfo = g_pFullFileSystem->GetFileTime( fn, "GAME" );
 					}
 				}
 			}

@@ -6,20 +6,18 @@
 //===========================================================================//
 
 #ifndef _LINUX
-#if !defined(_STATIC_LINKED) || defined(_SHARED_LIB)
-
-#ifdef _XBOX
-#include "xbox/xbox_platform.h"
-#include "xbox/xbox_win32stubs.h"
-#else
+#if !defined( _X360 )
 #include <windows.h>
 #endif
 #include "tier0/platform.h"
 #include "tier0/vcrmode.h"
 #include "iregistry.h"
 #include "tier0/dbg.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include <stdio.h>
+#if defined( _X360 )
+#include "xbox/xbox_win32stubs.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -104,7 +102,6 @@ CRegistry::~CRegistry( void )
 //-----------------------------------------------------------------------------
 int CRegistry::ReadInt( const char *key, int defaultValue /*= 0*/ )
 {
-#ifndef _XBOX
 	LONG lResult;           // Registry function result code
 	DWORD dwType;           // Type of key
 	DWORD dwSize;           // Size of element data
@@ -133,9 +130,6 @@ int CRegistry::ReadInt( const char *key, int defaultValue /*= 0*/ )
 		return defaultValue;
 
 	return value;
-#else
-	return defaultValue;
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -145,7 +139,6 @@ int CRegistry::ReadInt( const char *key, int defaultValue /*= 0*/ )
 //-----------------------------------------------------------------------------
 void CRegistry::WriteInt( const char *key, int value )
 {
-#ifndef _XBOX
 	// Size of element data
 	DWORD dwSize;           
 
@@ -163,7 +156,6 @@ void CRegistry::WriteInt( const char *key, int value )
 		REG_DWORD,		// type buffer
 		(LPBYTE)&value,    // data buffer
 		dwSize );  // size of data buffer
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -174,7 +166,6 @@ void CRegistry::WriteInt( const char *key, int value )
 //-----------------------------------------------------------------------------
 const char *CRegistry::ReadString( const char *key, const char *defaultValue /* = NULL */ )
 {
-#ifndef _XBOX
 	LONG lResult;        
 	// Type of key
 	DWORD dwType;        
@@ -209,9 +200,6 @@ const char *CRegistry::ReadString( const char *key, const char *defaultValue /* 
 	}
 
 	return value;
-#else
-	return defaultValue;
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -221,7 +209,6 @@ const char *CRegistry::ReadString( const char *key, const char *defaultValue /* 
 //-----------------------------------------------------------------------------
 void CRegistry::WriteString( const char *key, const char *value )
 {
-#ifndef _XBOX
 	DWORD dwSize;           // Size of element data
 
 	if ( !m_bValid )
@@ -238,7 +225,6 @@ void CRegistry::WriteString( const char *key, const char *value )
 		REG_SZ,		// type buffer
 		(LPBYTE)value,    // data buffer
 		dwSize );  // size of data buffer
-#endif
 }
 
 
@@ -283,9 +269,8 @@ void CRegistry::WriteString( const char *pKeyBase, const char *pKey, const char 
 
 bool CRegistry::DirectInit( const char *subDirectoryUnderValve )
 {
-#ifndef _XBOX
 	LONG lResult;           // Registry function result code
-	DWORD dwDisposition;    // Type of key opening event
+	ULONG dwDisposition;    // Type of key opening event
 
 	char szModelKey[ 1024 ];
 	wsprintf( szModelKey, "Software\\Valve\\%s", subDirectoryUnderValve );
@@ -293,7 +278,7 @@ bool CRegistry::DirectInit( const char *subDirectoryUnderValve )
 	lResult = VCRHook_RegCreateKeyEx(
 		HKEY_CURRENT_USER,	// handle of open key 
 		szModelKey,			// address of name of subkey to open 
-		0,					// DWORD ulOptions,	  // reserved 
+		0ul,					// DWORD ulOptions,	  // reserved 
 		NULL,			// Type of value
 		REG_OPTION_NON_VOLATILE, // Store permanently in reg.
 		KEY_ALL_ACCESS,		// REGSAM samDesired, // security access mask 
@@ -310,10 +295,6 @@ bool CRegistry::DirectInit( const char *subDirectoryUnderValve )
 	// Success
 	m_bValid = true;
 	return true;
-#else
-	m_bValid = false;
-	return false;
-#endif
 }
 
 //-----------------------------------------------------------------------------
@@ -331,16 +312,12 @@ bool CRegistry::Init( const char *platformName )
 //-----------------------------------------------------------------------------
 void CRegistry::Shutdown( void )
 {
-#ifndef _XBOX
 	if ( !m_bValid )
 		return;
 
 	// Make invalid
 	m_bValid = false;
 	VCRHook_RegCloseKey( m_hKey );
-#endif
 }
-
-#endif // !_STATIC_LINKED || _SHARED_LIB
 #endif // _LINUX
 

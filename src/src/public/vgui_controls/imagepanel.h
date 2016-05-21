@@ -37,10 +37,15 @@ public:
 
 	// sets whether or not the image should scale to fit the size of the ImagePanel (defaults to false)
 	void SetShouldScaleImage( bool state );
+	void SetScaleAmount( float scale );
+	float GetScaleAmount( void );
 
 	// set the color to fill with, if no image is specified
 	void SetFillColor( Color col );
 	Color GetFillColor();
+
+	virtual Color GetDrawColor( void );
+	virtual void SetDrawColor( Color drawColor );
 
 protected:
 	virtual void PaintBackground();
@@ -55,7 +60,12 @@ private:
 	char *m_pszImageName;
 	char *m_pszColorName;
 	bool m_bScaleImage;
+	bool m_bTileImage;
+	bool m_bTileHorizontally;
+	bool m_bTileVertically;
+	float m_fScaleAmount;
 	Color m_FillColor;
+	Color m_DrawColor;
 };
 
 } // namespace vgui

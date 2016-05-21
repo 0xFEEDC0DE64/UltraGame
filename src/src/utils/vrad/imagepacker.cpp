@@ -11,9 +11,7 @@
 // $Date:         $
 // $NoKeywords: $
 //=============================================================================
-#ifdef _WIN32
-#include <windows.h>
-#endif
+
 #include "vrad.h"
 #include "imagepacker.h"
 

@@ -11,7 +11,7 @@
 #pragma once
 #endif
 
-#include "vector.h"
+#include "mathlib/vector.h"
 #include "cmodel.h"
 #include "const.h"
 #include "iserverentity.h"
@@ -50,7 +50,8 @@ public:
 	string_t		mapname;
 	int				mapversion;
 	string_t		startspot;
-	MapLoadType_t	eLoadType;	// How the current map was loaded
+	MapLoadType_t	eLoadType;		// How the current map was loaded
+	bool			bMapLoadFailed;	// Map has failed to load, we need to kick back to the main menu
 
 	// game specific flags
 	bool			deathmatch;

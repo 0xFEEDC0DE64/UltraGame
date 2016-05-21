@@ -45,6 +45,10 @@
 #define DBG_CLASS		
 #endif // BUILD_AS_DLL
 
+
+class Color;
+
+
 //-----------------------------------------------------------------------------
 // Usage model for the Dbg library
 //
@@ -172,35 +176,35 @@ enum SpewRetval_t
 };
 
 /* type of externally defined function used to display debug spew */
-typedef SpewRetval_t (*SpewOutputFunc_t)( SpewType_t spewType, tchar const *pMsg );
+typedef SpewRetval_t (*SpewOutputFunc_t)( SpewType_t spewType, const tchar *pMsg );
 
 /* Used to redirect spew output */
 DBG_INTERFACE void   SpewOutputFunc( SpewOutputFunc_t func );
 
-/* Used ot get the current spew output function */
+/* Used to get the current spew output function */
 DBG_INTERFACE SpewOutputFunc_t GetSpewOutputFunc( void );
 
+/* Should be called only inside a SpewOutputFunc_t, returns groupname, level, color */
+DBG_INTERFACE const tchar* GetSpewOutputGroup( void );
+DBG_INTERFACE int GetSpewOutputLevel( void );
+DBG_INTERFACE const Color& GetSpewOutputColor( void );
+
 /* Used to manage spew groups and subgroups */
-DBG_INTERFACE void   SpewActivate( tchar const* pGroupName, int level );
-DBG_INTERFACE bool   IsSpewActive( tchar const* pGroupName, int level );
+DBG_INTERFACE void   SpewActivate( const tchar* pGroupName, int level );
+DBG_INTERFACE bool   IsSpewActive( const tchar* pGroupName, int level );
 
 /* Used to display messages, should never be called directly. */
-DBG_INTERFACE void   _SpewInfo( SpewType_t type, tchar const* pFile, int line );
-DBG_INTERFACE SpewRetval_t   _SpewMessage( tchar const* pMsg, ... );
-DBG_INTERFACE SpewRetval_t   _DSpewMessage( tchar const *pGroupName, int level, tchar const* pMsg, ... );
-DBG_INTERFACE void _ExitOnFatalAssert( tchar const* pFile, int line );
-#ifndef _XBOX
+DBG_INTERFACE void   _SpewInfo( SpewType_t type, const tchar* pFile, int line );
+DBG_INTERFACE SpewRetval_t   _SpewMessage( const tchar* pMsg, ... );
+DBG_INTERFACE SpewRetval_t   _DSpewMessage( const tchar *pGroupName, int level, const tchar* pMsg, ... );
+DBG_INTERFACE SpewRetval_t   ColorSpewMessage( SpewType_t type, const Color *pColor, const tchar* pMsg, ... );
+DBG_INTERFACE void _ExitOnFatalAssert( const tchar* pFile, int line );
 DBG_INTERFACE bool ShouldUseNewAssertDialog();
-#else
-#define ShouldUseNewAssertDialog()	0
-#endif
 
-#ifndef _XBOX
+DBG_INTERFACE bool SetupWin32ConsoleIO();
+
 // Returns true if they want to break in the debugger.
 DBG_INTERFACE bool DoNewAssertDialog( const tchar *pFile, int line, const tchar *pExpression );
-#else
-#define DoNewAssertDialog(a,b,c)	0
-#endif
 
 /* Used to define macros, never use these directly. */
 
@@ -209,7 +213,7 @@ DBG_INTERFACE bool DoNewAssertDialog( const tchar *pFile, int line, const tchar 
 		if (!(_exp)) 													\
 		{ 																\
 			_SpewInfo( SPEW_ASSERT, __TFILE__, __LINE__ );				\
-			SpewRetval_t ret = _SpewMessage(_msg);						\
+			SpewRetval_t ret = _SpewMessage("%s", _msg);	\
 			_executeExp; 												\
 			if ( ret == SPEW_DEBUGGER)									\
 			{															\
@@ -249,16 +253,16 @@ DBG_INTERFACE bool DoNewAssertDialog( const tchar *pFile, int line, const tchar 
 #define  VerifyFatal( _exp )									AssertFatal( _exp )
 #define  VerifyEqualsFatal( _exp, _expectedValue )				AssertFatalEquals( _exp, _expectedValue )
 
-#define  AssertFatalMsg1( _exp, _msg, a1 )									AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1 ))
-#define  AssertFatalMsg2( _exp, _msg, a1, a2 )								AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1, a2 ))
-#define  AssertFatalMsg3( _exp, _msg, a1, a2, a3 )							AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3 ))
-#define  AssertFatalMsg4( _exp, _msg, a1, a2, a3, a4 )						AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4 ))
-#define  AssertFatalMsg5( _exp, _msg, a1, a2, a3, a4, a5 )					AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5 ))
-#define  AssertFatalMsg6( _exp, _msg, a1, a2, a3, a4, a5, a6 )				AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6 ))
-#define  AssertFatalMsg6( _exp, _msg, a1, a2, a3, a4, a5, a6 )				AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6 ))
-#define  AssertFatalMsg7( _exp, _msg, a1, a2, a3, a4, a5, a6, a7 )			AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7 ))
-#define  AssertFatalMsg8( _exp, _msg, a1, a2, a3, a4, a5, a6, a7, a8 )		AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7, a8 ))
-#define  AssertFatalMsg9( _exp, _msg, a1, a2, a3, a4, a5, a6, a7, a8, a9 )	AssertFatalMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7, a8, a9 ))
+#define  AssertFatalMsg1( _exp, _msg, a1 )									AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1 )))
+#define  AssertFatalMsg2( _exp, _msg, a1, a2 )								AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2 )))
+#define  AssertFatalMsg3( _exp, _msg, a1, a2, a3 )							AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3 )))
+#define  AssertFatalMsg4( _exp, _msg, a1, a2, a3, a4 )						AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4 )))
+#define  AssertFatalMsg5( _exp, _msg, a1, a2, a3, a4, a5 )					AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5 )))
+#define  AssertFatalMsg6( _exp, _msg, a1, a2, a3, a4, a5, a6 )				AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6 )))
+#define  AssertFatalMsg6( _exp, _msg, a1, a2, a3, a4, a5, a6 )				AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6 )))
+#define  AssertFatalMsg7( _exp, _msg, a1, a2, a3, a4, a5, a6, a7 )			AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7 )))
+#define  AssertFatalMsg8( _exp, _msg, a1, a2, a3, a4, a5, a6, a7, a8 )		AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7, a8 )))
+#define  AssertFatalMsg9( _exp, _msg, a1, a2, a3, a4, a5, a6, a7, a8, a9 )	AssertFatalMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7, a8, a9 )))
 
 #else // DBGFLAG_ASSERTFATAL
 
@@ -301,16 +305,15 @@ DBG_INTERFACE bool DoNewAssertDialog( const tchar *pFile, int line, const tchar 
 #define  Verify( _exp )           							Assert( _exp )
 #define  VerifyEquals( _exp, _expectedValue )           	AssertEquals( _exp, _expectedValue )
 
-#define  AssertMsg1( _exp, _msg, a1 )									AssertMsg( _exp, CDbgFmtMsg( _msg, a1 ) )
-#define  AssertMsg2( _exp, _msg, a1, a2 )								AssertMsg( _exp, CDbgFmtMsg( _msg, a1, a2 ) )
-#define  AssertMsg3( _exp, _msg, a1, a2, a3 )							AssertMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3 ) )
-#define  AssertMsg4( _exp, _msg, a1, a2, a3, a4 )						AssertMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4 ) )
-#define  AssertMsg5( _exp, _msg, a1, a2, a3, a4, a5 )					AssertMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5 ) )
-#define  AssertMsg6( _exp, _msg, a1, a2, a3, a4, a5, a6 )				AssertMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6 ) )
-#define  AssertMsg6( _exp, _msg, a1, a2, a3, a4, a5, a6 )				AssertMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6 ) )
-#define  AssertMsg7( _exp, _msg, a1, a2, a3, a4, a5, a6, a7 )			AssertMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7 ) )
-#define  AssertMsg8( _exp, _msg, a1, a2, a3, a4, a5, a6, a7, a8 )		AssertMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7, a8 ) )
-#define  AssertMsg9( _exp, _msg, a1, a2, a3, a4, a5, a6, a7, a8, a9 )	AssertMsg( _exp, CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7, a8, a9 ) )
+#define  AssertMsg1( _exp, _msg, a1 )									AssertMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1 )) )
+#define  AssertMsg2( _exp, _msg, a1, a2 )								AssertMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2 )) )
+#define  AssertMsg3( _exp, _msg, a1, a2, a3 )							AssertMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3 )) )
+#define  AssertMsg4( _exp, _msg, a1, a2, a3, a4 )						AssertMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4 )) )
+#define  AssertMsg5( _exp, _msg, a1, a2, a3, a4, a5 )					AssertMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5 )) )
+#define  AssertMsg6( _exp, _msg, a1, a2, a3, a4, a5, a6 )				AssertMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6 )) )
+#define  AssertMsg7( _exp, _msg, a1, a2, a3, a4, a5, a6, a7 )			AssertMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7 )) )
+#define  AssertMsg8( _exp, _msg, a1, a2, a3, a4, a5, a6, a7, a8 )		AssertMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7, a8 )) )
+#define  AssertMsg9( _exp, _msg, a1, a2, a3, a4, a5, a6, a7, a8, a9 )	AssertMsg( _exp, (const tchar *)(CDbgFmtMsg( _msg, a1, a2, a3, a4, a5, a6, a7, a8, a9 )) )
 
 #else // DBGFLAG_ASSERT
 
@@ -338,25 +341,25 @@ DBG_INTERFACE bool DoNewAssertDialog( const tchar *pFile, int line, const tchar 
 #endif // DBGFLAG_ASSERT
 
 
-#if !defined(_XBOX) || !defined(_RETAIL)
+#if !defined( _X360 ) || !defined( _RETAIL )
 
 /* These are always compiled in */
-DBG_INTERFACE void Msg( tchar const* pMsg, ... );
-DBG_INTERFACE void DMsg( tchar const *pGroupName, int level, tchar const *pMsg, ... );
+DBG_INTERFACE void Msg( const tchar* pMsg, ... );
+DBG_INTERFACE void DMsg( const tchar *pGroupName, int level, const tchar *pMsg, ... );
 
-DBG_INTERFACE void Warning( tchar const *pMsg, ... );
-DBG_INTERFACE void DWarning( tchar const *pGroupName, int level, tchar const *pMsg, ... );
+DBG_INTERFACE void Warning( const tchar *pMsg, ... );
+DBG_INTERFACE void DWarning( const tchar *pGroupName, int level, const tchar *pMsg, ... );
 
-DBG_INTERFACE void Log( tchar const *pMsg, ... );
-DBG_INTERFACE void DLog( tchar const *pGroupName, int level, tchar const *pMsg, ... );
+DBG_INTERFACE void Log( const tchar *pMsg, ... );
+DBG_INTERFACE void DLog( const tchar *pGroupName, int level, const tchar *pMsg, ... );
 
-DBG_INTERFACE void Error( tchar const *pMsg, ... );
+DBG_INTERFACE void Error( const tchar *pMsg, ... );
 
 #else
 
 inline void Msg( ... ) {}
 inline void DMsg( ... ) {}
-inline void Warning( tchar const *pMsg, ... ) {}
+inline void Warning( const tchar *pMsg, ... ) {}
 inline void DWarning( ... ) {}
 inline void Log( ... ) {}
 inline void DLog( ... ) {}
@@ -377,28 +380,41 @@ inline void Error( ... ) {}
 		Error msg;			\
 	}
 
-#if !defined(_XBOX) || !defined(_RETAIL)
+#if !defined( _X360 ) || !defined( _RETAIL )
 
 /* A couple of super-common dynamic spew messages, here for convenience */
 /* These looked at the "developer" group */
-DBG_INTERFACE void DevMsg( int level, tchar const* pMsg, ... );
-DBG_INTERFACE void DevWarning( int level, tchar const *pMsg, ... );
-DBG_INTERFACE void DevLog( int level, tchar const *pMsg, ... );
+DBG_INTERFACE void DevMsg( int level, const tchar* pMsg, ... );
+DBG_INTERFACE void DevWarning( int level, const tchar *pMsg, ... );
+DBG_INTERFACE void DevLog( int level, const tchar *pMsg, ... );
 
 /* default level versions (level 1) */
-DBG_OVERLOAD void DevMsg( char const* pMsg, ... );
-DBG_OVERLOAD void DevWarning( char const *pMsg, ... );
-DBG_OVERLOAD void DevLog( char const *pMsg, ... );
+DBG_OVERLOAD void DevMsg( const tchar* pMsg, ... );
+DBG_OVERLOAD void DevWarning( const tchar *pMsg, ... );
+DBG_OVERLOAD void DevLog( const tchar *pMsg, ... );
 
 /* These looked at the "console" group */
-DBG_INTERFACE void ConMsg( int level, tchar const* pMsg, ... );
-DBG_INTERFACE void ConWarning( int level, tchar const *pMsg, ... );
-DBG_INTERFACE void ConLog( int level, tchar const *pMsg, ... );
+DBG_INTERFACE void ConColorMsg( int level, const Color& clr, const tchar* pMsg, ... );
+DBG_INTERFACE void ConMsg( int level, const tchar* pMsg, ... );
+DBG_INTERFACE void ConWarning( int level, const tchar *pMsg, ... );
+DBG_INTERFACE void ConLog( int level, const tchar *pMsg, ... );
+
+/* default console version (level 1) */
+DBG_OVERLOAD void ConColorMsg( const Color& clr, const tchar* pMsg, ... );
+DBG_OVERLOAD void ConMsg( const tchar* pMsg, ... );
+DBG_OVERLOAD void ConWarning( const tchar *pMsg, ... );
+DBG_OVERLOAD void ConLog( const tchar *pMsg, ... );
+
+/* developer console version (level 2) */
+DBG_INTERFACE void ConDColorMsg( const Color& clr, const tchar* pMsg, ... );
+DBG_INTERFACE void ConDMsg( const tchar* pMsg, ... );
+DBG_INTERFACE void ConDWarning( const tchar *pMsg, ... );
+DBG_INTERFACE void ConDLog( const tchar *pMsg, ... );
 
 /* These looked at the "network" group */
-DBG_INTERFACE void NetMsg( int level, tchar const* pMsg, ... );
-DBG_INTERFACE void NetWarning( int level, tchar const *pMsg, ... );
-DBG_INTERFACE void NetLog( int level, tchar const *pMsg, ... );
+DBG_INTERFACE void NetMsg( int level, const tchar* pMsg, ... );
+DBG_INTERFACE void NetWarning( int level, const tchar *pMsg, ... );
+DBG_INTERFACE void NetLog( int level, const tchar *pMsg, ... );
 
 void ValidateSpew( class CValidator &validator );
 
@@ -415,17 +431,21 @@ inline void NetLog( ... ) {}
 
 #endif
 
+DBG_INTERFACE void COM_TimestampedLog( char const *fmt, ... );
+
 /* Code macros, debugger interface */
 
 #ifdef _DEBUG
 
 #define DBG_CODE( _code )            if (0) ; else { _code }
+#define DBG_CODE_NOSCOPE( _code )	 _code
 #define DBG_DCODE( _g, _l, _code )   if (IsSpewActive( _g, _l )) { _code } else {}
 #define DBG_BREAK()                  DebuggerBreak()	/* defined in platform.h */ 
 
 #else /* not _DEBUG */
 
 #define DBG_CODE( _code )            ((void)0)
+#define DBG_CODE_NOSCOPE( _code )	 
 #define DBG_DCODE( _g, _l, _code )   ((void)0)
 #define DBG_BREAK()                  ((void)0)
 
@@ -555,7 +575,7 @@ private:
 //
 // Purpose: Embed debug info in each file.
 //
-#ifdef _WIN32
+#if defined( _WIN32 ) && !defined( _X360 )
 
 	#ifdef _DEBUG
 		#pragma comment(compiler)

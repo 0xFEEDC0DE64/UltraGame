@@ -12,7 +12,7 @@
 #endif
 
 #include "convar.h"
-#include "vector.h"
+#include "mathlib/vector.h"
 #include "materialsystem/MaterialSystemUtil.h"
 
 
@@ -24,6 +24,9 @@ enum ClearFlags_t
 	VIEW_CLEAR_COLOR = 0x1,
 	VIEW_CLEAR_DEPTH = 0x2,
 	VIEW_CLEAR_FULL_TARGET = 0x4,
+	VIEW_NO_DRAW = 0x8,
+	VIEW_CLEAR_OBEY_STENCIL = 0x10, // Draws a quad allowing stencil test to clear through portals
+	VIEW_CLEAR_STENCIL = 0x20,
 };
 
 
@@ -44,9 +47,6 @@ public:
 	}
 
 // shared by 2D & 3D views
-
-	// User specified context
-	int			context;			
 
 	// left side of view window
 	int			x;					
@@ -74,11 +74,7 @@ public:
 
 	// 3D origin of camera
 	Vector		origin;					
-	// Origin gets reflected on the water surface, but things like
-	// displacement LOD need to be calculated from the viewer's 
-	// real position.		
-	Vector		m_vUnreflectedOrigin;																			
-	
+
 	// heading of camera (pitch, yaw, roll)
 	QAngle		angles;				
 	// local Z coordinate of near plane of camera

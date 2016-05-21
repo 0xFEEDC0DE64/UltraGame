@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="serverplugin_empty"
+	Name="Serverplugin_empty"
 	ProjectGUID="{B6572CBE-7C7F-4FFF-94DE-AFBBBAB11C64}"
 	>
 	<Platforms>
@@ -18,18 +18,15 @@
 			OutputDirectory=".\Debug"
 			IntermediateDirectory=".\Debug"
 			ConfigurationType="2"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				CommandLine="attrib -r ..\..\..\bin\serverplugin_empty.dll&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\serverplugin_empty.dll&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\serverplugin_empty.dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -39,69 +36,81 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				PreprocessorDefinitions="_DEBUG"
-				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
-				TargetEnvironment="1"
-				TypeLibraryName=".\Debug/serverplugin_empty.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\public,..\..\public\tier0,..\..\public\tier1,..\..\dlls,..\..\game_shared"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;serverplugin_emptyONLY"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1,..\..\game\server,..\..\game\shared"
+				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;serverplugin_emptyONLY;_MBCS"
+				StringPooling="true"
+				MinimalRebuild="true"
+				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
+				BufferSecurityCheck="false"
+				FloatingPointModel="2"
+				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
-				PrecompiledHeaderFile=".\Debug/serverplugin_empty.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
-				BrowseInformation="1"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
+				UsePrecompiledHeader="0"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				GenerateXMLDocumentationFiles="false"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
+				WarningLevel="4"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
+				PreprocessorDefinitions="_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				UseUnicodeResponseFiles="false"
 				AdditionalDependencies="odbc32.lib odbccp32.lib"
-				OutputFile=".\Debug/serverplugin_empty.dll"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/serverplugin_empty.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="..\lib\public,..\lib\common"
-				IgnoreDefaultLibraryNames="LIBC,libcmt"
+				AdditionalLibraryDirectories="..\..\lib\common;..\..\lib\public"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmt"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug/serverplugin_empty.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
 				GenerateMapFile="true"
-				MapFileName=".\Debug/serverplugin_empty.map"
+				MapFileName="$(IntDir)/$(TargetName).map"
 				SubSystem="2"
-				ImportLibrary=".\Debug/serverplugin_empty.lib"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/serverplugin_empty.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -114,6 +123,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 		<Configuration
@@ -121,18 +133,15 @@
 			OutputDirectory=".\Release"
 			IntermediateDirectory=".\Release"
 			ConfigurationType="2"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				CommandLine="attrib -r ..\..\..\bin\serverplugin_empty.dll&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\serverplugin_empty.dll&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\serverplugin_empty.dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -142,12 +151,6 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
-				TargetEnvironment="1"
-				TypeLibraryName=".\Release/serverplugin_empty.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -155,60 +158,78 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="..\..\public,..\..\public\tier0,..\..\public\tier1,..\..\dlls,..\..\game_shared"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;serverplugin_emptyONLY"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1,..\..\game\server,..\..\game\shared"
+				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;serverplugin_emptyONLY;_MBCS"
 				StringPooling="true"
+				ExceptionHandling="0"
 				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
+				FloatingPointModel="2"
+				ForceConformanceInForLoopScope="true"
 				RuntimeTypeInfo="true"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile=".\Release/serverplugin_empty.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				GenerateXMLDocumentationFiles="false"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
+				WarningLevel="4"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
+				PreprocessorDefinitions="NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				UseUnicodeResponseFiles="false"
 				AdditionalDependencies="odbc32.lib odbccp32.lib"
-				OutputFile=".\Release/serverplugin_empty.dll"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/serverplugin_empty.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="..\lib\public,..\lib\common"
-				IgnoreDefaultLibraryNames="libcmtd.lib"
+				AdditionalLibraryDirectories="..\..\lib\common;..\..\lib\public"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmtd"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Release/serverplugin_empty.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
 				GenerateMapFile="true"
-				MapFileName=".\Release/serverplugin_empty.map"
+				MapFileName="$(IntDir)/$(TargetName).map"
 				SubSystem="2"
-				ImportLibrary=".\Release/serverplugin_empty.lib"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/serverplugin_empty.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -221,6 +242,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 	</Configurations>
@@ -229,7 +253,6 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
 				RelativePath="..\..\public\tier0\memoverride.cpp"
@@ -239,11 +262,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_MBCS;serverplugin_emptyONLY;$(NoInherit)"
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
+						UsePrecompiledHeader="0"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -251,9 +270,7 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_MBCS;serverplugin_emptyONLY;$(NoInherit)"
+						UsePrecompiledHeader="0"
 					/>
 				</FileConfiguration>
 			</File>
@@ -262,65 +279,39 @@
 				>
 			</File>
 			<File
-				RelativePath="serverplugin_convar.cpp"
+				RelativePath=".\serverplugin_empty.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_MBCS;serverplugin_emptyONLY;$(NoInherit)"
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_MBCS;serverplugin_emptyONLY;$(NoInherit)"
-					/>
-				</FileConfiguration>
+			</File>
+		</Filter>
+		<Filter
+			Name="Link Libraries"
+			>
+			<File
+				RelativePath="..\..\lib\public\mathlib.lib"
+				>
 			</File>
 			<File
-				RelativePath="serverplugin_empty.cpp"
+				RelativePath="..\..\lib\public\tier0.lib"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_MBCS;serverplugin_emptyONLY;$(NoInherit)"
-						BasicRuntimeChecks="3"
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_MBCS;serverplugin_emptyONLY;$(NoInherit)"
-						UsePrecompiledHeader="0"
-					/>
-				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\tier1.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\tier2.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\vstdlib.lib"
+				>
 			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl"
 			>
 			<File
-				RelativePath="..\..\Public\tier0\basetypes.h"
+				RelativePath="..\..\public\tier0\basetypes.h"
 				>
 			</File>
 			<File
@@ -332,11 +323,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\eiface.h"
+				RelativePath="..\..\public\eiface.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\FileSystem.h"
+				RelativePath="..\..\public\filesystem.h"
 				>
 			</File>
 			<File
@@ -352,7 +343,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\public\dlls\iplayerinfo.h"
+				RelativePath="..\..\public\game\server\iplayerinfo.h"
 				>
 			</File>
 			<File
@@ -394,62 +385,6 @@
 			<File
 				RelativePath="..\..\public\vstdlib\vstdlib.h"
 				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Link Libraries"
-			>
-			<File
-				RelativePath="..\..\lib\public\mathlib.lib"
-				>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\tier0.lib"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\tier1.lib"
-				>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\vstdlib.lib"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 	</Files>

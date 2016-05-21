@@ -23,7 +23,7 @@
 
 
 // Called first thing in the exe.
-void		VRAD_SetupMPI( int argc, char **argv );
+void		VRAD_SetupMPI( int &argc, char **&argv );
 
 void		RunMPIBuildFacelights(void);
 void		RunMPIBuildVisLeafs(void);

@@ -33,25 +33,21 @@
 //=============================================================================//
 
 #include <fcntl.h>
+#ifdef _WIN32
 #include <io.h>
+#endif
 #include <math.h>
-#include <sys\stat.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include "ChunkFile.h"
-#include "Vector.h"
-#include "Vector4D.h"
-#include "vstdlib/strtools.h"
+#include "chunkfile.h"
+#include "mathlib/vector.h"
+#include "mathlib/vector4d.h"
+#include "tier1/strtools.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-
-//
-// Fixes an infinite loop that occurs when loading certain VMFs. The bug
-// occurs with Worldcraft built with DevStudio SP4.
-//
-#pragma optimize("g", off)
 
 
 //-----------------------------------------------------------------------------

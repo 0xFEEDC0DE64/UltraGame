@@ -23,12 +23,20 @@ class IMatSystemSurface;
 class IDataCache;
 class IMDLCache;
 class IAvi;
+class IBik;
+class IDmeMakefileUtils;
+class IPhysicsCollision;
+class ISoundEmitterSystemBase;
 
 namespace vgui
 {
 	class ISurface;
 	class IVGui;
+	class IInput;
 	class IPanel;
+	class ILocalize;
+	class ISchemeManager;
+	class ISystem;
 }
 
 
@@ -39,13 +47,23 @@ namespace vgui
 // allowing link libraries to access tier3 library interfaces
 //-----------------------------------------------------------------------------
 extern IStudioRender *g_pStudioRender;
+extern IStudioRender *studiorender;
 extern IMatSystemSurface *g_pMatSystemSurface;
 extern vgui::ISurface *g_pVGuiSurface;
+extern vgui::IInput *g_pVGuiInput;
 extern vgui::IVGui *g_pVGui;
 extern vgui::IPanel *g_pVGuiPanel;
+extern vgui::ILocalize *g_pVGuiLocalize;
+extern vgui::ISchemeManager *g_pVGuiSchemeManager;
+extern vgui::ISystem *g_pVGuiSystem;
 extern IDataCache *g_pDataCache;	// FIXME: Should IDataCache be in tier2?
 extern IMDLCache *g_pMDLCache;
+extern IMDLCache *mdlcache;
 extern IAvi *g_pAVI;
+extern IBik *g_pBIK;
+extern IDmeMakefileUtils *g_pDmeMakefileUtils;
+extern IPhysicsCollision *g_pPhysicsCollision;
+extern ISoundEmitterSystemBase *g_pSoundEmitterSystem;
 
 
 //-----------------------------------------------------------------------------

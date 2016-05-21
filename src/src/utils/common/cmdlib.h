@@ -52,6 +52,7 @@ extern bool g_bSuppressPrintfOutput;
 extern IBaseFileSystem *g_pFileSystem;
 
 // These call right into the functions in filesystem_tools.h
+void				CmdLib_InitCommandLine( int argc, char **argv );
 void				CmdLib_InitFileSystem( const char *pFilename, int maxMemoryUsage = 0 );
 void				CmdLib_TermFileSystem();	// GracefulExit calls this.
 CreateInterfaceFn	CmdLib_GetFileSystemFactory();
@@ -95,14 +96,14 @@ void GetHourMinuteSecondsString( int nInputSeconds, char *pOut, int outLen );
 
 int		CheckParm (char *check);
 
-FileHandle_t	SafeOpenWrite (char *filename);
-FileHandle_t	SafeOpenRead (char *filename);
+FileHandle_t	SafeOpenWrite ( const char *filename );
+FileHandle_t	SafeOpenRead ( const char *filename );
 void			SafeRead( FileHandle_t f, void *buffer, int count);
 void			SafeWrite( FileHandle_t f, void *buffer, int count);
 
-int		LoadFile (char *filename, void **bufferptr);
-void	SaveFile (char *filename, void *buffer, int count);
-qboolean	FileExists (char *filename);
+int		LoadFile ( const char *filename, void **bufferptr );
+void	SaveFile ( const char *filename, void *buffer, int count );
+qboolean	FileExists ( const char *filename );
 
 int 	ParseNum (char *str);
 
@@ -129,6 +130,11 @@ typedef void (*CleanupFn)();
 void CmdLib_AtCleanup( CleanupFn pFn );	// register a callback when Cleanup() is called.
 void CmdLib_Cleanup();
 void CmdLib_Exit( int exitCode );	// Use this to cleanup and call exit().
+
+// entrypoint if chaining spew functions
+SpewRetval_t CmdLib_SpewOutputFunc( SpewType_t type, char const *pMsg );
+unsigned short SetConsoleTextColor( int red, int green, int blue, int intensity );
+void RestoreConsoleTextColor( unsigned short color );
 
 // Append all spew output to the specified file.
 void SetSpewFunctionLogFile( char const *pFilename );
@@ -165,6 +171,5 @@ typedef struct
 	byte	*data;
 	int		count;
 } cblock_t;
-
 
 #endif // CMDLIB_H

@@ -12,7 +12,7 @@
 #include "tier1/utldict.h"
 #include "tier1/utlbuffer.h"
 #include "filesystem.h"
-#include "vstdlib/ICommandLine.h"
+#include "tier0/icommandline.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -80,6 +80,8 @@ CModelLookupContext::~CModelLookupContext()
 
 void virtualmodel_t::AppendModels( int group, const studiohdr_t *pStudioHdr )
 {
+	AUTO_LOCK_( CThreadTerminalMutex<CThreadFastMutex>, m_Lock );
+
 	// build a search table if necesary
 	CModelLookupContext ctx(group, pStudioHdr);
 
@@ -91,38 +93,55 @@ void virtualmodel_t::AppendModels( int group, const studiohdr_t *pStudioHdr )
 	AppendNodes( group, pStudioHdr );
 	AppendIKLocks( group, pStudioHdr );
 
+	struct HandleAndHeader_t
+	{
+		void				*handle;
+		const studiohdr_t	*pHdr;
+	};
+	HandleAndHeader_t list[64];
+
+	// determine quantity of valid include models in one pass only
+	// temporarily cache results off, otherwise FindModel() causes ref counting problems
 	int j;
 	int nValidIncludes = 0;
-
 	for (j = 0; j < pStudioHdr->numincludemodels; j++)
 	{
+		// find model (increases ref count)
 		void *tmp = NULL;
 		const studiohdr_t *pTmpHdr = pStudioHdr->FindModel( &tmp, pStudioHdr->pModelGroup( j )->pszName() );
-		if (pTmpHdr)
+		if ( pTmpHdr )
 		{
+			if ( nValidIncludes >= ARRAYSIZE( list ) )
+			{
+				// would cause stack overflow
+				Assert( 0 );
+				break;
+			}
+
+			list[nValidIncludes].handle = tmp;
+			list[nValidIncludes].pHdr = pTmpHdr;
 			nValidIncludes++;
 		}
 	}
 
-	m_group.EnsureCapacity( nValidIncludes );
-
-	for (j = 0; j < pStudioHdr->numincludemodels; j++)
+	if ( nValidIncludes )
 	{
-		void *tmp = NULL;
-		const studiohdr_t *pTmpHdr = pStudioHdr->FindModel( &tmp, pStudioHdr->pModelGroup( j )->pszName() );
-		if (pTmpHdr)
+		m_group.EnsureCapacity( m_group.Count() + nValidIncludes );
+		for (j = 0; j < nValidIncludes; j++)
 		{
 			MEM_ALLOC_CREDIT();
-			int group = m_group.AddToTail( );
-			m_group[ group ].cache = tmp;
-			AppendModels( group, pTmpHdr );
+			int group = m_group.AddToTail();
+			m_group[group].cache = list[j].handle;
+			AppendModels( group, list[j].pHdr );
 		}
 	}
+
 	UpdateAutoplaySequences( pStudioHdr );
 }
 
 void virtualmodel_t::AppendSequences( int group, const studiohdr_t *pStudioHdr )
 {
+	AUTO_LOCK_( CThreadTerminalMutex<CThreadFastMutex>, m_Lock );
 	int numCheck = m_seq.Count();
 
 	int j, k;
@@ -164,17 +183,6 @@ void virtualmodel_t::AppendSequences( int group, const studiohdr_t *pStudioHdr )
 		// no duplication
 		if (k == numCheck)
 		{
-#ifdef _XBOX
-			if ( seqdesc->flags & 0xffff0000 )
-			{
-				Error( "Sequence flags overflow\n" );
-			}
-
-			if ( seqdesc->activity > SHRT_MAX )
-			{
-				Error( "Sequence activity overflow\n" );
-			}
-#endif
 			virtualsequence_t tmp;
 			tmp.group = group;
 			tmp.index = j;
@@ -211,6 +219,7 @@ void virtualmodel_t::AppendSequences( int group, const studiohdr_t *pStudioHdr )
 
 void virtualmodel_t::UpdateAutoplaySequences( const studiohdr_t *pStudioHdr )
 {
+	AUTO_LOCK_( CThreadTerminalMutex<CThreadFastMutex>, m_Lock );
 	int autoplayCount = pStudioHdr->CountAutoplaySequences();
 	m_autoplaySequences.SetCount( autoplayCount );
 	pStudioHdr->CopyAutoplaySequences( m_autoplaySequences.Base(), autoplayCount );
@@ -222,6 +231,7 @@ void virtualmodel_t::UpdateAutoplaySequences( const studiohdr_t *pStudioHdr )
 
 void virtualmodel_t::AppendAnimations( int group, const studiohdr_t *pStudioHdr )
 {
+	AUTO_LOCK_( CThreadTerminalMutex<CThreadFastMutex>, m_Lock );
 	int numCheck = m_anim.Count();
 
 	CUtlVector< virtualgeneric_t > anim;
@@ -287,6 +297,7 @@ void virtualmodel_t::AppendAnimations( int group, const studiohdr_t *pStudioHdr 
 
 void virtualmodel_t::AppendBonemap( int group, const studiohdr_t *pStudioHdr )
 {
+	AUTO_LOCK_( CThreadTerminalMutex<CThreadFastMutex>, m_Lock );
 	MEM_ALLOC_CREDIT();
 
 	const studiohdr_t *pBaseStudioHdr = m_group[ 0 ].GetStudioHdr( );
@@ -353,6 +364,7 @@ void virtualmodel_t::AppendBonemap( int group, const studiohdr_t *pStudioHdr )
 
 void virtualmodel_t::AppendAttachments( int group, const studiohdr_t *pStudioHdr )
 {
+	AUTO_LOCK_( CThreadTerminalMutex<CThreadFastMutex>, m_Lock );
 	int numCheck = m_attachment.Count();
 
 	CUtlVector< virtualgeneric_t > attachment;
@@ -400,6 +412,12 @@ void virtualmodel_t::AppendAttachments( int group, const studiohdr_t *pStudioHdr
 				while (n != -1)
 				{
 					m_group[ 0 ].GetStudioHdr()->pBone( n )->flags |= BONE_USED_BY_ATTACHMENT;
+
+					if (m_group[ 0 ].GetStudioHdr()->pLinearBones())
+					{
+						*m_group[ 0 ].GetStudioHdr()->pLinearBones()->pflags(n) |= BONE_USED_BY_ATTACHMENT;
+					}
+
 					n = m_group[ 0 ].GetStudioHdr()->pBone( n )->parent;
 				}
 				continue;
@@ -419,6 +437,7 @@ void virtualmodel_t::AppendAttachments( int group, const studiohdr_t *pStudioHdr
 
 void virtualmodel_t::AppendPoseParameters( int group, const studiohdr_t *pStudioHdr )
 {
+	AUTO_LOCK_( CThreadTerminalMutex<CThreadFastMutex>, m_Lock );
 	int numCheck = m_pose.Count();
 
 	CUtlVector< virtualgeneric_t > pose;
@@ -474,6 +493,7 @@ void virtualmodel_t::AppendPoseParameters( int group, const studiohdr_t *pStudio
 
 void virtualmodel_t::AppendNodes( int group, const studiohdr_t *pStudioHdr )
 {
+	AUTO_LOCK_( CThreadTerminalMutex<CThreadFastMutex>, m_Lock );
 	int numCheck = m_node.Count();
 
 	CUtlVector< virtualgeneric_t > node;
@@ -519,6 +539,7 @@ void virtualmodel_t::AppendNodes( int group, const studiohdr_t *pStudioHdr )
 
 void virtualmodel_t::AppendIKLocks( int group, const studiohdr_t *pStudioHdr )
 {
+	AUTO_LOCK_( CThreadTerminalMutex<CThreadFastMutex>, m_Lock );
 	int numCheck = m_iklock.Count();
 
 	CUtlVector< virtualgeneric_t > iklock;

@@ -10,7 +10,7 @@
 #pragma once
 #endif
 
-#include "vector.h"
+#include "mathlib/vector.h"
 #include "utlvector.h"
 #include "tier0/platform.h"
 
@@ -39,8 +39,10 @@ enum
 	// end of time.
 	dem_stop,
 
+	dem_stringtables,
+
 	// Last command
-	dem_lastcmd		= dem_stop
+	dem_lastcmd		= dem_stringtables
 };
 
 struct demoheader_t

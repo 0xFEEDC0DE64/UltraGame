@@ -1,4 +1,3 @@
-#include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -6,13 +5,14 @@
 #include "filesystem_tools.h"
 #include "cmdlib.h"
 #include "scriplib.h"
-#include "mathlib.h"
+#include "mathlib/mathlib.h"
 #define EXTERN
 #include "studio.h"
 #include "motionmapper.h"
-#include "vstdlib/strtools.h"
-#include "vstdlib/icommandline.h"
+#include "tier1/strtools.h"
+#include "tier0/icommandline.h"
 #include "utldict.h"
+#include <windows.h>
 #include "UtlBuffer.h"
 #include "UtlSymbol.h"
 
@@ -1226,7 +1226,6 @@ void BuildIndividualMeshes( s_source_t *psource )
 void Grab_Triangles( s_source_t *psource )
 {
 	int		i;
-	int		tcount = 0;	
 	Vector	vmin, vmax;
 
 	vmin[0] = vmin[1] = vmin[2] = 99999;
@@ -1487,7 +1486,6 @@ s_source_t *Load_Source( char const *name, const char *ext, bool reverse, bool i
 			// pSource->isActiveModel = true;
 		// return pSource;
 	// }
-	s_source_t* pSource = NULL;
 
 	// allocate space and whatnot
 	g_source[g_numsources] = (s_source_t *)kalloc( 1, sizeof( s_source_t ) );
@@ -1502,12 +1500,23 @@ s_source_t *Load_Source( char const *name, const char *ext, bool reverse, bool i
 	// more ext sanity check
 	if ( ( !result && xext[0] == '\0' ) || stricmp( xext, "smd" ) == 0)
 	{
-		sprintf (g_szFilename, "%s%s.smd", cddir[numdirs], pTempName );
+		Q_snprintf( g_szFilename, sizeof(g_szFilename), "%s%s.smd", cddir[numdirs], pTempName );
 		strcpyn( g_source[g_numsources]->filename, g_szFilename );
  
 		// Import part, load smd file
 		result = Load_SMD( g_source[g_numsources] );
 	}
+
+	/*
+	if ( ( !result && xext[0] == '\0' ) || stricmp( xext, "dmx" ) == 0)
+	{
+		Q_snprintf( g_szFilename, sizeof(g_szFilename), "%s%s.dmx", cddir[numdirs], pTempName );
+		strcpyn( g_source[g_numsources]->filename, g_szFilename );
+
+		// Import part, load smd file
+		result = Load_DMX( g_source[g_numsources] );
+	}
+	*/
 
 	// Oops
 	if ( !result)
@@ -1564,7 +1573,6 @@ void SaveAnimation( s_source_t *source, CUtlBuffer& buf )
 
 		for ( int i = 0; i < source->numbones; ++i )
 		{
-			s_bone_t *bone = &source->rawanim[ frame ][ i ];
 			s_bone_t *prev = NULL;
 			if ( frame > 0 )
 			{
@@ -2343,7 +2351,6 @@ void SumBonePathTranslations(int *indexPath, s_bone_t *boneArray, Vector &result
 {
 
 	// walk the path
-	int rootIndex = *indexPath;
 	int *pathPtr = indexPath;
 	// M_matrix4x4_t matrixCum;
 
@@ -2372,7 +2379,6 @@ void CatBonePath(int *indexPath, s_bone_t *boneArray, M_matrix4x4_t &resultMatri
 {
 
 	// walk the path
-	int rootIndex = *indexPath;
 	int *pathPtr = indexPath;
 	// M_matrix4x4_t matrixCum;
 
@@ -2565,7 +2571,6 @@ s_source_t *MotionMap( s_source_t *pSource, s_source_t *pTarget, s_template_t *p
 	float rootScaleLengthTgt = pTarget->rawanim[0][rootScaleIndex].pos[BONEDIR];
 	float rootScaleParentLengthTgt = pTarget->rawanim[0][rootScalePath[1]].pos[BONEDIR];
 	float rootScaleTgt = rootScaleLengthTgt + rootScaleParentLengthTgt;
-	float rootScaleDelta = rootScaleTgt - rootScaleSrc;
 	float rootScaleFactor = rootScaleTgt / rootScaleSrc;
 
 	if(g_verbose)
@@ -2588,7 +2593,6 @@ s_source_t *MotionMap( s_source_t *pSource, s_source_t *pTarget, s_template_t *p
 
 	// do source and target sanity checking
 	int sourceNumFrames = pSource->numframes;
-	int targetNumFrames = pTarget->numframes;
 
 
 	// iterate through limb solves
@@ -2620,7 +2624,7 @@ s_source_t *MotionMap( s_source_t *pSource, s_source_t *pTarget, s_template_t *p
 			}
 			
 			// leg "root" or thigh pointers
-			int gParentIndex = thisJointPathInRoot[2];
+			//int gParentIndex = thisJointPathInRoot[2];
 			int *gParentPath = thisJointPathInRoot + 2;
 			
 			//----------------------------------------------------------------

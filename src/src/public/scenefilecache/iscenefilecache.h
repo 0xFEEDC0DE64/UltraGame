@@ -13,32 +13,31 @@
 #include "interface.h"
 #include "appframework/IAppSystem.h"
 
-class ISceneFileCacheCallback;
+// the file cache can support persisting some calcs
+struct SceneCachedData_t
+{
+	unsigned int	msecs;
+	int				numSounds;
+	int				sceneId;
+};
 
 class ISceneFileCache : public IAppSystem
 {
 public:
 
-	virtual void OutputStatus() = 0;
+	// async implemenation
+	virtual size_t		GetSceneBufferSize( char const *filename ) = 0;
+	virtual bool		GetSceneData( char const *filename, byte *buf, size_t bufsize ) = 0;
 
-	// Wipe the entire cache
-	virtual void Clear() = 0;
-	// Throw out the data, but keep the cache entries
-	virtual void Flush() = 0;
+	// persisted scene data, returns true if valid, false otherwise
+	virtual bool		GetSceneCachedData( char const *pFilename, SceneCachedData_t *pData ) = 0;
+	virtual short		GetSceneCachedSound( int iScene, int iSound ) = 0;
+	virtual const char	*GetSceneString( short stringId ) = 0;
 
-	virtual int FindOrAddScene( char const *filename ) = 0;
-	virtual size_t GetSceneBufferSize( char const *filename ) = 0;
-	virtual bool GetSceneData( char const *filename, byte *buf, size_t bufsize ) = 0;
-	virtual void PollForAsyncLoading( ISceneFileCacheCallback *entity, char const *pszScene ) = 0;
-	virtual bool IsStillAsyncLoading( char const *filename ) = 0;
+	// Physically reloads image from disk
+	virtual void		Reload() = 0;
 };
 
-class ISceneFileCacheCallback
-{
-public:
-	virtual void FinishAsyncLoading( char const *pszScene, bool binary, size_t buflen, char const *buffer ) = 0;
-};
-
-#define SCENE_FILE_CACHE_INTERFACE_VERSION "SceneFileCache001"
+#define SCENE_FILE_CACHE_INTERFACE_VERSION "SceneFileCache002"
 
 #endif // ISCENEFILECACHE_H

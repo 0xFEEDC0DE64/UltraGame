@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="motionmapper"
+	Name="Motionmapper"
 	ProjectGUID="{A882FC08-8B92-4D4F-89BF-75BCEC2BAE11}"
 	>
 	<Platforms>
@@ -18,18 +18,15 @@
 			OutputDirectory=".\Debug"
 			IntermediateDirectory=".\Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="copy to ..\..\..\bin\motionmapper.exe"
-				CommandLine="if exist ..\..\..\bin\&quot;$(TargetName)&quot;.exe attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;if exist ..\..\..\bin\&quot;$(TargetName)&quot;.pdb attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\motionmapper.exe;..\..\..\bin\motionmapper.pdb"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -39,60 +36,86 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\Debug/motionmapper.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				UseUnicodeResponseFiles="false"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\common,..\..\Public,..\..\Public\tier1,..\nvtristriplib,..\..\Game_Shared"
-				PreprocessorDefinitions="_CONSOLE;PROTECTED_THINGS_DISABLE;_DEBUG;_WIN32"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1,..\common,..\nvtristriplib,..\..\Game_Shared"
+				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;PROTECTED_THINGS_DISABLE"
+				StringPooling="true"
+				MinimalRebuild="true"
+				ExceptionHandling="0"
+				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
-				PrecompiledHeaderFile=".\Debug/motionmapper.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
-				BrowseInformation="1"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
+				BufferSecurityCheck="false"
+				FloatingPointModel="2"
+				DefaultCharIsUnsigned="false"
+				TreatWChar_tAsBuiltInType="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
+				OpenMP="false"
+				UsePrecompiledHeader="0"
+				ExpandAttributedSource="false"
+				AssemblerOutput="0"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
+				WarningLevel="4"
+				WarnAsError="false"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
+				PreprocessorDefinitions="_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				UseUnicodeResponseFiles="false"
 				AdditionalDependencies="winmm.lib"
-				OutputFile=".\Debug/motionmapper.exe"
-				LinkIncremental="1"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/motionmapper.exe"
+				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="..\..\lib\common,..\..\lib\public"
-				IgnoreDefaultLibraryNames="LIBCD"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmt"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug/motionmapper.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
+				GenerateMapFile="true"
+				MapFileName="$(IntDir)/$(TargetName).map"
 				SubSystem="1"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/motionmapper.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -105,6 +128,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 		<Configuration
@@ -112,18 +138,15 @@
 			OutputDirectory=".\Release"
 			IntermediateDirectory=".\Release"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="copy to ..\..\..\bin\motionmapper.exe"
-				CommandLine="if exist ..\..\..\bin\&quot;$(TargetName)&quot;.exe attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;if exist ..\..\..\bin\&quot;$(TargetName)&quot;.pdb attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\motionmapper.exe;..\..\..\bin\motionmapper.pdb"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -133,64 +156,88 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\Release/motionmapper.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="..\common,..\..\Public,..\..\Public\tier1,..\nvtristriplib,..\..\Game_Shared"
-				PreprocessorDefinitions="_CONSOLE;PROTECTED_THINGS_DISABLE;NDEBUG;_WIN32"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1,..\common,..\nvtristriplib,..\..\Game_Shared"
+				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;PROTECTED_THINGS_DISABLE"
 				StringPooling="true"
+				ExceptionHandling="0"
 				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
-				PrecompiledHeaderFile=".\Release/motionmapper.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
+				FloatingPointModel="2"
+				DefaultCharIsUnsigned="false"
+				TreatWChar_tAsBuiltInType="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
+				OpenMP="false"
+				UsePrecompiledHeader="0"
+				ExpandAttributedSource="false"
+				AssemblerOutput="0"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
+				WarningLevel="4"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
+				PreprocessorDefinitions="NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				UseUnicodeResponseFiles="false"
 				AdditionalDependencies="winmm.lib"
-				OutputFile=".\Release/motionmapper.exe"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/motionmapper.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				AdditionalLibraryDirectories="..\..\lib\common,..\..\lib\public"
-				IgnoreDefaultLibraryNames="LIBC,LIBCMT"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmtd"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Release/motionmapper.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
 				GenerateMapFile="true"
-				MapFileName=".\Release/motionmapper.map"
+				MapFileName="$(IntDir)/$(TargetName).map"
 				SubSystem="1"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/motionmapper.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -203,6 +250,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 	</Configurations>
@@ -211,145 +261,32 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;for;f90"
 			>
-			<File
-				RelativePath="..\..\tier1\characterset.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
 			<File
 				RelativePath="..\common\cmdlib.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\public\filesystem_helpers.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\public\filesystem_init.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\common\filesystem_tools.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\tier1\interface.cpp"
+				RelativePath="..\..\public\tier0\memoverride.cpp"
 				>
 				<FileConfiguration
 					Name="Debug|Win32"
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
+						UsePrecompiledHeader="0"
 					/>
 				</FileConfiguration>
 				<FileConfiguration
@@ -357,98 +294,56 @@
 					>
 					<Tool
 						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
+						UsePrecompiledHeader="0"
 					/>
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\tier1\KeyValues.cpp"
+				RelativePath=".\motionmapper.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="motionmapper.cpp"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\common\scriplib.cpp"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="0"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-						BrowseInformation="1"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-						Optimization="2"
-						AdditionalIncludeDirectories=""
-						PreprocessorDefinitions=""
-					/>
-				</FileConfiguration>
+			</File>
+		</Filter>
+		<Filter
+			Name="Link Libraries"
+			>
+			<File
+				RelativePath="..\..\lib\public\mathlib.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\nvtristrip.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\tier0.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\tier1.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\tier2.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\vstdlib.lib"
+				>
 			</File>
 		</Filter>
 		<Filter
 			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;fi;fd"
 			>
 			<File
-				RelativePath="..\..\Public\amd3dx.h"
+				RelativePath="..\..\public\mathlib\amd3dx.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\tier0\basetypes.h"
+				RelativePath="..\..\public\tier0\basetypes.h"
 				>
 			</File>
 			<File
@@ -464,11 +359,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\commonmacros.h"
+				RelativePath="..\..\public\commonmacros.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\public\compressed_vector.h"
+				RelativePath="..\..\public\mathlib\compressed_vector.h"
 				>
 			</File>
 			<File
@@ -480,7 +375,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\FileSystem.h"
+				RelativePath="..\..\public\filesystem.h"
 				>
 			</File>
 			<File
@@ -512,7 +407,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\MATHLIB.H"
+				RelativePath="..\..\public\mathlib\mathlib.h"
 				>
 			</File>
 			<File
@@ -532,7 +427,7 @@
 				>
 			</File>
 			<File
-				RelativePath="motionmapper.h"
+				RelativePath=".\motionmapper.h"
 				>
 			</File>
 			<File
@@ -548,7 +443,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\string_t.h"
+				RelativePath="..\..\public\string_t.h"
 				>
 			</File>
 			<File
@@ -556,7 +451,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\studio.h"
+				RelativePath="..\..\public\studio.h"
 				>
 			</File>
 			<File
@@ -588,102 +483,20 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector.h"
+				RelativePath="..\..\public\mathlib\vector.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector2d.h"
+				RelativePath="..\..\public\mathlib\vector2d.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector4d.h"
+				RelativePath="..\..\public\mathlib\vector4d.h"
 				>
 			</File>
 			<File
 				RelativePath="..\..\public\vstdlib\vstdlib.h"
 				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Link Libraries"
-			>
-			<File
-				RelativePath="..\..\lib\public\mathlib.lib"
-				>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\nvtristrip.lib"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\tier0.lib"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\tier1.lib"
-				>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\tier2.lib"
-				>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\vstdlib.lib"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 	</Files>

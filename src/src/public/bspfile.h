@@ -10,14 +10,15 @@
 #pragma once
 
 #ifndef MATHLIB_H
-#include "mathlib.h"
+#include "mathlib/mathlib.h"
 #endif
 
-#include "bumpvects.h"
-#include "compressed_light_cube.h"
+#include "datamap.h"
+#include "mathlib/bumpvects.h"
+#include "mathlib/compressed_light_cube.h"
 
-#define IDBSPHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')
-		// little-endian "VBSP"
+// little-endian "VBSP"
+#define IDBSPHEADER	(('P'<<24)+('S'<<16)+('B'<<8)+'V')		
 
 // MINBSPVERSION is the minimum acceptable version.  The engine will load MINBSPVERSION through BSPVERSION
 #define MINBSPVERSION 19
@@ -31,30 +32,18 @@
 #define MAX_BRUSH_LIGHTMAP_DIM_INCLUDING_BORDER	35
 
 // We can have larger lightmaps on displacements
-#define MAX_DISP_LIGHTMAP_DIM_WITHOUT_BORDER	128
-#define MAX_DISP_LIGHTMAP_DIM_INCLUDING_BORDER	131
+#define MAX_DISP_LIGHTMAP_DIM_WITHOUT_BORDER	125
+#define MAX_DISP_LIGHTMAP_DIM_INCLUDING_BORDER	128
 
 
 // This is the actual max.. (change if you change the brush lightmap dim or disp lightmap dim
 #define MAX_LIGHTMAP_DIM_WITHOUT_BORDER		MAX_DISP_LIGHTMAP_DIM_WITHOUT_BORDER
 #define MAX_LIGHTMAP_DIM_INCLUDING_BORDER	MAX_DISP_LIGHTMAP_DIM_INCLUDING_BORDER
 
-
 #define	MAX_LIGHTSTYLES	64
 
 
 // upper design bounds
-
-// Common limits
-// leaffaces, leafbrushes, planes, and verts are still bounded by
-// 16 bit short limits
-#define	MAX_MAP_MODELS		1024
-#define	MAX_MAP_BRUSHES		8192
-#define	MAX_MAP_ENTITIES	4096
-
-#define	MAX_MAP_TEXINFO		12288
-#define MAX_MAP_TEXDATA		2048
-
 #define MIN_MAP_DISP_POWER		2	// Minimum and maximum power a displacement can be.
 #define MAX_MAP_DISP_POWER		4	
 
@@ -64,49 +53,102 @@
 #define NUM_DISP_POWER_VERTS(power)	( ((1 << (power)) + 1) * ((1 << (power)) + 1) )
 #define NUM_DISP_POWER_TRIS(power)	( (1 << (power)) * (1 << (power)) * 2 )
 
-#define MAX_MAP_DISPINFO		2048
-#define MAX_MAP_DISP_VERTS		( MAX_MAP_DISPINFO * ((1<<MAX_MAP_DISP_POWER)+1) * ((1<<MAX_MAP_DISP_POWER)+1) )
-#define MAX_MAP_DISP_TRIS		( (1 << MAX_MAP_DISP_POWER) * (1 << MAX_MAP_DISP_POWER) * 2 )
-#define MAX_DISPVERTS			NUM_DISP_POWER_VERTS( MAX_MAP_DISP_POWER )
-#define MAX_DISPTRIS			NUM_DISP_POWER_TRIS( MAX_MAP_DISP_POWER )
-
-#define	MAX_MAP_AREAS		256
-#define MAX_MAP_AREA_BYTES	(MAX_MAP_AREAS/8)
-#define	MAX_MAP_AREAPORTALS	1024
+#if !defined( BSP_USE_LESS_MEMORY )
+// Common limits
+// leaffaces, leafbrushes, planes, and verts are still bounded by
+// 16 bit short limits
+#define	MAX_MAP_MODELS					1024
+#define	MAX_MAP_BRUSHES					8192
+#define	MAX_MAP_ENTITIES				8192
+#define	MAX_MAP_TEXINFO					12288
+#define MAX_MAP_TEXDATA					2048
+#define MAX_MAP_DISPINFO				2048
+#define MAX_MAP_DISP_VERTS				( MAX_MAP_DISPINFO * ((1<<MAX_MAP_DISP_POWER)+1) * ((1<<MAX_MAP_DISP_POWER)+1) )
+#define MAX_MAP_DISP_TRIS				( (1 << MAX_MAP_DISP_POWER) * (1 << MAX_MAP_DISP_POWER) * 2 )
+#define MAX_DISPVERTS					NUM_DISP_POWER_VERTS( MAX_MAP_DISP_POWER )
+#define MAX_DISPTRIS					NUM_DISP_POWER_TRIS( MAX_MAP_DISP_POWER )
+#define	MAX_MAP_AREAS					256
+#define MAX_MAP_AREA_BYTES				(MAX_MAP_AREAS/8)
+#define	MAX_MAP_AREAPORTALS				1024
 // Planes come in pairs, thus an even number.
-#define	MAX_MAP_PLANES		65536
-#define	MAX_MAP_NODES		65536
-#define	MAX_MAP_BRUSHSIDES	65536
-#define	MAX_MAP_LEAFS		65536
-#define	MAX_MAP_VERTS		65536
-#define MAX_MAP_VERTNORMALS			256000
-#define MAX_MAP_VERTNORMALINDICES	256000
-#define	MAX_MAP_FACES		65536
-#define	MAX_MAP_LEAFFACES	65536
-#define	MAX_MAP_LEAFBRUSHES 65536
-#define	MAX_MAP_PORTALS		65536
-#define MAX_MAP_CLUSTERS	65536
-#define MAX_MAP_LEAFWATERDATA 32768
-#define MAX_MAP_PORTALVERTS	128000
-#define	MAX_MAP_EDGES		256000
-#define	MAX_MAP_SURFEDGES	512000
-#define	MAX_MAP_LIGHTING	0x1000000
-#define	MAX_MAP_VISIBILITY	0x1000000			// increased BSPVERSION 7
-#define	MAX_MAP_TEXTURES	1024
-#define MAX_MAP_WORLDLIGHTS	8192
-#define MAX_MAP_CUBEMAPSAMPLES 1024
-#define MAX_MAP_OVERLAYS	    512 
-#define MAX_MAP_WATEROVERLAYS	16384
+#define	MAX_MAP_PLANES					65536
+#define	MAX_MAP_NODES					65536
+#define	MAX_MAP_BRUSHSIDES				65536
+#define	MAX_MAP_LEAFS					65536
+#define	MAX_MAP_VERTS					65536
+#define MAX_MAP_VERTNORMALS				256000
+#define MAX_MAP_VERTNORMALINDICES		256000
+#define	MAX_MAP_FACES					65536
+#define	MAX_MAP_LEAFFACES				65536
+#define	MAX_MAP_LEAFBRUSHES 			65536
+#define	MAX_MAP_PORTALS					65536
+#define MAX_MAP_CLUSTERS				65536
+#define MAX_MAP_LEAFWATERDATA			32768
+#define MAX_MAP_PORTALVERTS				128000
+#define	MAX_MAP_EDGES					256000
+#define	MAX_MAP_SURFEDGES				512000
+#define	MAX_MAP_LIGHTING				0x1000000
+#define	MAX_MAP_VISIBILITY				0x1000000			// increased BSPVERSION 7
+#define	MAX_MAP_TEXTURES				1024
+#define MAX_MAP_WORLDLIGHTS				8192
+#define MAX_MAP_CUBEMAPSAMPLES			1024
+#define MAX_MAP_OVERLAYS				512 
+#define MAX_MAP_WATEROVERLAYS			16384
 #define MAX_MAP_TEXDATA_STRING_DATA		256000
 #define MAX_MAP_TEXDATA_STRING_TABLE	65536
-
 // this is stuff for trilist/tristrips, etc.
-#define MAX_MAP_PRIMITIVES	32768
-#define MAX_MAP_PRIMVERTS	65536
-#define MAX_MAP_PRIMINDICES 65536
+#define MAX_MAP_PRIMITIVES				32768
+#define MAX_MAP_PRIMVERTS				65536
+#define MAX_MAP_PRIMINDICES				65536
+
+#else
+
+// Xbox 360 - Force static arrays to be very small
+#define	MAX_MAP_MODELS					2
+#define	MAX_MAP_BRUSHES					2
+#define	MAX_MAP_ENTITIES				2
+#define	MAX_MAP_TEXINFO					2
+#define MAX_MAP_TEXDATA					2
+#define MAX_MAP_DISPINFO				2
+#define MAX_MAP_DISP_VERTS				( MAX_MAP_DISPINFO * ((1<<MAX_MAP_DISP_POWER)+1) * ((1<<MAX_MAP_DISP_POWER)+1) )
+#define MAX_MAP_DISP_TRIS				( (1 << MAX_MAP_DISP_POWER) * (1 << MAX_MAP_DISP_POWER) * 2 )
+#define MAX_DISPVERTS					NUM_DISP_POWER_VERTS( MAX_MAP_DISP_POWER )
+#define MAX_DISPTRIS					NUM_DISP_POWER_TRIS( MAX_MAP_DISP_POWER )
+#define	MAX_MAP_AREAS					2
+#define MAX_MAP_AREA_BYTES				2
+#define	MAX_MAP_AREAPORTALS				2
+#define	MAX_MAP_PLANES					2
+#define	MAX_MAP_NODES					2
+#define	MAX_MAP_BRUSHSIDES				2
+#define	MAX_MAP_LEAFS					2
+#define	MAX_MAP_VERTS					2
+#define MAX_MAP_VERTNORMALS				2
+#define MAX_MAP_VERTNORMALINDICES		2
+#define	MAX_MAP_FACES					2
+#define	MAX_MAP_LEAFFACES				2
+#define	MAX_MAP_LEAFBRUSHES				2
+#define	MAX_MAP_PORTALS					2
+#define MAX_MAP_CLUSTERS				2
+#define MAX_MAP_LEAFWATERDATA			2
+#define MAX_MAP_PORTALVERTS				2
+#define	MAX_MAP_EDGES					2
+#define	MAX_MAP_SURFEDGES				2
+#define	MAX_MAP_LIGHTING				2
+#define	MAX_MAP_VISIBILITY				2
+#define	MAX_MAP_TEXTURES				2
+#define MAX_MAP_WORLDLIGHTS				2
+#define MAX_MAP_CUBEMAPSAMPLES			2
+#define MAX_MAP_OVERLAYS				2 
+#define MAX_MAP_WATEROVERLAYS			2
+#define MAX_MAP_TEXDATA_STRING_DATA		2
+#define MAX_MAP_TEXDATA_STRING_TABLE	2
+#define MAX_MAP_PRIMITIVES				2
+#define MAX_MAP_PRIMVERTS				2
+#define MAX_MAP_PRIMINDICES				2
+
+#endif // BSP_USE_LESS_MEMORY
 
 // key / value pair sizes
-
 #define	MAX_KEY		32
 #define	MAX_VALUE	1024
 
@@ -238,7 +280,7 @@ enum
 {
 	LUMP_ENTITIES					= 0,	// *
 	LUMP_PLANES						= 1,	// *
-	LUMP_TEXDATA					= 2,	// JAY: This is texdata now, previously LUMP_TEXTURES
+	LUMP_TEXDATA					= 2,	// *
 	LUMP_VERTEXES					= 3,	// *
 	LUMP_VISIBILITY					= 4,	// *
 	LUMP_NODES						= 5,	// *
@@ -247,7 +289,7 @@ enum
 	LUMP_LIGHTING					= 8,	// *
 	LUMP_OCCLUSION					= 9,
 	LUMP_LEAFS						= 10,	// *
-	// UNUSED
+	LUMP_FACEIDS					= 11,
 	LUMP_EDGES						= 12,	// *
 	LUMP_SURFEDGES					= 13,	// *
 	LUMP_MODELS						= 14,	// *
@@ -258,13 +300,13 @@ enum
 	LUMP_BRUSHSIDES					= 19,	// *
 	LUMP_AREAS						= 20,	// *
 	LUMP_AREAPORTALS				= 21,	// *
-	LUMP_PORTALS					= 22,
-	LUMP_CLUSTERS					= 23,
-	LUMP_PORTALVERTS				= 24,
-	LUMP_CLUSTERPORTALS				= 25,
+	LUMP_UNUSED0					= 22,
+	LUMP_UNUSED1					= 23,
+	LUMP_UNUSED2					= 24,
+	LUMP_UNUSED3					= 25,
 	LUMP_DISPINFO					= 26,
 	LUMP_ORIGINALFACES				= 27,
-	// UNUSED
+	LUMP_PHYSDISP					= 28,
 	LUMP_PHYSCOLLIDE				= 29,
 	LUMP_VERTNORMALS				= 30,
 	LUMP_VERTNORMALINDICES			= 31,
@@ -296,10 +338,10 @@ enum
 	LUMP_LEAFMINDISTTOWATER			= 46,
 	LUMP_FACE_MACRO_TEXTURE_INFO	= 47,
 	LUMP_DISP_TRIS					= 48,
-	LUMP_PHYSCOLLIDESURFACE			= 49,	// deprecated.  We no longer use win32-speicifc havok compression on terrain
+	LUMP_PHYSCOLLIDESURFACE			= 49,	// deprecated.  We no longer use win32-specific havok compression on terrain
 	LUMP_WATEROVERLAYS              = 50,
-	LUMP_LIGHTMAPPAGES				= 51,	// xbox: alternate lightdata implementation
-	LUMP_LIGHTMAPPAGEINFOS          = 52,	// xbox: indexed by faces for alternate lightdata
+	LUMP_LEAF_AMBIENT_INDEX_HDR		= 51,	// index of LUMP_LEAF_AMBIENT_LIGHTING_HDR
+	LUMP_LEAF_AMBIENT_INDEX         = 52,	// index of LUMP_LEAF_AMBIENT_LIGHTING
 
 	// optional lumps for HDR
 	LUMP_LIGHTING_HDR				= 53,
@@ -307,10 +349,10 @@ enum
 	LUMP_LEAF_AMBIENT_LIGHTING_HDR	= 55,	// NOTE: this data overrides part of the data stored in LUMP_LEAFS.
 	LUMP_LEAF_AMBIENT_LIGHTING		= 56,	// NOTE: this data overrides part of the data stored in LUMP_LEAFS.
 
-	LUMP_XZIPPAKFILE				= 57,   // xbox: maps may now have xzp's instead of zips stored. 
+	LUMP_XZIPPAKFILE				= 57,   // deprecated. xbox 1: xzip version of pak file
 	LUMP_FACES_HDR					= 58,	// HDR maps may have different face data.
 	LUMP_MAP_FLAGS                  = 59,   // extended level-wide flags. not present in all levels
-
+	LUMP_OVERLAY_FADES				= 60,	// Fade distances for overlays
 };
 
 
@@ -320,9 +362,8 @@ enum
 	LUMP_LIGHTING_VERSION          = 1,
 	LUMP_FACES_VERSION             = 1,
 	LUMP_OCCLUSION_VERSION         = 2,
-	LUMP_LIGHTMAPPAGES_VERSION     = 1,
-	LUMP_LIGHTMAPPAGEINFOS_VERSION = 1,
 	LUMP_LEAFS_VERSION			   = 1,
+	LUMP_LEAF_AMBIENT_LIGHTING_VERSION = 1,
 };
 
 
@@ -332,6 +373,7 @@ enum
 
 struct lump_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int		fileofs, filelen;
 	int		version;		// default to zero
 	char	fourCC[4];		// default to ( char )0, ( char )0, ( char )0, ( char )0
@@ -340,17 +382,21 @@ struct lump_t
 
 struct dheader_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int			ident;
 	int			version;	
 	lump_t		lumps[HEADER_LUMPS];
 	int			mapRevision;				// the map's revision (iteration, version) number (added BSPVERSION 6)
 };
 
-#define LVLFLAGS_BAKED_STATIC_PROP_LIGHTING 1				// was processed bye vrad with -staticproplighting
+// level feature flags
+#define LVLFLAGS_BAKED_STATIC_PROP_LIGHTING_NONHDR 0x00000001	// was processed by vrad with -staticproplighting, no hdr data
+#define LVLFLAGS_BAKED_STATIC_PROP_LIGHTING_HDR    0x00000002   // was processed by vrad with -staticproplighting, in hdr
 
 struct dflagslump_t
 {
-	uint32 m_LevelFlags;									// LVLFLAGS_xxx
+	DECLARE_BYTESWAP_DATADESC();
+	uint32 m_LevelFlags;						// LVLFLAGS_xxx
 };
 
 struct lumpfileheader_t
@@ -364,50 +410,68 @@ struct lumpfileheader_t
 
 struct dgamelumpheader_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int lumpCount;
 
-	// dclientlump_ts follow this
+	// dgamelump_t follow this
 };
 
 // This is expected to be a four-CC code ('lump')
 typedef int GameLumpId_t;
 
+// 360 only: game lump is compressed, filelen reflects original size
+// use next entry fileofs to determine actual disk lump compressed size
+// compression stage ensures a terminal null dictionary entry
+#define GAMELUMPFLAG_COMPRESSED	0x0001
+
 struct dgamelump_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	GameLumpId_t	id;
-	unsigned short flags;		// currently unused, but you never know!
-	unsigned short version;
-	int	fileofs;
-	int filelen;
+	unsigned short	flags;
+	unsigned short	version;
+	int				fileofs;
+	int				filelen;
 };
 
 extern int g_MapRevision;
 
 struct dmodel_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	Vector		mins, maxs;
-	Vector		origin;			// for sounds or lights
+	Vector		origin;					// for sounds or lights
 	int			headnode;
-	int			firstface, numfaces;	// submodels just draw faces
-										// without walking the bsp tree
+	int			firstface, numfaces;	// submodels just draw faces without walking the bsp tree
 };
 
 struct dphysmodel_t
 {
+	DECLARE_BYTESWAP_DATADESC()
 	int			modelIndex;
 	int			dataSize;
 	int			keydataSize;
 	int			solidCount;
 };
 
+// contains the binary blob for each displacement surface's virtual hull
+struct dphysdisp_t
+{
+	DECLARE_BYTESWAP_DATADESC()
+	unsigned short numDisplacements;
+	//unsigned short dataSize[numDisplacements];
+};
+
 struct dvertex_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	Vector	point;
 };
 
 // planes (x&~1) and (x&~1)+1 are always opposites
 struct dplane_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	Vector	normal;
 	float	dist;
 	int		type;		// PLANE_X - PLANE_ANYZ ?remove? trivial to regenerate
@@ -419,6 +483,7 @@ struct dplane_t
 
 struct dnode_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int			planenum;
 	int			children[2];	// negative numbers are -(leafs+1), not nodes
 	short		mins[3];		// for frustom culling
@@ -431,6 +496,7 @@ struct dnode_t
 
 typedef struct texinfo_s
 {
+	DECLARE_BYTESWAP_DATADESC();
 	float		textureVecsTexelsPerWorldUnits[2][4];			// [s/t][xyz offset]
 	float		lightmapVecsLuxelsPerWorldUnits[2][4];			// [s/t][xyz offset] - length is in units of texels/area
 	int			flags;				// miptex flags + overrides
@@ -441,6 +507,7 @@ typedef struct texinfo_s
 
 struct dtexdata_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	Vector		reflectivity;
 	int			nameStringTableID;				// index into g_StringTable for the texture name
 	int			width, height;					// source image
@@ -459,6 +526,7 @@ enum
 
 struct doccluderdata_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int			flags;
 	int			firstpoly;				// index into doccluderpolys
 	int			polycount;
@@ -478,6 +546,7 @@ struct doccluderdataV1_t
 
 struct doccluderpolydata_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int			firstvertexindex;		// index into doccludervertindices
 	int			vertexcount;
 	int			planenum;
@@ -488,7 +557,7 @@ struct doccluderpolydata_t
 struct CDispSubNeighbor
 {
 public:
-
+	DECLARE_BYTESWAP_DATADESC();
 	unsigned short		GetNeighborIndex() const		{ return m_iNeighbor; }
 	NeighborSpan		GetSpan() const					{ return (NeighborSpan)m_Span; }
 	NeighborSpan		GetNeighborSpan() const			{ return (NeighborSpan)m_NeighborSpan; }
@@ -514,6 +583,7 @@ public:
 class CDispNeighbor
 {
 public:
+	DECLARE_BYTESWAP_DATADESC();
 	void				SetInvalid()	{ m_SubNeighbors[0].SetInvalid(); m_SubNeighbors[1].SetInvalid(); }
 	
 	// Returns false if there isn't anything touching this edge.
@@ -530,7 +600,7 @@ public:
 class CDispCornerNeighbors
 {
 public:
-
+	DECLARE_BYTESWAP_DATADESC();
 	void			SetInvalid()	{ m_nNeighbors = 0; }
 
 
@@ -543,6 +613,7 @@ public:
 class CDispVert
 {
 public:
+	DECLARE_BYTESWAP_DATADESC();
 	Vector		m_vVector;		// Vector field defining displacement volume.
 	float		m_flDist;		// Displacement distances.
 	float		m_flAlpha;		// "per vertex" alpha values.
@@ -557,12 +628,14 @@ public:
 class CDispTri
 {
 public:
+	DECLARE_BYTESWAP_DATADESC();
 	unsigned short m_uiTags;		// Displacement triangle tags.
 };
 
 class ddispinfo_t
 {
 public:
+	DECLARE_BYTESWAP_DATADESC();
 	int			NumVerts() const		{ return NUM_DISP_POWER_VERTS(power); }
 	int			NumTris() const			{ return NUM_DISP_POWER_TRIS(power); }
 
@@ -586,17 +659,17 @@ public:
 	CDispNeighbor			m_EdgeNeighbors[4];		// Indexed by NEIGHBOREDGE_ defines.
 	CDispCornerNeighbors	m_CornerNeighbors[4];	// Indexed by CORNER_ defines.
 
-	enum { ALLOWEDVERTS_SIZE = PAD_NUMBER( MAX_DISPVERTS, 32 ) / 32 };
+	enum unnamed { ALLOWEDVERTS_SIZE = PAD_NUMBER( MAX_DISPVERTS, 32 ) / 32 };
 	unsigned long	m_AllowedVerts[ALLOWEDVERTS_SIZE];	// This is built based on the layout and sizes of our neighbors
 														// and tells us which vertices are allowed to be active.
 };
-
 
 
 // note that edge 0 is never used, because negative edge nums are used for
 // counterclockwise use of the edge in a face
 struct dedge_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	unsigned short	v[2];		// vertex numbers
 };
 
@@ -610,6 +683,7 @@ enum dprimitive_type
 
 struct dprimitive_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	unsigned char type;
 	unsigned short	firstIndex;
 	unsigned short	indexCount;
@@ -619,11 +693,13 @@ struct dprimitive_t
 
 struct dprimvert_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	Vector		pos;
 };
 
 struct dface_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	unsigned short	planenum;
 	byte		side;	// faces opposite to the node's plane direction
 	byte		onNode; // 1 of on node, 0 if in leaf
@@ -700,20 +776,33 @@ inline void dface_t::SetDynamicShadowsEnabled( bool bEnabled )
 		m_NumPrims |= 0x8000;
 }
 
+struct dfaceid_t
+{
+	DECLARE_BYTESWAP_DATADESC();
+	unsigned short	hammerfaceid;
+};
+
 
 // NOTE: Only 7-bits stored!!!
-#define LEAF_FLAGS_SKY			0x01		// This leaf has sky in its PVS
+#define LEAF_FLAGS_SKY			0x01		// This leaf has 3D sky in its PVS
 #define LEAF_FLAGS_RADIAL		0x02		// This leaf culled away some portals due to radial vis
+#define LEAF_FLAGS_SKY2D		0x04		// This leaf has 2D sky in its PVS
 
-
+#if defined( _X360 )
+#pragma bitfield_order( push, lsb_to_msb )
+#endif
+#pragma warning( disable:4201 )	// C4201: nonstandard extension used: nameless struct/union
 struct dleaf_version_0_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int				contents;			// OR of all brushes (not needed?)
 
 	short			cluster;
 
+	BEGIN_BITFIELD( bf );
 	short			area:9;
 	short			flags:7;			// Per leaf flags.
+	END_BITFIELD();
 
 	short			mins[3];			// for frustum culling
 	short			maxs[3];
@@ -732,12 +821,15 @@ struct dleaf_version_0_t
 // version 1
 struct dleaf_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int				contents;			// OR of all brushes (not needed?)
 
 	short			cluster;
 
+	BEGIN_BITFIELD( bf );
 	short			area:9;
 	short			flags:7;			// Per leaf flags.
+	END_BITFIELD();
 
 	short			mins[3];			// for frustum culling
 	short			maxs[3];
@@ -753,17 +845,44 @@ struct dleaf_t
 	// Precaculated light info for entities.
 //	CompressedLightCube m_AmbientLighting;
 };
+#pragma warning( default:4201 )	// C4201: nonstandard extension used: nameless struct/union
+#if defined( _X360 )
+#pragma bitfield_order( pop )
+#endif
+
+// each leaf contains N samples of the ambient lighting
+// each sample contains a cube of ambient light projected on to each axis
+// and a sampling position encoded as a 0.8 fraction (mins=0,maxs=255) of the leaf's bounding box
+struct dleafambientlighting_t
+{
+	DECLARE_BYTESWAP_DATADESC();
+	CompressedLightCube	cube;
+	byte x;		// fixed point fraction of leaf bounds
+	byte y;		// fixed point fraction of leaf bounds
+	byte z;		// fixed point fraction of leaf bounds
+	byte pad;	// unused
+};
+
+struct dleafambientindex_t
+{
+	DECLARE_BYTESWAP_DATADESC();
+
+	unsigned short ambientSampleCount;
+	unsigned short firstAmbientSample;
+};
 
 struct dbrushside_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	unsigned short	planenum;		// facing out of the leaf
-	short	texinfo;
+	short			texinfo;
 	short			dispinfo;		// displacement info (BSPVERSION 7)
 	short			bevel;			// is the side a bevel plane? (BSPVERSION 7)
 };
 
 struct dbrush_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int			firstside;
 	int			numsides;
 	int			contents;
@@ -789,6 +908,7 @@ struct dvis_t
 // hearable even if the vis info says that it should be
 struct dareaportal_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	unsigned short	m_PortalKey;		// Entities have a key called portalnumber (and in vbsp a variable
 									// called areaportalnum) which is used
 									// to bind them to the area portals by comparing with this value.
@@ -804,26 +924,14 @@ struct dareaportal_t
 
 struct darea_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int		numareaportals;
 	int		firstareaportal;
 };
 
-struct dportal_t
-{
-	int		firstportalvert;
-	int		numportalverts;
-	int		planenum;
-	unsigned short	cluster[2];
-};
-
-struct dcluster_t
-{
-	int		firstportal;
-	int		numportals;
-};
-
 struct dleafwaterdata_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	float	surfaceZ;
 	float	minZ;
 	short	surfaceTexInfoID;
@@ -832,6 +940,7 @@ struct dleafwaterdata_t
 class CFaceMacroTextureInfo
 {
 public:
+	DECLARE_BYTESWAP_DATADESC();
 	// This looks up into g_TexDataStringTable, which looks up into g_TexDataStringData.
 	// 0xFFFF if the face has no macro texture.
 	unsigned short m_MacroTextureNameID;	
@@ -855,6 +964,7 @@ enum emittype_t
 
 struct dworldlight_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	Vector		origin;
 	Vector		intensity;
 	Vector		normal;			// for surfaces and spotlights
@@ -877,6 +987,7 @@ struct dworldlight_t
 
 struct dcubemapsample_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int			origin[3];			// position of light snapped to the nearest integer
 									// the filename for the vtf file is derived from the position
 	unsigned char size;				// 0 - default
@@ -891,6 +1002,7 @@ struct dcubemapsample_t
 
 struct doverlay_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int			nId;
 	short		nTexInfo;
 
@@ -938,12 +1050,23 @@ inline unsigned short doverlay_t::GetRenderOrder() const
 	return (m_nFaceCountAndRenderOrder >> (16 - OVERLAY_RENDER_ORDER_NUM_BITS));
 }
 
+
+struct doverlayfade_t
+{
+	DECLARE_BYTESWAP_DATADESC();
+
+	float flFadeDistMinSq;
+	float flFadeDistMaxSq;
+};
+
+
 #define WATEROVERLAY_BSP_FACE_COUNT				256
 #define WATEROVERLAY_RENDER_ORDER_NUM_BITS		2
 #define WATEROVERLAY_NUM_RENDER_ORDERS			(1<<WATEROVERLAY_RENDER_ORDER_NUM_BITS)
 #define WATEROVERLAY_RENDER_ORDER_MASK			0xC000	// top 2 bits set
 struct dwateroverlay_t
 {
+	DECLARE_BYTESWAP_DATADESC();
 	int				nId;
 	short			nTexInfo;
 
@@ -1015,14 +1138,16 @@ struct epair_t
 // finalized page of surface's lightmaps
 #define MAX_LIGHTMAPPAGE_WIDTH	256
 #define MAX_LIGHTMAPPAGE_HEIGHT	128
-typedef struct
+typedef struct nameForDatadesc_dlightmappage_t // unnamed structs collide in the datadesc macros
 {
+	DECLARE_BYTESWAP_DATADESC();
 	byte	data[MAX_LIGHTMAPPAGE_WIDTH*MAX_LIGHTMAPPAGE_HEIGHT];
 	byte	palette[256*4];
 } dlightmappage_t;
 
-typedef struct
+typedef struct nameForDatadesc_dlightmappageinfo_t // unnamed structs collide in the datadesc macros
 {
+	DECLARE_BYTESWAP_DATADESC();
 	byte			page;			// lightmap page [0..?]
 	byte			offset[2];		// offset into page (s,t)
 	byte			pad;			// unused

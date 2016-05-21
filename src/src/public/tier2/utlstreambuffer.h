@@ -27,8 +27,18 @@ class CUtlStreamBuffer : public CUtlBuffer
 
 public:
 	// See CUtlBuffer::BufferFlags_t for flags
+	CUtlStreamBuffer( );
 	CUtlStreamBuffer( const char *pFileName, const char *pPath, int nFlags = 0, bool bDelayOpen = false );
 	~CUtlStreamBuffer();
+
+	// Open the file. normally done in constructor
+	void Open( const char *pFileName, const char *pPath, int nFlags );
+
+	// close the file. normally done in destructor
+	void Close();
+
+	// Is the file open?
+	bool IsOpen() const;
 
 private:
 	// error flags

@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="phonemeextractor"
+	Name="Phonemeextractor"
 	ProjectGUID="{8A35F55B-B5C2-47A0-8C4A-5857A8E20385}"
 	>
 	<Platforms>
@@ -18,18 +18,15 @@
 			OutputDirectory=".\Debug"
 			IntermediateDirectory=".\Debug"
 			ConfigurationType="2"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				CommandLine="if exist ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.dll attrib -r ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.dll&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\phonemeextractors&#x0D;&#x0A;if exist &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map copy &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.map&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\phonemeextractors\$(TargetName).dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -39,64 +36,81 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				PreprocessorDefinitions="_DEBUG"
-				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
-				TargetEnvironment="1"
-				TypeLibraryName=".\Debug/phonemeextractor.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="../common,../hlfaceposer,../../public,../../public/tier1,../sapi51/include"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;_USRDLL;PHONEMEEXTRACTOR_EXPORTS"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;../common,../hlfaceposer,../sapi51/include"
+				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;PHONEMEEXTRACTOR_EXPORTS"
+				StringPooling="true"
+				MinimalRebuild="true"
+				ExceptionHandling="0"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
+				BufferSecurityCheck="false"
+				FloatingPointModel="2"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile=".\Debug/phonemeextractor.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				GenerateXMLDocumentationFiles="false"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
 				WarningLevel="4"
-				SuppressStartupBanner="true"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
+				PreprocessorDefinitions="_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				UseUnicodeResponseFiles="false"
 				AdditionalDependencies="odbc32.lib odbccp32.lib"
-				OutputFile=".\Debug/phonemeextractor.dll"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/phonemeextractor.dll"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				IgnoreDefaultLibraryNames=""
+				AdditionalLibraryDirectories="..\..\lib\common;..\..\lib\public"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmt"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug/phonemeextractor.pdb"
-				ImportLibrary=".\Debug/phonemeextractor.lib"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
+				GenerateMapFile="true"
+				MapFileName="$(IntDir)/$(TargetName).map"
+				SubSystem="2"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/phonemeextractor.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -109,6 +123,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 		<Configuration
@@ -116,18 +133,15 @@
 			OutputDirectory=".\Release"
 			IntermediateDirectory=".\Release"
 			ConfigurationType="2"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				CommandLine="if exist ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.dll attrib -r ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.dll&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\phonemeextractors&#x0D;&#x0A;if exist &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map copy &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.map&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\phonemeextractors\$(TargetName).dll"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -137,65 +151,85 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
-				TargetEnvironment="1"
-				TypeLibraryName=".\Release/phonemeextractor.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="2"
-				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="../common,../hlfaceposer,../../public,../../public/tier1,../sapi51/include"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;_USRDLL;PHONEMEEXTRACTOR_EXPORTS"
+				InlineFunctionExpansion="2"
+				EnableIntrinsicFunctions="true"
+				FavorSizeOrSpeed="1"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1;../common,../hlfaceposer,../sapi51/include"
+				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_WINDOWS;_USRDLL;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;PHONEMEEXTRACTOR_EXPORTS"
 				StringPooling="true"
+				ExceptionHandling="0"
 				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
-				TreatWChar_tAsBuiltInType="false"
+				FloatingPointModel="2"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile=".\Release/phonemeextractor.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				GenerateXMLDocumentationFiles="false"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
 				WarningLevel="4"
-				SuppressStartupBanner="true"
-				CompileAs="0"
+				Detect64BitPortabilityProblems="true"
+				DebugInformationFormat="3"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
+				PreprocessorDefinitions="NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				UseUnicodeResponseFiles="false"
 				AdditionalDependencies="odbc32.lib odbccp32.lib"
-				OutputFile=".\Release/phonemeextractor.dll"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/phonemeextractor.dll"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				IgnoreDefaultLibraryNames="libcd.lib;libc.lib;libcmtd.lib"
-				ProgramDatabaseFile=".\Release/phonemeextractor.pdb"
-				ImportLibrary=".\Release/phonemeextractor.lib"
+				AdditionalLibraryDirectories="..\..\lib\common;..\..\lib\public"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmtd"
+				GenerateDebugInformation="true"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
+				GenerateMapFile="true"
+				MapFileName="$(IntDir)/$(TargetName).map"
+				SubSystem="2"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/phonemeextractor.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -208,6 +242,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 	</Configurations>
@@ -216,26 +253,117 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath="..\..\Public\amd3dx.h"
+				RelativePath=".\extractor_utils.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\tier0\basetypes.h"
+				RelativePath="..\..\public\tier0\memoverride.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+			</File>
+			<File
+				RelativePath="..\..\public\phonemeconverter.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\common\cmdlib.cpp"
+				RelativePath=".\phonemeextractor.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\common\cmdlib.h"
+				RelativePath="..\..\public\sentence.cpp"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Link Libraries"
+			>
+			<File
+				RelativePath="..\..\lib\public\mathlib.lib"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\commonmacros.h"
+				RelativePath="..\sapi51\lib\i386\sapi.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\tier0.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\tier1.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\vstdlib.lib"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Header Files"
+			>
+			<File
+				RelativePath=".\talkback.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="SAPI Header Files"
+			>
+			<File
+				RelativePath="..\sapi51\include\sapi.h"
+				>
+			</File>
+			<File
+				RelativePath="..\sapi51\include\sapiddk.h"
+				>
+			</File>
+			<File
+				RelativePath="..\sapi51\include\spddkhlp.h"
+				>
+			</File>
+			<File
+				RelativePath="..\sapi51\include\spdebug.h"
+				>
+			</File>
+			<File
+				RelativePath="..\sapi51\include\sperror.h"
+				>
+			</File>
+			<File
+				RelativePath="..\sapi51\include\sphelper.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Public Header Files"
+			>
+			<File
+				RelativePath="..\..\public\mathlib\amd3dx.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\public\tier0\basetypes.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\public\commonmacros.h"
 				>
 			</File>
 			<File
@@ -243,35 +371,7 @@
 				>
 			</File>
 			<File
-				RelativePath="extractor_utils.cpp"
-				>
-			</File>
-			<File
 				RelativePath="..\..\public\tier0\fasttimer.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\Public\FileSystem.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\public\filesystem_helpers.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\public\filesystem_helpers.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\public\filesystem_init.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\common\filesystem_tools.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\common\filesystem_tools.h"
 				>
 			</File>
 			<File
@@ -279,40 +379,12 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\MATHLIB.H"
+				RelativePath="..\..\public\mathlib\mathlib.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\public\tier0\memoverride.cpp"
+				RelativePath="..\..\public\phonemeconverter.h"
 				>
-			</File>
-			<File
-				RelativePath=".\phonemeconverter.cpp"
-				>
-			</File>
-			<File
-				RelativePath=".\phonemeconverter.h"
-				>
-			</File>
-			<File
-				RelativePath="phonemeextractor.cpp"
-				>
-				<FileConfiguration
-					Name="Release IMS|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug IMS|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\public\phonemeextractor\phonemeextractor.h"
@@ -327,35 +399,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\sapi51\Include\sapi.h"
-				>
-			</File>
-			<File
-				RelativePath="..\sapi51\Include\sapiddk.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\public\sentence.cpp"
-				>
-			</File>
-			<File
-				RelativePath="..\..\Public\sentence.h"
-				>
-			</File>
-			<File
-				RelativePath="..\sapi51\Include\Spddkhlp.h"
-				>
-			</File>
-			<File
-				RelativePath="..\sapi51\Include\spdebug.h"
-				>
-			</File>
-			<File
-				RelativePath="..\sapi51\Include\sperror.h"
-				>
-			</File>
-			<File
-				RelativePath="..\sapi51\Include\sphelper.h"
+				RelativePath="..\..\public\sentence.h"
 				>
 			</File>
 			<File
@@ -364,10 +408,6 @@
 			</File>
 			<File
 				RelativePath="..\..\public\vstdlib\strtools.h"
-				>
-			</File>
-			<File
-				RelativePath="talkback.h"
 				>
 			</File>
 			<File
@@ -383,11 +423,11 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector.h"
+				RelativePath="..\..\public\mathlib\vector.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector2d.h"
+				RelativePath="..\..\public\mathlib\vector2d.h"
 				>
 			</File>
 			<File
@@ -395,70 +435,6 @@
 				>
 			</File>
 		</Filter>
-		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl"
-			>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-			>
-		</Filter>
-		<File
-			RelativePath="..\..\lib\public\mathlib.lib"
-			>
-		</File>
-		<File
-			RelativePath="..\sapi51\lib\i386\sapi.lib"
-			>
-			<FileConfiguration
-				Name="Release IMS|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					CommandLine="if exist ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.dll attrib -r ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.dll&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\phonemeextractors&#x0D;&#x0A;if exist &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map copy &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.map&#x0D;&#x0A;"
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Debug|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					Description=""
-					CommandLine=""
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Release|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					Description=""
-					CommandLine=""
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Debug IMS|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					CommandLine="if exist ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.dll attrib -r ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.dll&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\phonemeextractors&#x0D;&#x0A;if exist &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map copy &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map ..\..\..\bin\phonemeextractors\&quot;$(TargetName)&quot;.map&#x0D;&#x0A;"
-				/>
-			</FileConfiguration>
-		</File>
-		<File
-			RelativePath="..\..\lib\public\tier0.lib"
-			>
-		</File>
-		<File
-			RelativePath="..\..\lib\public\tier1.lib"
-			>
-		</File>
-		<File
-			RelativePath="..\..\lib\public\vstdlib.lib"
-			>
-		</File>
 	</Files>
 	<Globals>
 	</Globals>

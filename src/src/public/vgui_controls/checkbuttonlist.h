@@ -67,7 +67,6 @@ private:
 	};
 	CUtlVector<CheckItem_t> m_CheckItems;
 	vgui::ScrollBar *m_pScrollBar;
-	bool m_bIgnoreCheckSignals;
 };
 
 }

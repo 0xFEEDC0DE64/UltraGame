@@ -12,7 +12,7 @@
 #include "bitmap/tgawriter.h"
 #include "tier1/utlbuffer.h"
 #include "tier2/tier2.h"
-#include "mathlib.h"
+#include "mathlib/mathlib.h"
 #include "filesystem.h"
 
 void Usage( void )

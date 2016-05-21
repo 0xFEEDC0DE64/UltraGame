@@ -21,6 +21,13 @@
 
 #include "tier0/memdbgon.h"
 
+enum EDictCompareType
+{
+	k_eDictCompareTypeCaseSensitive=0,
+	k_eDictCompareTypeCaseInsensitive=1,
+	k_eDictCompareTypeFilenames				// Slashes and backslashes count as the same character..
+};
+
 //-----------------------------------------------------------------------------
 // A dictionary mapping from symbol to structure
 //-----------------------------------------------------------------------------
@@ -31,7 +38,7 @@ public:
 	// constructor, destructor
 	// Left at growSize = 0, the memory will first allocate 1 element and double in size
 	// at each increment.
-	CUtlDict( bool caseInsensitive = true, int growSize = 0, int initSize = 0 );
+	CUtlDict( int compareType = k_eDictCompareTypeCaseInsensitive, int growSize = 0, int initSize = 0 );
 	~CUtlDict( );
 
 	void EnsureCapacity( int );
@@ -87,9 +94,13 @@ protected:
 // constructor, destructor
 //-----------------------------------------------------------------------------
 template <class T, class I>
-CUtlDict<T, I>::CUtlDict( bool caseInsensitive, int growSize, int initSize ) : m_Elements( growSize, initSize )
+CUtlDict<T, I>::CUtlDict( int compareType, int growSize, int initSize ) : m_Elements( growSize, initSize )
 {
-	if ( caseInsensitive )
+	if ( compareType == k_eDictCompareTypeFilenames )
+	{
+		m_Elements.SetLessFunc( CaselessStringLessThanIgnoreSlashes );
+	}
+	else if ( compareType == k_eDictCompareTypeCaseInsensitive )
 	{
 		m_Elements.SetLessFunc( CaselessStringLessThan );
 	}

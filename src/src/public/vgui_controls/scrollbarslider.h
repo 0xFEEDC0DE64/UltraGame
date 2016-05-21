@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef SCROLLBARSLIDER_H
 #define SCROLLBARSLIDER_H
@@ -18,7 +18,6 @@
 namespace vgui
 {
 
-enum MouseCode;
 class IBorder;
 
 //-----------------------------------------------------------------------------
@@ -61,6 +60,9 @@ public:
 	virtual void OnMousePressed(MouseCode code);
 	virtual void OnMouseDoublePressed(MouseCode code);
 	virtual void OnMouseReleased(MouseCode code);
+
+	// Return true if this slider is actually drawing itself
+	virtual bool IsSliderVisible( void );
 
 protected:
 	virtual void Paint();

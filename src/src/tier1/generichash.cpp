@@ -75,7 +75,7 @@ static unsigned g_nRandomValues[256] =
 //-----------------------------------------------------------------------------
 // String 
 //-----------------------------------------------------------------------------
-unsigned HashString( const char *pszKey )
+unsigned FASTCALL HashString( const char *pszKey )
 {
 	const uint8 *k =   (const uint8 *)pszKey;
 	unsigned 	even = 0,
@@ -98,7 +98,7 @@ unsigned HashString( const char *pszKey )
 //-----------------------------------------------------------------------------
 // Case-insensitive string 
 //-----------------------------------------------------------------------------
-unsigned HashStringCaseless( const char *pszKey )
+unsigned FASTCALL HashStringCaseless( const char *pszKey )
 {
 	const uint8 *k = (const uint8 *) pszKey;
 	unsigned	even = 0,
@@ -120,7 +120,7 @@ unsigned HashStringCaseless( const char *pszKey )
 //-----------------------------------------------------------------------------
 // 32 bit conventional case-insensitive string 
 //-----------------------------------------------------------------------------
-unsigned HashStringCaselessConventional( const char *pszKey )
+unsigned FASTCALL HashStringCaselessConventional( const char *pszKey )
 {
 	unsigned hash = 0xAAAAAAAA; // Alternating 1's and 0's to maximize the effect of the later multiply and add
 
@@ -133,13 +133,26 @@ unsigned HashStringCaselessConventional( const char *pszKey )
 }
 
 //-----------------------------------------------------------------------------
-// Case-insensitive string 
+// int hash
 //-----------------------------------------------------------------------------
+unsigned FASTCALL HashInt( const int n )
+{
+	register unsigned		even, odd;
+	even  = g_nRandomValues[n & 0xff];
+	odd   = g_nRandomValues[((n >> 8) & 0xff)];
+
+	even  = g_nRandomValues[odd ^ (n >> 24)];
+	odd   = g_nRandomValues[even ^ (n >> 16) & 0xff];
+	even  = g_nRandomValues[odd ^ ((n >> 8) &  0xff)];
+	odd   = g_nRandomValues[even  ^ (n & 0xff)];
+
+	return (even << 8) | odd;
+}
 
 //-----------------------------------------------------------------------------
 // 4-byte hash
 //-----------------------------------------------------------------------------
-unsigned Hash4( const void *pKey )
+unsigned FASTCALL Hash4( const void *pKey )
 {
 	register const uint32 *	p = (const uint32 *) pKey;
 	register unsigned		even,
@@ -161,7 +174,7 @@ unsigned Hash4( const void *pKey )
 //-----------------------------------------------------------------------------
 // 8-byte hash
 //-----------------------------------------------------------------------------
-unsigned Hash8( const void *pKey )
+unsigned FASTCALL Hash8( const void *pKey )
 {
 	register const uint32 *	p = (const uint32 *) pKey;
 	register unsigned		even,
@@ -189,7 +202,7 @@ unsigned Hash8( const void *pKey )
 //-----------------------------------------------------------------------------
 // 12-byte hash
 //-----------------------------------------------------------------------------
-unsigned Hash12( const void *pKey )
+unsigned FASTCALL Hash12( const void *pKey )
 {
 	register const uint32 *	p = (const uint32 *) pKey;
 	register unsigned		even,
@@ -223,7 +236,7 @@ unsigned Hash12( const void *pKey )
 //-----------------------------------------------------------------------------
 // 16-byte hash
 //-----------------------------------------------------------------------------
-unsigned Hash16( const void *pKey )
+unsigned FASTCALL Hash16( const void *pKey )
 {
 	register const uint32 *	p = (const uint32 *) pKey;
 	register unsigned		even,
@@ -263,7 +276,7 @@ unsigned Hash16( const void *pKey )
 //-----------------------------------------------------------------------------
 // Arbitrary fixed length hash
 //-----------------------------------------------------------------------------
-unsigned HashBlock( const void *pKey, unsigned size )
+unsigned FASTCALL HashBlock( const void *pKey, unsigned size )
 {
 	const uint8 *	k    = (const uint8 *) pKey;
 	unsigned 		even = 0,

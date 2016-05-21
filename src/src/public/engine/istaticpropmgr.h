@@ -12,7 +12,7 @@
 #endif
 
 #include "interface.h"
-#include "vector.h"
+#include "mathlib/vector.h"
 #include "utlvector.h"
 #include "basehandle.h"
 
@@ -72,14 +72,14 @@ public:
 	virtual void	GetStaticPropMaterialColorAndLighting( trace_t* pTrace,
 		int staticPropIndex, Vector& lighting, Vector& matColor ) = 0;
 
-	
+	//Changes made specifically to support the Portal mod (smack Dave Kircher if something breaks) (Added separately to both client and server to not mess with versioning)
 	//===================================================================
 	virtual void GetAllStaticProps( CUtlVector<ICollideable *> *pOutput ) = 0; //testing function that will eventually be removed
 	virtual void GetAllStaticPropsInAABB( const Vector &vMins, const Vector &vMaxs, CUtlVector<ICollideable *> *pOutput ) = 0; //get all static props that exist wholly or partially in an AABB
 	virtual void GetAllStaticPropsInOBB( const Vector &ptOrigin, const Vector &vExtent1, const Vector &vExtent2, const Vector &vExtent3, CUtlVector<ICollideable *> *pOutput ) = 0; //get all static props that exist wholly or partially in an OBB
 	//===================================================================
 
-	virtual void DrawStaticProps( IClientRenderable **pProps, int count ) = 0;
+	virtual void DrawStaticProps( IClientRenderable **pProps, int count, bool bShadowDepth, bool drawVCollideWireframe ) = 0;
 };
 
 class IStaticPropMgrServer : public IStaticPropMgr
@@ -87,7 +87,7 @@ class IStaticPropMgrServer : public IStaticPropMgr
 public:
 
 
-	
+	//Changes made specifically to support the Portal mod (smack Dave Kircher if something breaks) (Added separately to both client and server to not mess with versioning)
 	//===================================================================
 	virtual void GetAllStaticProps( CUtlVector<ICollideable *> *pOutput ) = 0; //testing function that will eventually be removed
 	virtual void GetAllStaticPropsInAABB( const Vector &vMins, const Vector &vMaxs, CUtlVector<ICollideable *> *pOutput ) = 0; //get all static props that exist wholly or partially in an AABB

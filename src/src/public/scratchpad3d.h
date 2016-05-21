@@ -14,7 +14,7 @@
 
 #include <stdio.h>
 #include "iscratchpad3d.h"
-#include "vmatrix.h"
+#include "mathlib/vmatrix.h"
 #include "filesystem.h"
 
 class CFileRead;

@@ -10,7 +10,7 @@
 
 #include "string_t.h"
 #include "datamap.h"
-#include "vmatrix.h"
+#include "mathlib/vmatrix.h"
 
 #if defined( _WIN32 )
 #pragma once
@@ -118,6 +118,9 @@ public:
 	virtual void	EndLogging( void ) = 0;
 
 	//---------------------------------
+	virtual bool	IsAsync() = 0;
+
+	//---------------------------------
 
 	virtual int		GetWritePos() const = 0;
 	virtual void	SetWritePos(int pos) = 0;
@@ -152,6 +155,7 @@ public:
 	
 	virtual void	WriteShort( const short *value, int count = 1 ) = 0;
 	virtual void	WriteInt( const int *value, int count = 1 ) = 0;		// Save an int
+	inline void		WriteInt( const unsigned *value, int count = 1 ) { WriteInt( (int *)value, count );	}
 	virtual void	WriteBool( const bool *value, int count = 1 ) = 0;		// Save a bool
 	virtual void	WriteFloat( const float *value, int count = 1 ) = 0;	// Save a float
 	virtual void	WriteData( const char *pdata, int size ) = 0;		// Save a binary data block
@@ -261,6 +265,7 @@ public:
 	virtual short	ReadShort( void ) = 0;
 	virtual int		ReadShort( short *pValue, int count = 1, int nBytesAvailable = 0 ) = 0;
 	virtual int		ReadInt( int *pValue, int count = 1, int nBytesAvailable = 0 ) = 0;
+	inline  int		ReadInt( unsigned *pValue, int count = 1, int nBytesAvailable = 0 ) { return ReadInt( (int *)pValue, count, nBytesAvailable ); }
 	virtual int		ReadInt( void ) = 0;
 	virtual int		ReadBool( bool *pValue, int count = 1, int nBytesAvailable = 0 ) = 0;
 	virtual int		ReadFloat( float *pValue, int count = 1, int nBytesAvailable = 0 ) = 0;

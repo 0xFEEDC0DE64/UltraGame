@@ -248,10 +248,10 @@ public:
 	// Purpose: "Frame locking" (not game frame). A crude way to manage locks over relatively 
 	//			short periods. Does not affect normal locks/unlocks
 	//--------------------------------------------------------
-	virtual void BeginFrameLocking() = 0;
+	virtual int BeginFrameLocking() = 0;
 	virtual bool IsFrameLocking() = 0;
 	virtual void *FrameLock( DataCacheHandle_t handle ) = 0;
-	virtual void EndFrameLocking() = 0;
+	virtual int EndFrameLocking() = 0;
 	virtual int *GetFrameUnlockCounterPtr() = 0;
 
 

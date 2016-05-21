@@ -11,7 +11,7 @@
 #include "tier1/UtlVector.h"
 #include "bitmap/imageformat.h"
 #include <KeyValues.h>
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "tier1/utlsymbol.h"
 #include "vtf/vtf.h"
 #include "materialpatch.h"
@@ -200,14 +200,36 @@ static bool LoadSrcVTFFiles( IVTFTexture *pSrcVTFTextures[6], const char *pSkybo
 		sprintf( srcMaterialName, "%s%s", pSkyboxMaterialBaseName, facingName[i] );
 
 		IMaterial *pSkyboxMaterial = g_pMaterialSystem->FindMaterial( srcMaterialName, "skybox" );
-		IMaterialVar *pSkyTextureVar = pSkyboxMaterial->FindVar( bHDR ? "$hdrbasetexture" : "$basetexture", NULL );
+		//IMaterialVar *pSkyTextureVar = pSkyboxMaterial->FindVar( bHDR ? "$hdrbasetexture" : "$basetexture", NULL ); //, bHDR ? false : true );
+		IMaterialVar *pSkyTextureVar = pSkyboxMaterial->FindVar( "$basetexture", NULL ); // Since we're setting it to black anyway, just use $basetexture for HDR
 		const char *vtfName = pSkyTextureVar->GetStringValue();
 		char srcVTFFileName[MAX_PATH];
 		Q_snprintf( srcVTFFileName, MAX_PATH, "materials/%s.vtf", vtfName );
 
 		CUtlBuffer buf;
-		if( !g_pFullFileSystem->ReadFile( srcVTFFileName, NULL, buf ) )
-			return false;
+		if ( !g_pFullFileSystem->ReadFile( srcVTFFileName, NULL, buf ) )
+		{
+			// Try looking for a compressed HDR texture
+			if ( bHDR )
+			{
+				/* // FIXME: We need a way to uncompress this format!
+				bool bHDRCompressed = true;
+
+				pSkyTextureVar = pSkyboxMaterial->FindVar( "$hdrcompressedTexture", NULL );
+				vtfName = pSkyTextureVar->GetStringValue();
+				Q_snprintf( srcVTFFileName, MAX_PATH, "materials/%s.vtf", vtfName );
+
+				if ( !g_pFullFileSystem->ReadFile( srcVTFFileName, NULL, buf ) )
+				*/
+				{
+					return false;
+				}
+			}
+			else
+			{
+				return false;
+			}
+		}
 
 		pSrcVTFTextures[i] = CreateVTFTexture();
 		if (!pSrcVTFTextures[i]->Unserialize(buf))
@@ -219,14 +241,17 @@ static bool LoadSrcVTFFiles( IVTFTexture *pSrcVTFTextures[6], const char *pSkybo
 		*pUnionTextureFlags |= pSrcVTFTextures[i]->Flags();
 		int flagsNoAlpha = pSrcVTFTextures[i]->Flags() & ~( TEXTUREFLAGS_EIGHTBITALPHA | TEXTUREFLAGS_ONEBITALPHA );
 		int flagsFirstNoAlpha = pSrcVTFTextures[0]->Flags() & ~( TEXTUREFLAGS_EIGHTBITALPHA | TEXTUREFLAGS_ONEBITALPHA );
-		if ( (pSrcVTFTextures[i]->Width() != pSrcVTFTextures[0]->Width()) ||
-			 (pSrcVTFTextures[i]->Height() != pSrcVTFTextures[0]->Height()) ||
-			 (flagsNoAlpha != flagsFirstNoAlpha) )
+		
+		// NOTE: texture[0] is a side texture that could be 1/2 height, so allow this and also allow 4x4 faces
+		if ( ( ( pSrcVTFTextures[i]->Width() != pSrcVTFTextures[0]->Width() ) && ( pSrcVTFTextures[i]->Width() != 4 ) ) ||
+			 ( ( pSrcVTFTextures[i]->Height() != pSrcVTFTextures[0]->Height() ) && ( pSrcVTFTextures[i]->Height() != pSrcVTFTextures[0]->Height()*2 )  && ( pSrcVTFTextures[i]->Height() != 4 ) ) ||
+			 ( flagsNoAlpha != flagsFirstNoAlpha ) )
 		{
 			Warning("*** Error: Skybox vtf files for %s weren't compiled with the same size texture and/or same flags!\n", pSkyboxMaterialBaseName );
 			return false;
 		}
-		if( bHDR )
+
+		if ( bHDR )
 		{
 			pSrcVTFTextures[i]->ConvertImageFormat( IMAGE_FORMAT_RGB323232F, false );
 			pSrcVTFTextures[i]->GenerateMipmaps();
@@ -281,8 +306,8 @@ void CreateDefaultCubemaps( bool bHDR )
 		Warning( "Can't load skybox file %s to build the default cubemap!\n", skyboxMaterialName );
 		return;
 	}
-	Msg( "Creating default %scubemaps for env_cubemap using skybox materials:\n%s*.vmt\n"
-		"Run buildcubemaps in the engine to get the correct cube maps.\n\n", bHDR ? "HDR " : "", skyboxMaterialName );
+	Msg( "Creating default %scubemaps for env_cubemap using skybox materials:\n   %s*.vmt\n"
+		" ! Run buildcubemaps in the engine to get the correct cube maps.\n", bHDR ? "HDR " : "LDR ", skyboxMaterialName );
 			
 	// Figure out the mip differences between the two textures
 	int iMipLevelOffset = 0;
@@ -312,8 +337,75 @@ void CreateDefaultCubemaps( bool bHDR )
 				unsigned char *pSrcBits = pSrcVTFTextures[iFace]->ImageData( iFrame, 0, iMip + iMipLevelOffset );
 				unsigned char *pDstBits = pDstCubemap->ImageData( iFrame, iFace, iMip );
 				int iSize = pDstCubemap->ComputeMipSize( iMip );
+				int iSrcMipSize = pSrcVTFTextures[iFace]->ComputeMipSize( iMip + iMipLevelOffset );
 
-				memcpy( pDstBits, pSrcBits, iSize ); 
+				// !!! FIXME: Set this to black until HDR cubemaps are built properly!
+				memset( pDstBits, 0, iSize );
+				continue;
+
+				if ( ( pSrcVTFTextures[iFace]->Width() == 4 ) && ( pSrcVTFTextures[iFace]->Height() == 4 ) ) // If texture is 4x4 square
+				{
+					// Force mip level 2 to get the 1x1 face
+					unsigned char *pSrcBits = pSrcVTFTextures[iFace]->ImageData( iFrame, 0, 2 );
+					int iSrcMipSize = pSrcVTFTextures[iFace]->ComputeMipSize( 2 );
+
+					// Replicate 1x1 mip level across entire face
+					//memset( pDstBits, 0, iSize ); 
+					for ( int i = 0; i < ( iSize / iSrcMipSize ); i++ )
+					{
+						memcpy( pDstBits + ( i * iSrcMipSize ), pSrcBits, iSrcMipSize ); 
+					}
+				}
+				else if ( pSrcVTFTextures[iFace]->Width() == pSrcVTFTextures[iFace]->Height() ) // If texture is square
+				{
+					if ( iSrcMipSize != iSize )
+					{
+						Warning( "%s - ERROR! Cannot copy square face for default cubemap! iSrcMipSize(%d) != iSize(%d)\n", skyboxMaterialName, iSrcMipSize, iSize );
+						memset( pDstBits, 0, iSize );
+					}
+					else
+					{
+						// Just copy the mip level
+						memcpy( pDstBits, pSrcBits, iSize ); 
+					}
+				}
+				else if ( pSrcVTFTextures[iFace]->Width() == pSrcVTFTextures[iFace]->Height()*2 ) // If texture is rectangle 2x wide
+				{
+					int iMipWidth, iMipHeight, iMipDepth;
+					pDstCubemap->ComputeMipLevelDimensions( iMip, &iMipWidth, &iMipHeight, &iMipDepth );
+					if ( ( iMipHeight > 1 ) && ( iSrcMipSize*2 != iSize ) )
+					{
+						Warning( "%s - ERROR building default cube map! %d*2 != %d\n", skyboxMaterialName, iSrcMipSize, iSize );
+						memset( pDstBits, 0, iSize );
+					}
+					else
+					{
+						// Copy row at a time and repeat last row
+						memcpy( pDstBits, pSrcBits, iSize/2 ); 
+						//memcpy( pDstBits + iSize/2, pSrcBits, iSize/2 );
+						int nSrcRowSize = pSrcVTFTextures[iFace]->RowSizeInBytes( iMip + iMipLevelOffset );
+						int nDstRowSize = pDstCubemap->RowSizeInBytes( iMip );
+						if ( nSrcRowSize != nDstRowSize )
+						{
+							Warning( "%s - ERROR building default cube map! nSrcRowSize(%d) != nDstRowSize(%d)!\n", skyboxMaterialName, nSrcRowSize, nDstRowSize );
+							memset( pDstBits, 0, iSize );
+						}
+						else
+						{
+							for ( int i = 0; i < ( iSize/2 / nSrcRowSize ); i++ )
+							{
+								memcpy( pDstBits + iSize/2 + i*nSrcRowSize, pSrcBits + iSrcMipSize - nSrcRowSize, nSrcRowSize );
+							}
+						}
+					}
+				}
+				else
+				{
+					// ERROR! This code only supports square and rectangluar 2x wide
+					Warning( "%s - Couldn't create default cubemap because texture res is %dx%d\n", skyboxMaterialName, pSrcVTFTextures[iFace]->Width(), pSrcVTFTextures[iFace]->Height() );
+					memset( pDstBits, 0, iSize );
+					return;
+				}
 			}
 		}
 	}
@@ -355,8 +447,10 @@ void CreateDefaultCubemaps( bool bHDR )
 		return;
 	}
 
+	IZip *pak = GetPakFile();
+
 	// spit out the default one.
-	AddBufferToPack( dstVTFFileName, outputBuf.Base(), outputBuf.TellPut(), false );
+	AddBufferToPak( pak, dstVTFFileName, outputBuf.Base(), outputBuf.TellPut(), false );
 
 	// spit out all of the ones that are attached to world geometry.
 	int i;
@@ -364,11 +458,11 @@ void CreateDefaultCubemaps( bool bHDR )
 	{
 		char vtfName[MAX_PATH];
 		VTFNameToHDRVTFName( s_DefaultCubemapNames[i], vtfName, MAX_PATH, bHDR );
-		if( FileExistsInPack( vtfName ) )
+		if( FileExistsInPak( pak, vtfName ) )
 		{
 			continue;
 		}
-		AddBufferToPack( vtfName, outputBuf.Base(),outputBuf.TellPut(), false );
+		AddBufferToPak( pak, vtfName, outputBuf.Base(),outputBuf.TellPut(), false );
 	}
 
 	// Clean up the textures
@@ -411,7 +505,7 @@ void Cubemap_SaveBrushSides( const char *pSideListStr )
 //-----------------------------------------------------------------------------
 // Generate patched material name
 //-----------------------------------------------------------------------------
-inline void GeneratePatchedName( const char *pMaterialName, const PatchInfo_t &info, bool bMaterialName, char *pBuffer, int nMaxLen )
+static void GeneratePatchedName( const char *pMaterialName, const PatchInfo_t &info, bool bMaterialName, char *pBuffer, int nMaxLen )
 {
 	const char *pSeparator = bMaterialName ? "_" : "";
 	int nLen = Q_snprintf( pBuffer, nMaxLen, "maps/%s/%s%s%d_%d_%d", info.m_pMapName, 
@@ -422,7 +516,7 @@ inline void GeneratePatchedName( const char *pMaterialName, const PatchInfo_t &i
 		Assert( nLen < TEXTURE_NAME_LENGTH - 1 );
 		if ( nLen >= TEXTURE_NAME_LENGTH - 1 )
 		{
-			Error( "Generated env_cubemap patch name : %s too long!\n", pBuffer );
+			Error( "Generated env_cubemap patch name : %s too long! (max = %d)\n", pBuffer, TEXTURE_NAME_LENGTH );
 		}
 	}
 
@@ -597,7 +691,6 @@ static int SideIDToIndex( int brushSideID )
 			return i;
 		}
 	}
-	Assert( 0 );
 	return -1;
 }
 
@@ -806,11 +899,6 @@ int Cubemap_FindClosestCubemap( const Vector &entityOrigin, side_t *pSide )
 }
 
 
-struct entitySideList_t
-{
-	int firstBrushSide;
-	int brushSideCount;
-};
 //-----------------------------------------------------------------------------
 // For every specular surface that wasn't referenced by some env_cubemap, call Cubemap_CreateTexInfo.
 //-----------------------------------------------------------------------------
@@ -819,38 +907,34 @@ void Cubemap_AttachDefaultCubemapToSpecularSides( void )
 	Cubemap_ResetCubemapSideData();
 	Cubemap_InitCubemapSideData();
 
-	CUtlVector<entitySideList_t> sideList;
-	sideList.SetCount( num_entities );
+	// build a mapping from side to entity id so that we can get the entity origin
+	CUtlVector<int> sideToEntityIndex;
+	sideToEntityIndex.SetCount(nummapbrushsides);
 	int i;
-	for ( i = 0; i < num_entities; i++ )
+	for ( i = 0; i < nummapbrushsides; i++ )
 	{
-		sideList[i].firstBrushSide = 0;
-		sideList[i].brushSideCount = 0;
+		sideToEntityIndex[i] = -1;
 	}
 
 	for ( i = 0; i < nummapbrushes; i++ )
 	{
-		sideList[mapbrushes[i].entitynum].brushSideCount += mapbrushes[i].numsides;
-	}
-	int curSide = 0;
-	for ( i = 0; i < num_entities; i++ )
-	{
-		sideList[i].firstBrushSide = curSide;
-		curSide += sideList[i].brushSideCount;
+		int entityIndex = mapbrushes[i].entitynum;
+		for ( int j = 0; j < mapbrushes[i].numsides; j++ )
+		{
+			side_t *side = &mapbrushes[i].original_sides[j];
+			int sideIndex = side - brushsides;
+			sideToEntityIndex[sideIndex] = entityIndex;
+		}
 	}
 
-	int currentEntity = 0;
 	for ( int iSide = 0; iSide < nummapbrushsides; ++iSide )
 	{
 		side_t *pSide = &brushsides[iSide];
 		if ( !SideHasCubemapAndWasntManuallyReferenced( iSide ) )
 			continue;
 
-		while ( currentEntity < num_entities-1 && 
-			iSide > sideList[currentEntity].firstBrushSide + sideList[currentEntity].brushSideCount )
-		{
-			currentEntity++;
-		}
+
+		int currentEntity = sideToEntityIndex[iSide];
 
 		int iCubemap = Cubemap_FindClosestCubemap( entities[currentEntity].origin, pSide );
 		if ( iCubemap == -1 )
@@ -868,16 +952,6 @@ void Cubemap_AttachDefaultCubemapToSpecularSides( void )
 			pSide->pMapDisp->face.texinfo = pSide->texinfo;
 		}
 	}
-}
-
-
-//-----------------------------------------------------------------------------
-// Collapse down unused texinfos + texdatas (cubemaps will make them unused)
-//-----------------------------------------------------------------------------
-void Cubemap_ClearUnusedTexInfos( void )
-{
-	// JAY: Removed this is unnecessary now 
-	// NOTE: there is a general texinfo collapse/remove at the end of build
 }
 
 // Populate with cubemaps that were skipped

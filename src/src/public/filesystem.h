@@ -1,9 +1,9 @@
-//====== Copyright © 1996-2005, Valve Corporation, All rights reserved. =======//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #include <limits.h>
 
@@ -12,6 +12,7 @@
 #include "tier1/interface.h"
 #include "tier1/utlsymbol.h"
 #include "appframework/IAppSystem.h"
+#include "tier1/checksum_crc.h"
 
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
@@ -26,25 +27,22 @@
 
 class CUtlBuffer;
 class KeyValues;
+class IFileList;
 
 typedef void * FileHandle_t;
 typedef int FileFindHandle_t;
 typedef void (*FileSystemLoggingFunc_t)( const char *fileName, const char *accessType );
 typedef int WaitForResourcesHandle_t;
 
-
-#ifdef _XBOX
+#ifdef _X360
 typedef void* HANDLE;
 #endif
+
 //-----------------------------------------------------------------------------
 // Enums used by the interface
 //-----------------------------------------------------------------------------
 
-#ifndef _XBOX
 #define FILESYSTEM_MAX_SEARCH_PATHS 128
-#else
-#define FILESYSTEM_MAX_SEARCH_PATHS 16
-#endif
 
 enum FileSystemSeek_t
 {
@@ -84,6 +82,34 @@ enum FileWarningLevel_t
 	// Report all open/close/read/write events and all async I/O file events to the console ( !slower(est)! )
 	FILESYSTEM_WARNING_REPORTALLACCESSES_ASYNC,
 
+};
+
+// search path filtering
+enum PathTypeFilter_t
+{
+	FILTER_NONE        = 0,	// no filtering, all search path types match
+	FILTER_CULLPACK    = 1,	// pack based search paths are culled (maps and zips)
+	FILTER_CULLNONPACK = 2,	// non-pack based search paths are culled
+};
+
+// search path querying (bit flags)
+enum
+{
+	PATH_IS_NORMAL      = 0x00, // normal path, not pack based
+	PATH_IS_PACKFILE    = 0x01, // path is a pack file
+	PATH_IS_MAPPACKFILE = 0x02, // path is a map pack file
+	PATH_IS_REMOTE		= 0x04, // path is the remote filesystem
+};
+typedef uint32 PathTypeQuery_t;
+
+#define IS_PACKFILE( n ) ( n & ( PATH_IS_PACKFILE | PATH_IS_MAPPACKFILE ) )
+#define IS_REMOTE( n )   ( n & PATH_IS_REMOTE )
+
+enum DVDMode_t
+{
+	DVDMODE_OFF    = 0, // not using dvd
+	DVDMODE_STRICT = 1, // dvd device only
+	DVDMODE_DEV    = 2, // dev mode, mutiple devices ok
 };
 
 // In non-retail builds, enable the file blocking access tracking stuff...
@@ -192,13 +218,16 @@ enum FilesystemMountRetval_t
 
 enum SearchPathAdd_t
 {
-	PATH_ADD_TO_HEAD,	// First path searched
-	PATH_ADD_TO_TAIL,	// Last path searched
+	PATH_ADD_TO_HEAD,		// First path searched
+	PATH_ADD_TO_TAIL,		// Last path searched
 };
 
 enum FilesystemOpenExFlags_t
 {
-	FSOPEN_UNBUFFERED	= ( 1 << 0 ),
+	FSOPEN_UNBUFFERED		= (1 << 0),
+	FSOPEN_FORCE_TRACK_CRC	= (1 << 1),		// This makes it calculate a CRC for the file (if the file came from disk) regardless 
+											// of the IFileList passed to RegisterFileWhitelist.
+	FSOPEN_NEVERINPACK	    = (1 << 2),		// 360 only, hint to FS that file is not allowed to be in pack file
 };
 
 #define FILESYSTEM_INVALID_HANDLE	( FileHandle_t )0
@@ -221,13 +250,20 @@ struct FileSystemStatistics
 //-----------------------------------------------------------------------------
 typedef void *(*FSAllocFunc_t)( const char *pszFilename, unsigned nBytes );
 
+
+//-----------------------------------------------------------------------------
+// Used to display dirty disk error functions
+//-----------------------------------------------------------------------------
+typedef void (*FSDirtyDiskReportFunc_t)();
+
+
 //-----------------------------------------------------------------------------
 // Asynchronous support types
 //-----------------------------------------------------------------------------
-
 DECLARE_POINTER_HANDLE(FSAsyncControl_t);
 DECLARE_POINTER_HANDLE(FSAsyncFile_t);
 const FSAsyncFile_t FS_INVALID_ASYNC_FILE = (FSAsyncFile_t)(0x0000ffff);
+
 
 //---------------------------------------------------------
 // Async file status
@@ -253,11 +289,26 @@ enum FSAsyncStatus_t
 enum FSAsyncFlags_t
 {
 	FSASYNC_FLAGS_ALLOCNOFREE		= ( 1 << 0 ),	// do the allocation for dataPtr, but don't free
-	FSASYNC_FLAGS_NOSEARCHPATHS		= ( 1 << 1 ),	// filename is absolute
-	FSASYNC_FLAGS_FREEDATAPTR		= ( 1 << 2 ),	// free the memory for the dataPtr post callback
-	FSASYNC_FLAGS_RAWIO				= ( 1 << 3 ),	// request an unbuffered IO. On Win32 & XBox implies alignment restrictions.
-	FSASYNC_FLAGS_SYNC				= ( 1 << 4 ),	// Actually perform the operation synchronously. Used to simplify client code paths
-	FSASYNC_FLAGS_NULLTERMINATE		= ( 1 << 5 ),	// allocate an extra byte and null terminate the buffer read in
+	FSASYNC_FLAGS_FREEDATAPTR		= ( 1 << 1 ),	// free the memory for the dataPtr post callback
+	FSASYNC_FLAGS_SYNC				= ( 1 << 2 ),	// Actually perform the operation synchronously. Used to simplify client code paths
+	FSASYNC_FLAGS_NULLTERMINATE		= ( 1 << 3 ),	// allocate an extra byte and null terminate the buffer read in
+};
+
+//---------------------------------------------------------
+// Return value for CheckFileCRC.
+//---------------------------------------------------------
+enum EFileCRCStatus
+{
+	k_eFileCRCStatus_CantOpenFile,		// We don't have this file. 
+	k_eFileCRCStatus_GotCRC
+};
+
+// Used in CacheFileCRCs.
+enum ECacheCRCType
+{
+	k_eCacheCRCType_SingleFile,
+	k_eCacheCRCType_Directory,
+	k_eCacheCRCType_Directory_Recursive
 };
 
 //---------------------------------------------------------
@@ -286,6 +337,22 @@ struct FileAsyncRequest_t
 	FSAsyncFile_t			hSpecificAsyncFile; // Optional hint obtained using AsyncBeginRead()
 	FSAllocFunc_t			pfnAlloc;			// custom allocator. can be null. not compatible with FSASYNC_FLAGS_FREEDATAPTR
 };
+
+
+class CUnverifiedCRCFile
+{
+public:
+	char m_PathID[MAX_PATH];
+	char m_Filename[MAX_PATH];
+	CRC32_t m_CRC;
+};
+
+
+// Spew flags for SetWhitelistSpewFlags (set with the fs_whitelist_spew_flags cvar).
+// Update the comment for the fs_whitelist_spew_flags cvar if you change these.
+#define WHITELIST_SPEW_WHILE_LOADING		0x0001	// list files as they are added to the CRC tracker
+#define WHITELIST_SPEW_RELOAD_FILES			0x0002	// show files the filesystem is telling the engine to reload
+#define WHITELIST_SPEW_DONT_RELOAD_FILES	0x0004	// show files the filesystem is NOT telling the engine to reload
 
 
 //-----------------------------------------------------------------------------
@@ -326,11 +393,7 @@ public:
 	//--------------------------------------------------------
 	virtual bool			ReadFile( const char *pFileName, const char *pPath, CUtlBuffer &buf, int nMaxBytes = 0, int nStartingByte = 0, FSAllocFunc_t pfnAlloc = NULL ) = 0;
 	virtual bool			WriteFile( const char *pFileName, const char *pPath, CUtlBuffer &buf ) = 0;
-
-#ifdef _XBOX
-	virtual bool			IsFileOnLocalHDD( const char *pFileName, const char *pPath, int &pathID, unsigned int &offset, unsigned int &length ) = 0; 
-	virtual bool			GetSearchPathFromId( int pathID, char *pPath, int nPathLen, bool &bIsPackFile ) = 0;
-#endif
+	virtual bool			UnzipFile( const char *pFileName, const char *pPath, const char *pDestination ) = 0;
 };
 
 
@@ -343,15 +406,6 @@ public:
 abstract_class IFileSystem : public IAppSystem, public IBaseFileSystem
 {
 public:
-	//--------------------------------------------------------
-	// Optional hooks to notify file system that application is initializing,
-	// needed if want to use convars in filesystem
-	//--------------------------------------------------------
-	virtual bool			ConnectApp( CreateInterfaceFn factory ) = 0;
-	virtual InitReturnVal_t	InitApp() = 0;
-	virtual void			ShutdownApp() = 0;
-	virtual void			DisconnectApp() = 0;
-
 	//--------------------------------------------------------
 	// Steam operations
 	//--------------------------------------------------------
@@ -393,7 +447,7 @@ public:
 	virtual void			MarkPathIDByRequestOnly( const char *pPathID, bool bRequestOnly ) = 0;
 
 	// converts a partial path into a full path
-	virtual const char		*RelativePathToFullPath( const char *pFileName, const char *pPathID, char *pLocalPath, int localPathBufferSize ) = 0;
+	virtual const char		*RelativePathToFullPath( const char *pFileName, const char *pPathID, char *pLocalPath, int localPathBufferSize, PathTypeFilter_t pathFilter = FILTER_NONE, PathTypeQuery_t *pPathType = NULL ) = 0;
 
 	// Returns the search path, each path is separated by ;s. Returns the length of the string returned
 	virtual int				GetSearchPath( const char *pathID, bool bGetPackFiles, char *pPath, int nMaxLen ) = 0;
@@ -409,7 +463,7 @@ public:
 	virtual void			RemoveFile( char const* pRelativePath, const char *pathID = 0 ) = 0;
 
 	// Renames a file (on the WritePath)
-	virtual void			RenameFile( char const *pOldPath, char const *pNewPath, const char *pathID = 0 ) = 0;
+	virtual bool			RenameFile( char const *pOldPath, char const *pNewPath, const char *pathID = 0 ) = 0;
 
 	// create a local directory structure
 	virtual void			CreateDirHierarchy( const char *path, const char *pathID = 0 ) = 0;
@@ -490,7 +544,7 @@ public:
 	virtual FSAsyncStatus_t	AsyncReadMultiple( const FileAsyncRequest_t *pRequests, int nRequests,  FSAsyncControl_t *phControls = NULL ) = 0;
 	virtual FSAsyncStatus_t	AsyncAppend(const char *pFileName, const void *pSrc, int nSrcBytes, bool bFreeMemory, FSAsyncControl_t *pControl = NULL ) = 0;
 	virtual FSAsyncStatus_t	AsyncAppendFile(const char *pAppendToFileName, const char *pAppendFromFileName, FSAsyncControl_t *pControl = NULL ) = 0;
-	virtual void			AsyncFinishAll( int iToPriority = INT_MIN ) = 0;
+	virtual void			AsyncFinishAll( int iToPriority = 0 ) = 0;
 	virtual void			AsyncFinishAllWrites() = 0;
 	virtual FSAsyncStatus_t	AsyncFlush() = 0;
 	virtual bool			AsyncSuspend() = 0;
@@ -568,14 +622,14 @@ public:
 	virtual FileNameHandle_t	FindFileName( char const *pFileName ) = 0;
 
 #if defined( TRACK_BLOCKING_IO )
-	virtual void				EnableBlockingFileAccessTracking( bool state ) = 0;
-	virtual bool				IsBlockingFileAccessEnabled() const = 0;
+	virtual void			EnableBlockingFileAccessTracking( bool state ) = 0;
+	virtual bool			IsBlockingFileAccessEnabled() const = 0;
 
 	virtual IBlockingFileItemList *RetrieveBlockingFileAccessInfo() = 0;
 #endif
 
-	virtual void PurgePreloadedData() = 0;
-	virtual void PreloadData() = 0;
+	virtual void SetupPreloadData() = 0;
+	virtual void DiscardPreloadData() = 0;
 
 	// Fixme, we could do these via a string embedded into the compiled data, etc...
 	enum KeyValuesPreloadType_t
@@ -583,11 +637,10 @@ public:
 		TYPE_VMT,
 		TYPE_SOUNDEMITTER,
 		TYPE_SOUNDSCAPE,
-
 		NUM_PRELOAD_TYPES
 	};
 
-	virtual void LoadCompiledKeyValues( KeyValuesPreloadType_t type, char const *archiveFile ) = 0;
+	virtual void		LoadCompiledKeyValues( KeyValuesPreloadType_t type, char const *archiveFile ) = 0;
 
 	// If the "PreloadedData" hasn't been purged, then this'll try and instance the KeyValues using the fast path of compiled keyvalues loaded during startup.
 	// Otherwise, it'll just fall through to the regular KeyValues loading routines
@@ -596,11 +649,12 @@ public:
 	virtual bool		ExtractRootKeyName( KeyValuesPreloadType_t type, char *outbuf, size_t bufsize, char const *filename, char const *pPathID = 0 ) = 0;
 
 	virtual FSAsyncStatus_t	AsyncWrite(const char *pFileName, const void *pSrc, int nSrcBytes, bool bFreeMemory, bool bAppend = false, FSAsyncControl_t *pControl = NULL ) = 0;
+	virtual FSAsyncStatus_t	AsyncWriteFile(const char *pFileName, const CUtlBuffer *pSrc, int nSrcBytes, bool bFreeMemory, bool bAppend = false, FSAsyncControl_t *pControl = NULL ) = 0;
 	// Async read functions with memory blame
-	FSAsyncStatus_t	AsyncReadCreditAlloc( const FileAsyncRequest_t &request, const char *pszFile, int line, FSAsyncControl_t *phControl = NULL )	{ return AsyncReadMultipleCreditAlloc( &request, 1, pszFile, line, phControl ); 	}
+	FSAsyncStatus_t			AsyncReadCreditAlloc( const FileAsyncRequest_t &request, const char *pszFile, int line, FSAsyncControl_t *phControl = NULL )	{ return AsyncReadMultipleCreditAlloc( &request, 1, pszFile, line, phControl ); 	}
 	virtual FSAsyncStatus_t	AsyncReadMultipleCreditAlloc( const FileAsyncRequest_t *pRequests, int nRequests, const char *pszFile, int line, FSAsyncControl_t *phControls = NULL ) = 0;
 
-	virtual bool GetFileTypeForFullPath( char const *pFullPath, wchar_t *buf, size_t bufSizeInBytes ) = 0;
+	virtual bool			GetFileTypeForFullPath( char const *pFullPath, wchar_t *buf, size_t bufSizeInBytes ) = 0;
 
 	//--------------------------------------------------------
 	//--------------------------------------------------------
@@ -609,36 +663,93 @@ public:
 	//--------------------------------------------------------
 	// Optimal IO operations
 	//--------------------------------------------------------
-	virtual bool GetOptimalIOConstraints( FileHandle_t hFile, unsigned *pOffsetAlign, unsigned *pSizeAlign, unsigned *pBufferAlign ) = 0;
-	inline unsigned GetOptimalReadSize( FileHandle_t hFile, unsigned nLogicalSize );
-	virtual void *AllocOptimalReadBuffer( FileHandle_t hFile, unsigned nSize = 0, unsigned nOffset = 0 ) = 0;
-	virtual void FreeOptimalReadBuffer( void * ) = 0;
+	virtual bool		GetOptimalIOConstraints( FileHandle_t hFile, unsigned *pOffsetAlign, unsigned *pSizeAlign, unsigned *pBufferAlign ) = 0;
+	inline unsigned		GetOptimalReadSize( FileHandle_t hFile, unsigned nLogicalSize );
+	virtual void		*AllocOptimalReadBuffer( FileHandle_t hFile, unsigned nSize = 0, unsigned nOffset = 0 ) = 0;
+	virtual void		FreeOptimalReadBuffer( void * ) = 0;
 
 	//--------------------------------------------------------
 	//
 	//--------------------------------------------------------
-	virtual void BeginMapAccess() = 0;
-	virtual void EndMapAccess() = 0;
+	virtual void		BeginMapAccess() = 0;
+	virtual void		EndMapAccess() = 0;
 
 	// Returns true on success, otherwise false if it can't be resolved
-	virtual bool FullPathToRelativePathEx( const char *pFullpath, const char *pPathId, char *pRelative, int maxlen ) = 0;
+	virtual bool		FullPathToRelativePathEx( const char *pFullpath, const char *pPathId, char *pRelative, int maxlen ) = 0;
 
-	virtual int GetPathIndex( const FileNameHandle_t &handle ) = 0;
-	virtual long GetPathTime( const char *pPath, const char *pPathID ) = 0;
+	virtual int			GetPathIndex( const FileNameHandle_t &handle ) = 0;
+	virtual long		GetPathTime( const char *pPath, const char *pPathID ) = 0;
+
+	virtual DVDMode_t	GetDVDMode() = 0;
+
+	//--------------------------------------------------------
+	// Whitelisting for pure servers.
+	//--------------------------------------------------------
+
+	// This should be called ONCE at startup. Multiplayer games (gameinfo.txt does not contain singleplayer_only)
+	// want to enable this so sv_pure works.
+	virtual void			EnableWhitelistFileTracking( bool bEnable ) = 0;
+
+	// This is called when the client connects to a server using a pure_server_whitelist.txt file.
+	//
+	// Files listed in pWantCRCList will have CRCs calculated for them IF they come off disk
+	// (and those CRCs will come out of GetUnverifiedCRCFiles).
+	//
+	// Files listed in pAllowFromDiskList will be allowed to load from disk. All other files will
+	// be forced to come from Steam.
+	//
+	// The filesystem hangs onto the whitelists you pass in here, and it will Release() them when it closes down
+	// or when you call this function again.
+	//
+	// NOTE: The whitelists you pass in here will be accessed from multiple threads, so make sure the 
+	//       IsFileInList function is thread safe.
+	//
+	// If pFilesToReload is non-null, the filesystem will hand back a list of files that should be reloaded because they
+	// are now "dirty". For example, if you were on a non-pure server and you loaded a certain model, and then you connected
+	// to a pure server that said that model had to come from Steam, then pFilesToReload would specify that model
+	// and the engine should reload it so it can come from Steam.
+	//
+	// Be sure to call Release() on pFilesToReload.
+	virtual void			RegisterFileWhitelist( IFileList *pWantCRCList, IFileList *pAllowFromDiskList, IFileList **pFilesToReload ) = 0;
+
+	// Called when the client logs onto a server. Any files that came off disk should be marked as 
+	// unverified because this server may have a different set of files it wants to guarantee.
+	virtual void			MarkAllCRCsUnverified() = 0;
+
+	// As the server loads whitelists when it transitions maps, it calls this to calculate CRCs for any files marked
+	// with check_crc.   Then it calls CheckCachedFileCRC later when it gets client requests to verify CRCs.
+	virtual void			CacheFileCRCs( const char *pPathname, ECacheCRCType eType, IFileList *pFilter ) = 0;
+	virtual EFileCRCStatus	CheckCachedFileCRC( const char *pPathID, const char *pRelativeFilename, CRC32_t *pCRC ) = 0;
+
+	// Fills in the list of files that have been loaded off disk and have not been verified.
+	// Returns the number of files filled in (between 0 and nMaxFiles).
+	//
+	// This also removes any files it's returning from the unverified CRC list, so they won't be
+	// returned from here again.
+	// The client sends batches of these to the server to verify.
+	virtual int				GetUnverifiedCRCFiles( CUnverifiedCRCFile *pFiles, int nMaxFiles ) = 0;
+	
+	// Control debug message output.
+	// Pass a combination of WHITELIST_SPEW_ flags.
+	virtual int				GetWhitelistSpewFlags() = 0;
+	virtual void			SetWhitelistSpewFlags( int flags ) = 0;
+
+	// Installs a callback used to display a dirty disk dialog
+	virtual void			InstallDirtyDiskReportFunc( FSDirtyDiskReportFunc_t func ) = 0;
 };
 
 //-----------------------------------------------------------------------------
 
-#if defined(_XBOX) && !defined(_RETAIL)
-extern char g_szXBOXProfileLastFileOpened[1024];
-#define SetLastProfileFileRead( s ) Q_strcpy( g_szXBOXProfileLastFileOpened, pFileName )
-#define GetLastProfileFileRead() (&g_szXBOXProfileLastFileOpened[0])
+#if defined( _X360 ) && !defined( _RETAIL )
+extern char g_szXboxProfileLastFileOpened[MAX_PATH];
+#define SetLastProfileFileRead( s ) Q_strncpy( g_szXboxProfileLastFileOpened, sizeof( g_szXboxProfileLastFileOpened), pFileName )
+#define GetLastProfileFileRead() (&g_szXboxProfileLastFileOpened[0])
 #else
 #define SetLastProfileFileRead( s ) ((void)0)
 #define GetLastProfileFileRead() NULL
 #endif
 
-#if defined(_XBOX) && defined(_BASETSD_H_)
+#if defined( _X360 ) && defined( _BASETSD_H_ )
 class CXboxDiskCacheSetter
 {
 public:
@@ -665,10 +776,8 @@ private:
 inline unsigned IFileSystem::GetOptimalReadSize( FileHandle_t hFile, unsigned nLogicalSize ) 
 { 
 	unsigned align; 
-	if ( IsPC() && GetOptimalIOConstraints( hFile, &align, NULL, NULL ) ) 
+	if ( GetOptimalIOConstraints( hFile, &align, NULL, NULL ) ) 
 		return AlignValue( nLogicalSize, align );
-	else if ( IsXbox() )
-		return AlignValue( nLogicalSize, 512 );
 	else
 		return nLogicalSize;
 }
@@ -686,5 +795,7 @@ inline unsigned IFileSystem::GetOptimalReadSize( FileHandle_t hFile, unsigned nL
 #define AsyncRead( a, b ) AsyncReadCreditAlloc( a, __FILE__, __LINE__, b )
 #define AsyncReadMutiple( a, b, c ) AsyncReadMultipleCreditAlloc( a, b, __FILE__, __LINE__, c )
 #endif
+
+extern IFileSystem *g_pFullFileSystem;
 
 #endif // FILESYSTEM_H

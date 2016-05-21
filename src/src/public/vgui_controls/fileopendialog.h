@@ -23,13 +23,24 @@ class InputDialog;
 //-----------------------------------------------------------------------------
 // Purpose: generic open/save as file dialog
 //-----------------------------------------------------------------------------
+enum FileOpenDialogType_t
+{
+	FOD_SAVE = 0,
+	FOD_OPEN,
+	FOD_SELECT_DIRECTORY,
+};
+
+
 class FileOpenDialog : public vgui::Frame
 {
 	DECLARE_CLASS_SIMPLE( FileOpenDialog, Frame );
 
 public:
+	// NOTE: Backward compat constructor
+	FileOpenDialog( Panel *parent, const char *title, bool bOpenFile, KeyValues *pContextKeyValues = 0 );
+
 	// The context keyvalues are added to all messages sent by this dialog if they are specified
-	FileOpenDialog( Panel *parent, const char *title, bool bOpenOnly, KeyValues *pContextKeyValues = 0 );
+	FileOpenDialog( Panel *parent, const char *title, FileOpenDialogType_t type, KeyValues *pContextKeyValues = 0 );
 	~FileOpenDialog();
 
 	// Set the directory the file search starts in
@@ -46,7 +57,8 @@ public:
 	void AddFilter( const char *filter, const char *filterName, bool bActive, const char *pFilterInfo = NULL );
 
 	// Activate the dialog
-	void DoModal( bool isSaveAsDialog );
+	// NOTE: The argument is there for backward compat
+	void DoModal( bool bUnused = false );
 
 	// Get the directory this is currently in
 	void GetCurrentDirectory( char *buf, int bufSize );
@@ -59,19 +71,22 @@ public:
 			"FileSelected"
 				"fullpath"	// specifies the fullpath of the file
 				"filterinfo"	// Returns the filter info associated with the active filter
-
+			"FileSelectionCancelled"
 	*/
 
 protected:
 	virtual void OnCommand( const char *command );
 	virtual void ApplySchemeSettings(IScheme *pScheme);
 	virtual void OnClose();
+	virtual void OnKeyCodeTyped(KeyCode code);
 
 	// handles the open button being pressed
 	// checks on what has changed and acts accordingly
 	MESSAGE_FUNC( OnOpen, "OnOpen" );
+	MESSAGE_FUNC( OnSelectFolder, "SelectFolder" );
 	MESSAGE_FUNC( OnFolderUp, "OnFolderUp" );
 	MESSAGE_FUNC( OnNewFolder, "OnNewFolder" );
+	MESSAGE_FUNC( OnOpenInExplorer, "OpenInExplorer" );
 
 	MESSAGE_FUNC( PopulateFileList, "PopulateFileList" );
 	MESSAGE_FUNC( PopulateDriveList, "PopulateDriveList" );
@@ -97,6 +112,9 @@ protected:
 	MESSAGE_FUNC_PARAMS( OnInputCompleted, "InputCompleted", data );
 
 private:
+	// Necessary because we have 2 constructors
+	void Init( const char *title, KeyValues *pContextKeyValues );
+
 	// Does the specified extension match something in the filter list?
 	bool ExtensionMatchesFilter( const char *pExt );
 
@@ -122,13 +140,16 @@ private:
 	vgui::Button 		*m_pCancelButton;
 	vgui::Button 		*m_pFolderUpButton;
 	vgui::Button		*m_pNewFolderButton;
+	vgui::Button		*m_pOpenInExplorerButton;
 	vgui::ImagePanel 	*m_pFolderIcon;
+	vgui::Label			*m_pFileTypeLabel;
 
 	KeyValues			*m_pContextKeyValues;
 
 	char m_szLastPath[1024];
 	unsigned short m_nStartDirContext;
-	bool m_bOpenOnly;
+	FileOpenDialogType_t m_DialogType;
+	bool m_bFileSelected : 1;
 
 	VPANEL				m_SaveModal;
 	vgui::DHANDLE< vgui::InputDialog >	m_hInputDialog;

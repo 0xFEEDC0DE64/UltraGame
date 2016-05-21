@@ -21,7 +21,7 @@
 #include <vgui_controls/Label.h>
 #include <vgui_controls/ListPanel.h>
 
-#include <UtlVector.h>
+#include <utlvector.h>
 
 namespace vgui
 {
@@ -146,6 +146,7 @@ public:
 	
 	// set whether the box handles more than one line of entry
 	virtual void SetMultiline(bool state);
+	virtual bool IsMultiline();
 
 	// sets visibility of scrollbar
 	virtual void SetVerticalScrollbar(bool state);
@@ -226,6 +227,9 @@ public:
 	void SetSelectionTextColor( const Color& clr );
 	void SetSelectionBgColor( const Color& clr );
 	void SetSelectionUnfocusedBgColor( const Color& clr );
+
+	void SetUseFallbackFont( bool bState, HFont hFallback );
+
 protected:
 	virtual void ResetCursorBlink();
 	virtual void PerformLayout();  // layout the text in the window
@@ -269,7 +273,13 @@ protected:
 
 	// Returns the character index the drawing should Start at
 	virtual int GetStartDrawIndex(int &lineBreakIndexIndex);
-	
+
+public:
+	// helper accessors for common gets
+	virtual float GetValueAsFloat();
+	virtual int GetValueAsInt();
+
+protected:
     void ScrollRight(); // scroll to right until cursor is visible
     void ScrollLeft();  // scroll to left 
 	bool IsCursorOffRightSideOfWindow(int cursorPos); // check if cursor is off right side of window
@@ -279,6 +289,8 @@ protected:
 	void OnSetFocus();
 	// Change keyboard layout type
 	void OnChangeIME( bool forward );
+
+	bool NeedsEllipses( HFont font, int *pIndex );
 
 private:
 	MESSAGE_FUNC_INT( OnSetState, "SetState", state );
@@ -292,7 +304,15 @@ private:
 	void CalcBreakIndex(); // calculate _recalculateLineBreaksIndex
 	void CreateEditMenu(); // create copy/cut/paste menu
 
+public:
+	Menu *GetEditMenu(); // retrieve copy/cut/paste menu
+
+private:
 	void	FlipToLastIME();
+
+public:
+	virtual void GetTextRange( wchar_t *buf, int from, int numchars );	// copy a portion of the text to the buffer and add zero-termination
+	virtual void GetTextRange( char *buf, int from, int numchars );	// copy a portion of the text to the buffer and add zero-termination
 
 private:
 
@@ -359,6 +379,9 @@ private:
 	int					m_hPreviousIME;
 	bool				m_bDrawLanguageIDAtLeft;
 	int					m_nLangInset;
+
+	bool				m_bUseFallbackFont : 1;
+	HFont				m_hFallbackFont;
 };
 
 }

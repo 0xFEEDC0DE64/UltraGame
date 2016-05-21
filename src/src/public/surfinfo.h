@@ -10,9 +10,9 @@
 #pragma once
 #endif
 
-#include "vplane.h"
+#include "mathlib/vplane.h"
 
-//#include "vector.h"
+//#include "mathlib/vector.h"
 #define MAX_SURFINFO_VERTS	16
 class SurfInfo
 {

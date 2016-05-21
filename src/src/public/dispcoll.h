@@ -9,7 +9,7 @@
 #define DISPCOLL_H
 #pragma once
 
-#include "Vector.h"
+#include "mathlib/vector.h"
 
 class CCoreDispInfo;
 

@@ -7,8 +7,17 @@
 //=============================================================================//
 
 #ifdef _LINUX
+
 #include "processor_detect_linux.cpp"
-#elif _WIN32
+
+#elif defined( _X360 )
+
+bool CheckMMXTechnology(void) { return false; }
+bool CheckSSETechnology(void) { return false; }
+bool CheckSSE2Technology(void) { return false; }
+bool Check3DNowTechnology(void) { return false; }
+
+#elif defined( _WIN32 ) && !defined( _X360 )
 
 #pragma optimize( "", off )
 #pragma warning( disable: 4800 ) //'int' : forcing value to bool 'true' or 'false' (performance warning)
@@ -18,7 +27,6 @@
 #define EXCEPTION_EXECUTE_HANDLER       1
 #endif
 
-// --------------------------------------------------------------------------
 bool CheckMMXTechnology(void)
 {
     int retval = true;
@@ -75,7 +83,7 @@ bool CheckMMXTechnology(void)
 
     return retval;
 }
-// --------------------------------------------------------------------------
+
 bool CheckSSETechnology(void)
 {
     int retval = true;
@@ -141,6 +149,7 @@ bool CheckSSETechnology(void)
 
     return retval;
 }
+
 bool CheckSSE2Technology(void)
 {
     int retval = true;
@@ -201,7 +210,6 @@ bool CheckSSE2Technology(void)
     return retval;
 }
 
-// --------------------------------------------------------------------------
 bool Check3DNowTechnology(void)
 {
     int retval = true;

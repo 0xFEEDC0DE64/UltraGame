@@ -10,55 +10,66 @@
 #pragma once
 #endif
 
-// 1=hl2 shipped. 2=compressed with diffs version (lostcoast)
-#define SHADER_VCS_VERSION_NUMBER 2
+// 1 = hl2 shipped
+// 2 = compressed with diffs version (lostcoast)
+// 3 = compressed with bzip
+// 4 = v2 + crc32
+// 5 = v3 + crc32
+// 6 = v5 + duplicate static combo records
+#define SHADER_VCS_VERSION_NUMBER		6
+
+#define MAX_SHADER_UNPACKED_BLOCK_SIZE	(1<<17)
+#define MAX_SHADER_PACKED_SIZE			(1+MAX_SHADER_UNPACKED_BLOCK_SIZE)
 
 #pragma pack(1)
-struct ShaderHeader_t_V1
+struct ShaderHeader_t
 {
-	int				m_nVersion;
-	int				m_nTotalCombos;
-	int				m_nDynamicCombos;
-	unsigned int	m_nFlags;
-	unsigned int	m_nCentroidMask;
+	int32	m_nVersion;
+	int32	m_nTotalCombos;
+	int32	m_nDynamicCombos;
+	uint32	m_nFlags;
+	uint32	m_nCentroidMask;
+	uint32	m_nNumStaticCombos;			// includes sentinal key
+	uint32	m_nSourceCRC32;				// NOTE: If you move this, update copyshaders.pl, *_prep.pl, updateshaders.pl
 };
+#pragma pack()
 
-struct ShaderHeader_t : ShaderHeader_t_V1
+#pragma pack(1)
+struct ShaderHeader_t_v4				// still used for assembly shaders
 {
-	int m_ReferenceComboSizeForDiffs;
+	int32	m_nVersion;
+	int32	m_nTotalCombos;
+	int32	m_nDynamicCombos;
+	uint32	m_nFlags;
+	uint32	m_nCentroidMask;
+	uint32	m_nDiffReferenceSize;
+	uint32	m_nSourceCRC32;				// NOTE: If you move this, update copyshaders.pl, *_prep.pl, updateshaders.pl
 };
+#pragma pack()
 
+// for old format files
 struct ShaderDictionaryEntry_t
 {
 	int m_Offset;
 	int m_Size;
 };
-#pragma pack()
 
-// 2=xbox shipped.
-#define SHADER_XCS_VERSION_NUMBER	2
-
-// xcs file format
-#pragma pack(1)
-struct XShaderDictionaryEntry_t
+// record for one static combo
+struct StaticComboRecord_t
 {
-	int				m_Offset;
-	unsigned short	m_PackedSize;
-	unsigned short	m_Size;
+	uint32 m_nStaticComboID;
+	uint32 m_nFileOffset;
 };
-struct XShaderHeader_t
-{
-	int				m_nVersion;
-	int				m_nTotalCombos;
-	int				m_nDynamicCombos;
-	unsigned int	m_nFlags;
-	unsigned int	m_nCentroidMask; 
-	int				m_nReferenceShader;	
 
-	bool			IsValid() { return m_nVersion == SHADER_XCS_VERSION_NUMBER; }
-	unsigned int	BytesToPreload() { return sizeof( XShaderHeader_t ) + sizeof( XShaderDictionaryEntry_t ) * m_nTotalCombos; }  
+
+struct StaticComboAliasRecord_t								// for duplicate static combos
+{
+	uint32 m_nStaticComboID;								// this combo
+	uint32 m_nSourceStaticCombo;							// the combo it is the same as
 };
-#pragma pack()
+
+
+
 
 #endif // SHADER_VCS_VERSION_H
 	

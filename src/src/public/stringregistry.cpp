@@ -64,9 +64,7 @@ int	CStringRegistry::GetStringID( const char *stringText )
 //-----------------------------------------------------------------------------
 char const *CStringRegistry::GetStringText( int stringID )
 {
-	int count = m_pStringList->Count();
-
-	for( unsigned short index = 0 ; index < count ; index++ )
+	for( unsigned short index = m_pStringList->First() ; index != m_pStringList->InvalidIndex(); index = m_pStringList->Next( index ) )
 	{
 		if ( (*m_pStringList)[index] == stringID )
 		{

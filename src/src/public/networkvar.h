@@ -71,8 +71,7 @@ inline int CheckDeclareClass_Access( T *, const char *pShouldBe )
 		{ \
 			InternalCheckDeclareClass( pShouldBe, #className, (ThisClass*)0xFFFFF, (BaseClass*)(ThisClass*)0xFFFFF ); \
 			return CheckDeclareClass_Access( (BaseClass *)NULL, #baseClassName ); \
-		} \
-		virtual char const *_GetClassName() { return #className; }
+		}
 
 	// Use this macro when you have a base class, but it's part of a library that doesn't use network vars
 	// or any of the things that use ThisClass or BaseClass.
@@ -95,20 +94,17 @@ inline int CheckDeclareClass_Access( T *, const char *pShouldBe )
 		static int CheckDeclareClass( const char *pShouldBe ) \
 		{ \
 			return InternalCheckDeclareClass( pShouldBe, #className, 0, 0 ); \
-		} \
-		virtual char const *_GetClassName() { return #className; }
+		} 
 
 #else
 	#define DECLARE_CLASS( className, baseClassName ) \
 		typedef baseClassName BaseClass; \
-		typedef className ThisClass; \
-		virtual char const *_GetClassName() { return #className; }
+		typedef className ThisClass;
 
 	#define DECLARE_CLASS_GAMEROOT( className, baseClassName )	DECLARE_CLASS( className, baseClassName )
 	#define DECLARE_CLASS_NOFRIEND( className, baseClassName )	DECLARE_CLASS( className, baseClassName )
 
-	#define DECLARE_CLASS_NOBASE( className )					typedef className ThisClass; \
-																virtual char const *_GetClassName() { return #className; }
+	#define DECLARE_CLASS_NOBASE( className )					typedef className ThisClass;
 #endif
 
 

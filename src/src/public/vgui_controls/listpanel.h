@@ -12,9 +12,9 @@
 #pragma once
 #endif
 
-#include <UtlLinkedList.h>
-#include <UtlVector.h>
-#include <UtlRBTree.h>
+#include <utllinkedlist.h>
+#include <utlvector.h>
+#include <utlrbtree.h>
 #include <vgui/VGUI.h>
 #include <vgui_controls/Panel.h>
 
@@ -106,6 +106,7 @@ public:
 	virtual void SortList( void );
 	virtual void SetColumnSortable(int column, bool sortable);
 	virtual void SetColumnVisible(int column, bool visible);
+	int GetSortColumn() const;
 
 	// sets whether the user can add/remove columns (defaults to off)
 	virtual void SetAllowUserModificationOfColumns(bool allowed);
@@ -164,11 +165,13 @@ public:
 	// sets no item as selected
 	virtual void ClearSelectedItems();
 
+	virtual bool IsItemSelected( int itemID );
+
 	// adds a item to the select list
-	virtual void AddSelectedItem(int itemID);
+	virtual void AddSelectedItem( int itemID );
 
 	// sets this single item as the only selected item
-	virtual void SetSingleSelectedItem(int itemID);
+	virtual void SetSingleSelectedItem( int itemID );
 
 	// returns the selected column, -1 for particular column selected
 	virtual int GetSelectedColumn();
@@ -221,9 +224,9 @@ protected:
 	virtual void Paint();
 	virtual void PaintBackground();
 	virtual void ApplySchemeSettings(IScheme *pScheme);
-	virtual void OnMousePressed(enum MouseCode code);
-	virtual void OnMouseDoublePressed(enum MouseCode code);
-	virtual void OnKeyCodeTyped(enum KeyCode code);
+	virtual void OnMousePressed( MouseCode code );
+	virtual void OnMouseDoublePressed( MouseCode code );
+	virtual void OnKeyCodeTyped( KeyCode code );
 	MESSAGE_FUNC( OnSliderMoved, "ScrollBarSliderMoved" );
 	MESSAGE_FUNC_INT_INT( OnColumnResized, "ColumnResized", column, delta );
 	MESSAGE_FUNC_INT( OnSetSortColumn, "SetSortColumn", column );
@@ -239,7 +242,12 @@ protected:
 
 	/* MESSAGES SENT
 		"ItemSelected" - query which items are selected
+		"ItemDeselected" - query which items are selected
 	*/
+
+public:
+	virtual void SetSortColumnEx( int iPrimarySortColumn, int iSecondarySortColumn, bool bSortAscending );
+	void GetSortColumnEx( int &iPrimarySortColumn, int &iSecondarySortColumn, bool &bSortAscending ) const;
 
 private:
 	// Cleans up allocations associated with a particular item

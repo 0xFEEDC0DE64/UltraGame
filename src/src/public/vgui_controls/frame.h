@@ -33,7 +33,7 @@ class Frame : public EditablePanel
 
 public:
 	Frame(Panel *parent, const char *panelName, bool showTaskbarIcon = true);
-	~Frame();
+	virtual ~Frame();
 
 	// Set the text in the title bar.  Set surfaceTitle=true if you want this to be the taskbar text as well.
 	virtual void SetTitle(const char *title, bool surfaceTitle);
@@ -92,6 +92,9 @@ public:
 	// Set the system menu 
 	virtual void SetSysMenu(Menu *menu);
 
+	// Set the system menu images
+	void SetImages( const char *pEnabledImage, const char *pDisabledImage = NULL );
+
 	// set whether the title bar should be rendered
 	virtual void SetTitleBarVisible( bool state );
 
@@ -114,13 +117,18 @@ public:
 	*/
 
 	// Load the control settings 
-	virtual void LoadControlSettings(const char *dialogResourceName, const char *pathID = NULL);
+	virtual void LoadControlSettings( const char *dialogResourceName, const char *pathID = NULL, KeyValues *pPreloadedKeyValues = NULL );
 
 	void SetChainKeysToParent( bool state );
 	bool CanChainKeysToParent() const;
 
 	// Shows the dialog in a modal fashion
 	virtual void DoModal();
+
+	void PlaceUnderCursor( );
+
+	// Disables the fade-in/out-effect even if configured in the scheme settings
+	void DisableFadeEffect( void );
 
 protected:
 	// Respond to mouse presses
@@ -223,6 +231,7 @@ private:
 	float m_flTransitionEffectTime;
 	float m_flFocusTransitionEffectTime;
 	int m_iClientInsetX, m_iClientInsetY;
+	bool m_iClientInsetXOverridden;
 	int m_iTitleTextInsetX;
 	Menu *_sysMenu;
 	bool m_bClipToParent;
@@ -231,6 +240,10 @@ private:
 	bool	m_bChainKeysToParent;
 	bool	m_bPrimed;
 	VPANEL	m_hPreviousModal;
+	HFont	m_hCustomTitleFont;
+
+	CPanelAnimationVarAliasType( int, m_iTitleTextInsetXOverride, "titletextinsetX", "0", "proportional_int" );
+	CPanelAnimationVarAliasType( int, m_iTitleTextInsetYOverride, "titletextinsetY", "0", "proportional_int" );
 };
 
 } // namespace vgui

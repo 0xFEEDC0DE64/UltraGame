@@ -91,10 +91,10 @@ private:
 	CUtlLinkedList< HandleInfo_t, unsigned short >		m_Handles;
 
 	// Maintains the list of all handles in a particular leaf
-	CUtlLinkedList< BSPTreeDataHandle_t, unsigned short >	m_LeafElements;
+	CUtlLinkedList< BSPTreeDataHandle_t, unsigned short, true >	m_LeafElements;
 
 	// Maintains the list of all leaves a particular handle spans
-	CUtlLinkedList< HandleInLeaf_t, unsigned short >	m_HandleLeafList;
+	CUtlLinkedList< HandleInLeaf_t, unsigned short, true >	m_HandleLeafList;
 
 	// Interface to BSP tree
 	ISpatialQuery*	m_pBSPTree;

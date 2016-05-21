@@ -10,7 +10,7 @@
 #pragma once
 #endif
 
-#include "tier1/UtlVector.h"
+#include "tier1/utlvector.h"
 
 // more flexible than default pointers to members code required for casting member function pointers
 #pragma pointers_to_members( full_generality, virtual_inheritance )
@@ -41,12 +41,6 @@ struct BoundKey_t
 	char const			*bindingname; // what it's bound to
 	int					keycode;	// vgui keycode
 	int					modifiers;  // which modifiers
-
-	// Helper method
-	bool AreModifiersMatching( int check ) const
-	{
-		return modifiers == check;		
-	}
 };
 
 //-----------------------------------------------------------------------------
@@ -173,10 +167,10 @@ struct KeyBindingMap_t
 	};													\
 	PanelKBMapFunc_##name m_##name##_register;		
 
-#define _KBBindKeyCommon( name, keycode, modifiers )	\
-	class PanelKBBindFunc_##name; \
-	friend class PanelKBBindFunc_##name; \
-	class PanelKBBindFunc_##name \
+#define _KBBindKeyCommon( name, keycode, modifiers, _classname )	\
+	class PanelKBBindFunc_##_classname; \
+	friend class PanelKBBindFunc_##_classname; \
+	class PanelKBBindFunc_##_classname \
 	{ \
 	public: \
 		static void InitVar() \
@@ -188,12 +182,12 @@ struct KeyBindingMap_t
 				KB_AddBoundKey( #name, keycode, modifiers ); \
 			}											\
 		}												\
-		PanelKBBindFunc_##name()							\
+		PanelKBBindFunc_##_classname()					\
 		{												\
-			PanelKBBindFunc_##name::InitVar();			\
+			PanelKBBindFunc_##_classname::InitVar();	\
 		}												\
 	};													\
-	PanelKBBindFunc_##name m_##name##_bindkey_register;	
+	PanelKBBindFunc_##_classname m_##_classname##_bindkey_register;	
 
 #define KEYBINDING_FUNC( name, keycode, modifiers, function, help, doc )				_KBMapFuncCommonFunc( name, keycode, modifiers, function, help, doc, false ); virtual void function()
 #define KEYBINDING_FUNC_NODECLARE( name, keycode, modifiers, function, help, doc )		_KBMapFuncCommonFunc( name, keycode, modifiers, function, help, doc, false );
@@ -201,7 +195,8 @@ struct KeyBindingMap_t
 #define KEYBINDING_FUNC_PASSIVE_NODECLARE( name, keycode, modifiers, function, help, doc )		_KBMapFuncCommonFunc( name, keycode, modifiers, function, help, doc, true );
 
 // For definding additional (non-default) keybindings
-#define KEYBINDING_ADDBINDING( name, keycode, modifiers )									_KBBindKeyCommon( name, keycode, modifiers );
+#define KEYBINDING_ADDBINDING( name, keycode, modifiers )									_KBBindKeyCommon( name, keycode, modifiers, name );
+#define KEYBINDING_ADDBINDING_MULTIPLE( name, keycode, modifiers, _classname )				_KBBindKeyCommon( name, keycode, modifiers, _classname );
 
 // mapping, one per class
 struct PanelKeyBindingMap

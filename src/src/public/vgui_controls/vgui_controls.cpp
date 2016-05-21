@@ -21,8 +21,6 @@ USING_BUILD_FACTORY( ImagePanel );
 USING_BUILD_FACTORY( Label );
 USING_BUILD_FACTORY( Panel );
 USING_BUILD_FACTORY( ToggleButton );
-
-#if !defined( _XBOX )
 USING_BUILD_FACTORY( AnimatingImagePanel );
 USING_BUILD_FACTORY( CBitmapImagePanel );
 USING_BUILD_FACTORY( CheckButton );
@@ -42,6 +40,7 @@ USING_BUILD_FACTORY( MessageBox );
 USING_BUILD_FACTORY( ProgressBar );
 USING_BUILD_FACTORY( RadioButton );
 USING_BUILD_FACTORY( RichText );
+USING_BUILD_FACTORY( ScalableImagePanel );
 USING_BUILD_FACTORY_ALIAS( ScrollBar, ScrollBar_Vertical );
 USING_BUILD_FACTORY_ALIAS( ScrollBar, ScrollBar_Horizontal );
 USING_BUILD_FACTORY( ScrollBar );
@@ -49,7 +48,8 @@ USING_BUILD_FACTORY( TextEntry );
 USING_BUILD_FACTORY( TreeView );
 USING_BUILD_FACTORY( CTreeViewListControl );
 USING_BUILD_FACTORY( URLLabel );
-#endif
+
+int g_nYou_Must_Add_Public_Vgui_Controls_Vgui_ControlsCpp_To_Your_Project = 0;
 
 #endif // _WIN32
 

@@ -1,11 +1,11 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: An extra interface implemented by the material system 
 // implementation of vgui::ISurface
 //
 // $Revision: $
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef IMATSYSTEMSURFACE_H
 #define IMATSYSTEMSURFACE_H
@@ -15,7 +15,7 @@
 
 
 #include <vgui/VGUI.h>
-#include "vgui/isurface.h"
+#include "vgui/ISurface.h"
 
 
 //-----------------------------------------------------------------------------
@@ -23,6 +23,7 @@
 //-----------------------------------------------------------------------------
 class VMatrix;
 class IMaterial;
+struct InputEvent_t;
 
 
 //-----------------------------------------------------------------------------
@@ -42,17 +43,14 @@ typedef void (*PlaySoundFunc_t)(const char *pFileName);
 // An extra interface implemented by the material system implementation of vgui::ISurface
 //
 //-----------------------------------------------------------------------------
-#define MAT_SYSTEM_SURFACE_INTERFACE_VERSION "MatSystemSurface005"
+#define MAT_SYSTEM_SURFACE_INTERFACE_VERSION "MatSystemSurface006"
 class IMatSystemSurface : public vgui::ISurface
 {
 public:
 	// Hook needed to get input to work.
 	// If the app drives the input (like the engine needs to do for VCR mode), 
-	// it can set bLetAppDriveInput to true and call HandleWindowMessage for the Windows messages.
+	// it can set bLetAppDriveInput to true and call HandleInputEvent for the input events.
 	virtual void AttachToWindow( void *hwnd, bool bLetAppDriveInput=false ) = 0;
-
-	// If you specified true for bLetAppDriveInput, then call this for each window message that comes in.
-	virtual void HandleWindowMessage( void *hwnd, unsigned int uMsg, unsigned int wParam, long lParam ) = 0;
 
 	// Tells the surface to ignore windows messages
 	virtual void EnableWindowsMessages( bool bEnable ) = 0;
@@ -96,6 +94,12 @@ public:
 
 	// Binds a material to a surface texture ID
 	virtual void DrawSetTextureMaterial( int id, IMaterial *pMaterial ) = 0;
+
+	// Handles an input event, returns true if the event should be filtered from the rest of the game
+	virtual bool HandleInputEvent( const InputEvent_t &event ) = 0;
+
+	virtual void Set3DPaintTempRenderTarget( const char *pRenderTargetName ) = 0;
+	virtual void Reset3DPaintTempRenderTarget( void ) = 0;
 };
 
 

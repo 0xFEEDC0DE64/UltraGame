@@ -6,9 +6,6 @@
 //=============================================================================//
 
 //#include <strstrea.h>
-#ifdef _WIN32
-#include <windows.h>
-#endif
 #include "vraddll.h"
 #include "bsplib.h"
 #include "vrad.h"
@@ -70,11 +67,7 @@ dat g_Dats[] =
 	DATENTRY(dareas),
 	DATENTRY(dareaportals),
 	DATENTRY(dworldlights),
-	DATENTRY(dportals),
-	DATENTRY(dclusters),
 	DATENTRY(dleafwaterdata),
-	DATENTRY(dportalverts),
-	DATENTRY(dclusterportals),
 	DATENTRY(g_ClipPortalVerts),
 	DATENTRY(g_CubemapSamples),
 	DATENTRY(g_TexDataStringData),

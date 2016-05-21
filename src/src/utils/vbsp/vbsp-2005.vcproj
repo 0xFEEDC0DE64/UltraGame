@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="vbsp"
+	Name="Vbsp"
 	ProjectGUID="{B78B6271-B19A-4CF6-926E-40B643548E23}"
 	>
 	<Platforms>
@@ -18,19 +18,15 @@
 			OutputDirectory=".\Debug"
 			IntermediateDirectory=".\Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="Copying"
-				CommandLine="if exist ..\..\..\bin\&quot;$(TargetName)&quot;.exe attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;copy &quot;$(TargetPath)&quot;  ..\..\..\bin&#x0D;&#x0A;&#x0D;&#x0A;if exist ..\..\..\bin\&quot;$(TargetName)&quot;.pdb attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;copy &quot;$(TargetDir)$(TargetName).pdb&quot; ..\..\..\bin&#x0D;&#x0A;&#x0D;&#x0A;if exist ..\..\..\bin\&quot;$(TargetName)&quot;.map attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.map&#x0D;&#x0A;if exist &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map copy &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map ..\..\..\bin\&quot;$(TargetName)&quot;.map&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\$(TargetName).exe;..\..\..\bin\$(TargetName).pdb"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -40,61 +36,86 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\Debug/vbsp.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				UseUnicodeResponseFiles="false"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\Public,..\..\Public\tier1,..\common,..\vmpi"
-				PreprocessorDefinitions="_DEBUG;DEBUG;MACRO_MATHLIB;_WIN32;_CONSOLE;PROTECTED_THINGS_DISABLE"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1,..\common,..\vmpi"
+				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;MACRO_MATHLIB;PROTECTED_THINGS_DISABLE"
+				StringPooling="true"
+				MinimalRebuild="true"
 				ExceptionHandling="0"
-				BasicRuntimeChecks="0"
+				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
+				BufferSecurityCheck="false"
+				FloatingPointModel="2"
+				DefaultCharIsUnsigned="false"
+				TreatWChar_tAsBuiltInType="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
+				OpenMP="false"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile=".\Debug/vbsp.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
-				BrowseInformation="1"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
+				ExpandAttributedSource="false"
+				AssemblerOutput="0"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
+				WarningLevel="4"
+				WarnAsError="false"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
+				PreprocessorDefinitions="_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				UseUnicodeResponseFiles="false"
 				AdditionalDependencies="ws2_32.lib odbc32.lib odbccp32.lib winmm.lib"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/vbsp.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				IgnoreDefaultLibraryNames="libcd,libc,libcmt"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmt"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug/vbsp.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
+				GenerateMapFile="true"
+				MapFileName="$(IntDir)/$(TargetName).map"
 				SubSystem="1"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/vbsp.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -107,6 +128,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 		<Configuration
@@ -114,19 +138,15 @@
 			OutputDirectory=".\Release"
 			IntermediateDirectory=".\Release"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
 			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="Copying"
-				CommandLine="if exist ..\..\..\bin\&quot;$(TargetName)&quot;.exe attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;copy &quot;$(TargetPath)&quot;  ..\..\..\bin&#x0D;&#x0A;&#x0D;&#x0A;if exist ..\..\..\bin\&quot;$(TargetName)&quot;.pdb attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;copy &quot;$(TargetDir)$(TargetName).pdb&quot; ..\..\..\bin&#x0D;&#x0A;&#x0D;&#x0A;if exist ..\..\..\bin\&quot;$(TargetName)&quot;.map attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.map&#x0D;&#x0A;if exist &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map copy &quot;$(TargetDir)&quot;&quot;$(TargetName)&quot;.map ..\..\..\bin\&quot;$(TargetName)&quot;.map&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\$(TargetName).exe;..\..\..\bin\$(TargetName).pdb"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -136,8 +156,6 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				TypeLibraryName=".\Release/vbsp.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -145,61 +163,81 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="..\..\Public,..\..\Public\tier1,..\common,..\vmpi"
-				PreprocessorDefinitions="NDEBUG;MACRO_MATHLIB;_WIN32;_CONSOLE;PROTECTED_THINGS_DISABLE"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1,..\common,..\vmpi"
+				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;MACRO_MATHLIB;PROTECTED_THINGS_DISABLE"
 				StringPooling="true"
 				ExceptionHandling="0"
 				RuntimeLibrary="0"
 				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
+				FloatingPointModel="2"
+				DefaultCharIsUnsigned="false"
+				TreatWChar_tAsBuiltInType="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
+				OpenMP="false"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile=".\Release/vbsp.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
-				BrowseInformation="1"
-				BrowseInformationFile=".\Release/"
-				WarningLevel="3"
-				SuppressStartupBanner="true"
+				ExpandAttributedSource="false"
+				AssemblerOutput="0"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
+				WarningLevel="4"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
+				PreprocessorDefinitions="NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
+				UseUnicodeResponseFiles="false"
 				AdditionalDependencies="ws2_32.lib odbc32.lib odbccp32.lib winmm.lib"
-				OutputFile=".\Release/vbsp.exe"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/vbsp.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				IgnoreDefaultLibraryNames="libc,libcd,libcmtd"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmtd"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Release/vbsp.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
 				GenerateMapFile="true"
-				MapFileName=".\Release/vbsp.map"
+				MapFileName="$(IntDir)/$(TargetName).map"
 				SubSystem="1"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/vbsp.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -212,6 +250,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 	</Configurations>
@@ -220,30 +261,29 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 			>
 			<File
-				RelativePath="brushbsp.cpp"
+				RelativePath=".\brushbsp.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\CollisionUtils.cpp"
+				RelativePath="..\..\public\collisionutils.cpp"
 				>
 			</File>
 			<File
-				RelativePath="csg.cpp"
+				RelativePath=".\csg.cpp"
 				>
 			</File>
 			<File
-				RelativePath="cubemap.cpp"
+				RelativePath=".\cubemap.cpp"
 				>
 			</File>
 			<File
-				RelativePath="detail.cpp"
+				RelativePath=".\detail.cpp"
 				>
 			</File>
 			<File
-				RelativePath="detailObjects.cpp"
+				RelativePath=".\detailobjects.cpp"
 				>
 			</File>
 			<File
@@ -251,7 +291,7 @@
 				>
 			</File>
 			<File
-				RelativePath="disp_ivp.cpp"
+				RelativePath=".\disp_ivp.cpp"
 				>
 			</File>
 			<File
@@ -259,23 +299,23 @@
 				>
 			</File>
 			<File
-				RelativePath="disp_vbsp.cpp"
+				RelativePath=".\disp_vbsp.cpp"
 				>
 			</File>
 			<File
-				RelativePath="faces.cpp"
+				RelativePath=".\faces.cpp"
 				>
 			</File>
 			<File
-				RelativePath="glfile.cpp"
+				RelativePath=".\glfile.cpp"
 				>
 			</File>
 			<File
-				RelativePath="ivp.cpp"
+				RelativePath=".\ivp.cpp"
 				>
 			</File>
 			<File
-				RelativePath="leakfile.cpp"
+				RelativePath=".\leakfile.cpp"
 				>
 			</File>
 			<File
@@ -287,11 +327,11 @@
 				>
 			</File>
 			<File
-				RelativePath="map.cpp"
+				RelativePath=".\map.cpp"
 				>
 			</File>
 			<File
-				RelativePath="materialpatch.cpp"
+				RelativePath=".\materialpatch.cpp"
 				>
 			</File>
 			<File
@@ -301,21 +341,37 @@
 			<File
 				RelativePath="..\..\public\tier0\memoverride.cpp"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\common\mstristrip.cpp"
 				>
 			</File>
 			<File
-				RelativePath="nodraw.cpp"
+				RelativePath=".\nodraw.cpp"
 				>
 			</File>
 			<File
-				RelativePath="normals.cpp"
+				RelativePath=".\normals.cpp"
 				>
 			</File>
 			<File
-				RelativePath="overlay.cpp"
+				RelativePath=".\overlay.cpp"
 				>
 			</File>
 			<File
@@ -323,15 +379,15 @@
 				>
 			</File>
 			<File
-				RelativePath="portals.cpp"
+				RelativePath=".\portals.cpp"
 				>
 			</File>
 			<File
-				RelativePath="prtfile.cpp"
+				RelativePath=".\prtfile.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\ScratchPad3D.cpp"
+				RelativePath="..\..\public\scratchpad3d.cpp"
 				>
 			</File>
 			<File
@@ -339,15 +395,15 @@
 				>
 			</File>
 			<File
-				RelativePath="StaticProp.cpp"
+				RelativePath=".\staticprop.cpp"
 				>
 			</File>
 			<File
-				RelativePath="textures.cpp"
+				RelativePath=".\textures.cpp"
 				>
 			</File>
 			<File
-				RelativePath="tree.cpp"
+				RelativePath=".\tree.cpp"
 				>
 			</File>
 			<File
@@ -355,15 +411,15 @@
 				>
 			</File>
 			<File
-				RelativePath="vbsp.cpp"
+				RelativePath=".\vbsp.cpp"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vmatrix.cpp"
+				RelativePath=".\worldvertextransitionfixup.cpp"
 				>
 			</File>
 			<File
-				RelativePath="writebsp.cpp"
+				RelativePath=".\writebsp.cpp"
 				>
 			</File>
 			<File
@@ -372,7 +428,6 @@
 			</File>
 			<Filter
 				Name="Common Files"
-				Filter="*.c, *.cpp"
 				>
 				<File
 					RelativePath="..\common\bsplib.cpp"
@@ -383,7 +438,7 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\Public\ChunkFile.cpp"
+					RelativePath="..\..\public\chunkfile.cpp"
 					>
 				</File>
 				<File
@@ -433,19 +488,50 @@
 			</Filter>
 		</Filter>
 		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl"
+			Name="Link Libraries"
 			>
 			<File
-				RelativePath="csg.h"
+				RelativePath="..\..\lib\public\bitmap.lib"
 				>
 			</File>
 			<File
-				RelativePath="detail.h"
+				RelativePath="..\..\lib\public\mathlib.lib"
 				>
 			</File>
 			<File
-				RelativePath="disp_lightmap_alpha.h"
+				RelativePath="..\..\lib\public\tier0.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\tier1.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\tier2.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\vstdlib.lib"
+				>
+			</File>
+			<File
+				RelativePath="..\..\lib\public\vtf.lib"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Header Files"
+			>
+			<File
+				RelativePath=".\csg.h"
+				>
+			</File>
+			<File
+				RelativePath=".\detail.h"
+				>
+			</File>
+			<File
+				RelativePath=".\disp_lightmap_alpha.h"
 				>
 			</File>
 			<File
@@ -453,7 +539,7 @@
 				>
 			</File>
 			<File
-				RelativePath="disp_vbsp.h"
+				RelativePath=".\disp_vbsp.h"
 				>
 			</File>
 			<File
@@ -461,15 +547,15 @@
 				>
 			</File>
 			<File
-				RelativePath="faces.h"
+				RelativePath=".\faces.h"
 				>
 			</File>
 			<File
-				RelativePath="map.h"
+				RelativePath=".\map.h"
 				>
 			</File>
 			<File
-				RelativePath="materialpatch.h"
+				RelativePath=".\materialpatch.h"
 				>
 			</File>
 			<File
@@ -481,16 +567,19 @@
 				>
 			</File>
 			<File
-				RelativePath="vbsp.h"
+				RelativePath=".\vbsp.h"
 				>
 			</File>
 			<File
-				RelativePath="writebsp.h"
+				RelativePath=".\worldvertextransitionfixup.h"
+				>
+			</File>
+			<File
+				RelativePath=".\writebsp.h"
 				>
 			</File>
 			<Filter
 				Name="Common header files"
-				Filter="*.h"
 				>
 				<File
 					RelativePath="..\common\bsplib.h"
@@ -501,7 +590,7 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\Public\ChunkFile.h"
+					RelativePath="..\..\public\chunkfile.h"
 					>
 				</File>
 				<File
@@ -509,11 +598,11 @@
 					>
 				</File>
 				<File
-					RelativePath="disp_ivp.h"
+					RelativePath=".\disp_ivp.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\Public\FileSystem.h"
+					RelativePath="..\..\public\filesystem.h"
 					>
 				</File>
 				<File
@@ -521,11 +610,11 @@
 					>
 				</File>
 				<File
-					RelativePath="..\common\FileSystem_Tools.h"
+					RelativePath="..\common\filesystem_tools.h"
 					>
 				</File>
 				<File
-					RelativePath="..\..\Public\GameBSPFile.h"
+					RelativePath="..\..\public\gamebspfile.h"
 					>
 				</File>
 				<File
@@ -533,7 +622,7 @@
 					>
 				</File>
 				<File
-					RelativePath="ivp.h"
+					RelativePath=".\ivp.h"
 					>
 				</File>
 				<File
@@ -570,47 +659,51 @@
 			Name="Public Headers"
 			>
 			<File
-				RelativePath="..\..\Public\amd3dx.h"
+				RelativePath="..\..\public\mathlib\amd3dx.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\arraystack.h"
+				RelativePath="..\..\public\arraystack.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\tier0\basetypes.h"
+				RelativePath="..\..\public\tier0\basetypes.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\BSPFILE.H"
+				RelativePath="..\..\public\bspfile.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\bspflags.h"
+				RelativePath="..\..\public\bspflags.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\BSPTreeData.h"
+				RelativePath="..\..\public\bsptreedata.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\bumpvects.h"
+				RelativePath="..\..\public\mathlib\bumpvects.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\cmodel.h"
+				RelativePath="..\..\public\tier1\byteswap.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\CollisionUtils.h"
+				RelativePath="..\..\public\cmodel.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\commonmacros.h"
+				RelativePath="..\..\public\collisionutils.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\dbg\dbg.h"
+				RelativePath="..\..\public\commonmacros.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\public\dbg\dbg.h"
 				>
 			</File>
 			<File
@@ -618,15 +711,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\ImageLoader.h"
+				RelativePath="..\..\public\ImageLoader.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\IScratchPad3D.h"
+				RelativePath="..\..\public\iscratchpad3d.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\MATHLIB.H"
+				RelativePath="..\..\public\mathlib\mathlib.h"
 				>
 			</File>
 			<File
@@ -634,19 +727,19 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\nmatrix.h"
+				RelativePath="..\..\public\nmatrix.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\NTree.h"
+				RelativePath="..\..\public\ntree.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\nvector.h"
+				RelativePath="..\..\public\nvector.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\phyfile.h"
+				RelativePath="..\..\public\phyfile.h"
 				>
 			</File>
 			<File
@@ -658,7 +751,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\ScratchPad3D.h"
+				RelativePath="..\..\public\scratchpad3d.h"
 				>
 			</File>
 			<File
@@ -666,7 +759,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\studio.h"
+				RelativePath="..\..\public\studio.h"
 				>
 			</File>
 			<File
@@ -698,135 +791,44 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vcollide.h"
+				RelativePath="..\..\public\vcollide.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector.h"
+				RelativePath="..\..\public\mathlib\vector.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector2d.h"
+				RelativePath="..\..\public\mathlib\vector2d.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector4d.h"
+				RelativePath="..\..\public\mathlib\vector4d.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vmatrix.h"
+				RelativePath="..\..\public\mathlib\vmatrix.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vphysics_interface.h"
+				RelativePath="..\..\public\vphysics_interface.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vplane.h"
+				RelativePath="..\..\public\mathlib\vplane.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\wadtypes.h"
+				RelativePath="..\..\public\wadtypes.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\worldsize.h"
+				RelativePath="..\..\public\worldsize.h"
 				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe"
-			>
-		</Filter>
-		<Filter
-			Name="Link Libraries"
-			>
-			<File
-				RelativePath="..\..\lib\public\bitmap.lib"
-				>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\mathlib.lib"
-				>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\tier0.lib"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\tier1.lib"
-				>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\tier2.lib"
-				>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\vstdlib.lib"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-			</File>
-			<File
-				RelativePath="..\..\lib\public\vtf.lib"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
 			</File>
 		</Filter>
 		<File
-			RelativePath="notes.txt"
+			RelativePath=".\notes.txt"
 			>
 		</File>
 	</Files>

@@ -75,6 +75,8 @@ private:
 	Button *_okButton;
 	Button *_cancelButton;
 	Button *_applyButton;
+
+	CPanelAnimationVar( int, m_iSheetInsetBottom, "sheetinset_bottom", "32" );
 };
 
 }; // vgui

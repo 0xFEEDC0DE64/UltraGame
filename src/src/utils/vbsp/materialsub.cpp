@@ -9,7 +9,7 @@
 #include "vbsp.h"
 #include "materialsub.h"
 #include "KeyValues.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 
 bool g_ReplaceMaterials	= false;
 

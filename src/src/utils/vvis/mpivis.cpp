@@ -130,9 +130,9 @@ void VMPI_DeletePortalMCSocket()
 }
 
 
-void VVIS_SetupMPI( int argc, char **argv )
+void VVIS_SetupMPI( int &argc, char **&argv )
 {
-	if ( !VMPI_FindArg( argc, argv, "-mpi", "" ) )
+	if ( !VMPI_FindArg( argc, argv, "-mpi", "" ) && !VMPI_FindArg( argc, argv, VMPI_GetParamString( mpi_Worker ), "" ) )
 		return;
 
 	CmdLib_AtCleanup( VMPI_Stats_Term );
@@ -141,40 +141,42 @@ void VVIS_SetupMPI( int argc, char **argv )
 	VMPI_Stats_InstallSpewHook();
 
 	// Force local mode?
-	VMPIRunMode mode = VMPI_RUN_NETWORKED_MULTICAST;
-	if ( VMPI_FindArg( argc, argv, "-mpi_broadcast", "" ) )
-		mode = VMPI_RUN_NETWORKED_BROADCAST;
-	if ( VMPI_FindArg( argc, argv, "-mpi_local", "" ) )
+	VMPIRunMode mode;
+	if ( VMPI_FindArg( argc, argv, VMPI_GetParamString( mpi_Local ), "" ) )
 		mode = VMPI_RUN_LOCAL;
+	else
+		mode = VMPI_RUN_NETWORKED;
 
 	//
 	//  Extract mpi specific arguments
 	//
-	Msg( "MPI - Establishing connections...\n" );
+	Msg( "Initializing VMPI...\n" );
 	if ( !VMPI_Init( argc, argv, "dependency_info_vvis.txt", HandleMPIDisconnect, mode ) )
 	{
 		Error( "MPI_Init failed." );
 	}
 
-	if ( !g_bMPI_NoStats )
-		StatsDB_InitStatsDatabase( argc, argv, "dbinfo_vvis.txt" );
+	StatsDB_InitStatsDatabase( argc, argv, "dbinfo_vvis.txt" );
 }
 
 
-void ProcessBasePortalVis( int iThread, int iPortal, MessageBuffer *pBuf )
+void ProcessBasePortalVis( int iThread, uint64 iPortal, MessageBuffer *pBuf )
 {
 	CTimeAdder adder( &g_CPUTime );
-		BasePortalVis( iThread, iPortal );
-	adder.End();
+
+	BasePortalVis( iThread, iPortal );
 
 	// Send my result to the master
-	portal_t * p = &portals[iPortal];
-	pBuf->write( p->portalfront, portalbytes );
-	pBuf->write( p->portalflood, portalbytes );
+	if ( pBuf )
+	{
+		portal_t * p = &portals[iPortal];
+		pBuf->write( p->portalfront, portalbytes );
+		pBuf->write( p->portalflood, portalbytes );
+	}
 }
 
 
-void ReceiveBasePortalVis( int iWorkUnit, MessageBuffer *pBuf, int iWorker )
+void ReceiveBasePortalVis( uint64 iWorkUnit, MessageBuffer *pBuf, int iWorker )
 {
 	portal_t * p = &portals[iWorkUnit];
 	if ( p->portalflood != 0 || p->portalfront != 0 || p->portalvis != 0) 
@@ -212,7 +214,8 @@ void RunMPIBasePortalVis()
 
 	Msg( "\n\nportalbytes: %d\nNum Work Units: %d\nTotal data size: %d\n", portalbytes, g_numportals*2, portalbytes*g_numportals*2 );
     Msg("%-20s ", "BasePortalVis:");
-	StartPacifier("");
+	if ( g_bMPIMaster )
+		StartPacifier("");
 
 
 	VMPI_SetCurrentStage( "RunMPIBasePortalVis" );
@@ -226,8 +229,11 @@ void RunMPIBasePortalVis()
 		ReceiveBasePortalVis	// Master function to receive work results
 		);
 
-	EndPacifier( false );
-	Msg( " (%d)\n", (int)elapsed );
+	if ( g_bMPIMaster )
+	{
+		EndPacifier( false );
+		Msg( " (%d)\n", (int)elapsed );
+	}
 	
 	//
 	// Distribute the results to all the workers.
@@ -298,29 +304,32 @@ void RunMPIBasePortalVis()
 	
 	if ( !g_bMPIMaster )
 	{
-		Msg( "\n%% worker CPU utilization during BasePortalVis: %.1f\n", 
-			(g_CPUTime.GetSeconds() * 100.0f / elapsed) / numthreads );
+		if ( g_iVMPIVerboseLevel >= 1 )
+			Msg( "\n%% worker CPU utilization during BasePortalVis: %.1f\n", (g_CPUTime.GetSeconds() * 100.0f / elapsed) / numthreads );
 	}
 }
 
 
 
-void ProcessPortalFlow( int iThread, int iPortal, MessageBuffer *pBuf )
+void ProcessPortalFlow( int iThread, uint64 iPortal, MessageBuffer *pBuf )
 {
 	// Process Portal and distribute results
 	CTimeAdder adder( &g_CPUTime );
-		PortalFlow( iThread, iPortal );
-	adder.End();
+
+	PortalFlow( iThread, iPortal );
 
 	// Send my result to root and potentially the other slaves
 	// The slave results are read in RecursiveLeafFlow
 	//
-	portal_t * p = sorted_portals[iPortal];
-	pBuf->write( p->portalvis, portalbytes );
+	if ( pBuf )
+	{
+		portal_t * p = sorted_portals[iPortal];
+		pBuf->write( p->portalvis, portalbytes );
+	}
 }
 
 
-void ReceivePortalFlow( int iWorkUnit, MessageBuffer *pBuf, int iWorker )
+void ReceivePortalFlow( uint64 iWorkUnit, MessageBuffer *pBuf, int iWorker )
 {
 	portal_t *p = sorted_portals[iWorkUnit];
 
@@ -400,10 +409,10 @@ void MCThreadCleanupFn()
 // been done so far.
 // --------------------------------------------------------------------------------- //
 
-class CVisDistributeWorkMaster : public IDistributeWorkMaster
+class CVisDistributeWorkCallbacks : public IWorkUnitDistributorCallbacks
 {
 public:
-	CVisDistributeWorkMaster()
+	CVisDistributeWorkCallbacks()
 	{
 		m_bExitedEarly = false;
 		m_iState = STATE_NONE;
@@ -486,12 +495,12 @@ public:
 };
 
 
-CVisDistributeWorkMaster g_VisDistributeWorkMaster;
+CVisDistributeWorkCallbacks g_VisDistributeWorkCallbacks;
 
 
 void CheckExitedEarly()
 {
-	if ( g_VisDistributeWorkMaster.m_bExitedEarly )
+	if ( g_VisDistributeWorkCallbacks.m_bExitedEarly )
 	{
 		Warning( "\nExited early, using fastvis results...\n" );
 		Warning( "Exited early, using fastvis results...\n" );
@@ -516,8 +525,8 @@ void CheckExitedEarly()
 void RunMPIPortalFlow()
 {
     Msg( "%-20s ", "MPIPortalFlow:" );
-	StartPacifier("");
-
+	if ( g_bMPIMaster )
+		StartPacifier("");
 
 	// Workers wait until we get the MC socket address.
 	g_PortalMCThreadUniqueID = StatsDB_GetUniqueJobID();
@@ -535,8 +544,8 @@ void RunMPIPortalFlow()
 		g_PortalMCAddr.ip[3] = (unsigned char)RandomInt( 3, 255 );
 
 		g_pPortalMCSocket = CreateIPSocket();
-		int i = 0;
-		for ( i=0; i < 5; i++ )
+		int i=0;
+		for ( i; i < 5; i++ )
 		{
 			if ( g_pPortalMCSocket->BindToAny( randomStream.RandomInt( 20000, 30000 ) ) )
 				break;
@@ -591,7 +600,7 @@ void RunMPIPortalFlow()
 	VMPI_SetCurrentStage( "RunMPIBasePortalFlow" );
 
 
-	g_pDistributeWorkMaster = &g_VisDistributeWorkMaster;
+	g_pDistributeWorkCallbacks = &g_VisDistributeWorkCallbacks;
 
 	g_CPUTime.Init();
 	double elapsed = DistributeWork( 
@@ -601,7 +610,7 @@ void RunMPIPortalFlow()
 		ReceivePortalFlow		// Master function to receive work results
 		);
 		
-	g_pDistributeWorkMaster = NULL;
+	g_pDistributeWorkCallbacks = NULL;
 
 	CheckExitedEarly();
 
@@ -610,10 +619,11 @@ void RunMPIPortalFlow()
 
 	if( !g_bMPIMaster )
 	{
-		Msg( "Received %d (out of %d) portals from multicast.\n", g_nMulticastPortalsReceived, g_numportals * 2 );
-
-		Msg( "%% worker CPU utilization during PortalFlow: %.1f\n", 
-			(g_CPUTime.GetSeconds() * 100.0f / elapsed) / numthreads );
+		if ( g_iVMPIVerboseLevel >= 1 )
+		{
+			Msg( "Received %d (out of %d) portals from multicast.\n", g_nMulticastPortalsReceived, g_numportals * 2 );
+			Msg( "%.1f%% CPU utilization during PortalFlow\n", (g_CPUTime.GetSeconds() * 100.0f / elapsed) / numthreads );
+		}
 
 		Msg( "VVIS worker finished. Over and out.\n" );
 		VMPI_SetCurrentStage( "worker done" );
@@ -621,7 +631,10 @@ void RunMPIPortalFlow()
 		CmdLib_Exit( 0 );
 	}
 
-	EndPacifier( false );
-	Msg( " (%d)\n", (int)elapsed );
+	if ( g_bMPIMaster )
+	{
+		EndPacifier( false );
+		Msg( " (%d)\n", (int)elapsed );
+	}
 }
 

@@ -1,9 +1,9 @@
-//========= Copyright © 1996-2005, Valve Corporation, All rights reserved. ============//
+//===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
 // Purpose: 
 //
 // $NoKeywords: $
-//=============================================================================//
+//===========================================================================//
 
 #ifndef IVMODELINFO_H
 #define IVMODELINFO_H
@@ -23,19 +23,25 @@ struct model_t;
 class Vector;
 class QAngle;
 class CGameTrace;
+struct cplane_t;
 typedef CGameTrace trace_t;
 struct studiohdr_t;
 struct virtualmodel_t;
 typedef unsigned char byte;
 struct virtualterrainparams_t;
 class CPhysCollide;
+typedef unsigned short MDLHandle_t;
+class CUtlBuffer;
+class IClientRenderable;
+
+
 //-----------------------------------------------------------------------------
 // Model info interface
 //-----------------------------------------------------------------------------
 
 // change this when the new version is incompatable with the old
-#define VMODELINFO_CLIENT_INTERFACE_VERSION	"VModelInfoClient003"
-#define VMODELINFO_SERVER_INTERFACE_VERSION	"VModelInfoServer001"
+#define VMODELINFO_CLIENT_INTERFACE_VERSION	"VModelInfoClient004"
+#define VMODELINFO_SERVER_INTERFACE_VERSION	"VModelInfoServer002"
 
 class IVModelInfo
 {
@@ -58,11 +64,12 @@ public:
 	virtual bool					ModelHasMaterialProxy( const model_t *model ) const = 0;
 	virtual bool					IsTranslucent( model_t const* model ) const = 0;
 	virtual bool					IsTranslucentTwoPass( const model_t *model ) const = 0;
-	virtual void					RecomputeTranslucency( const model_t *model ) = 0;
+	virtual void					RecomputeTranslucency( const model_t *model, int nSkin, int nBody, void /*IClientRenderable*/ *pClientRenderable ) = 0;
 	virtual int						GetModelMaterialCount( const model_t* model ) const = 0;
 	virtual void					GetModelMaterials( const model_t *model, int count, IMaterial** ppMaterial ) = 0;
 	virtual bool					IsModelVertexLit( const model_t *model ) const = 0;
 	virtual const char				*GetModelKeyValueText( const model_t *model ) = 0;
+	virtual bool					GetModelKeyValue( const model_t *model, CUtlBuffer &buf ) = 0; // supports keyvalue blocks in submodels
 	virtual float					GetModelRadius( const model_t *model ) = 0;
 
 	virtual const studiohdr_t		*FindModel( const studiohdr_t *pStudioHdr, void **cache, const char *modelname ) const = 0;
@@ -74,7 +81,7 @@ public:
 	virtual void					GetModelMaterialColorAndLighting( const model_t *model, Vector const& origin,
 										QAngle const& angles, trace_t* pTrace, 
 										Vector& lighting, Vector& matColor ) = 0;
-	virtual void					GetIlluminationPoint( const model_t *model, Vector const& origin, 
+	virtual void					GetIlluminationPoint( const model_t *model, IClientRenderable *pRenderable, Vector const& origin, 
 										QAngle const& angles, Vector* pLightingCenter ) = 0;
 
 	virtual int						GetModelContents( int modelIndex ) const = 0;
@@ -98,11 +105,18 @@ public:
 
 	// Gets a virtual terrain collision model (creates if necessary)
 	// NOTE: This may return NULL if the terrain model cannot be virtualized
-	virtual CPhysCollide			*GetCollideForVirtualTerrain( const virtualterrainparams_t &params ) = 0;
+	virtual CPhysCollide			*GetCollideForVirtualTerrain( int index ) = 0;
 
-	virtual bool					IsUsingFBTexture( const model_t *model ) const = 0;
+	virtual bool					IsUsingFBTexture( const model_t *model, int nSkin, int nBody, void /*IClientRenderable*/ *pClientRenderable ) const = 0;
 
 	virtual const model_t			*FindOrLoadModel( const char *name ) const = 0;
+
+	virtual MDLHandle_t				GetCacheHandle( const model_t *model ) const = 0;
+
+	// Returns planes of non-nodraw brush model surfaces
+	virtual int						GetBrushModelPlaneCount( const model_t *model ) const = 0;
+	virtual void					GetBrushModelPlane( const model_t *model, int nIndex, cplane_t &plane, Vector *pOrigin ) const = 0;
+	virtual int						GetSurfacepropsForVirtualTerrain( int index ) = 0;
 };
 
 

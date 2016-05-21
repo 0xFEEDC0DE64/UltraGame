@@ -9,7 +9,7 @@
 #if !defined(_STATIC_LINKED) || defined(_SHARED_LIB)
 
 #include "iscratchpad3d.h"
-#include "mathlib.h"
+#include "mathlib/mathlib.h"
 #include "ScratchPadUtils.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

@@ -71,7 +71,8 @@ void SlerpBones(
 void InitPose(
 	const CStudioHdr *pStudioHdr,
 	Vector pos[], 
-	Quaternion q[]
+	Quaternion q[], 
+	int boneMask
 	);
 
 void CalcPose(
@@ -174,11 +175,13 @@ public:
 	void SetQuaternion( const Quaternion &q );
 	void SetNormal( const Vector &normal );
 	void SetPosWithNormalOffset( const Vector &pos, const Vector &normal );
+	void SetOnWorld( bool bOnWorld = true );
 
 	bool IsActive( void );
 	void IKFailed( void );
 	int chain;
 	int type;
+	void MoveReferenceFrame( Vector &deltaPos, QAngle &deltaAngles );
 	// accumulated offset from ideal footplant location
 public:
 	struct x2 {
@@ -202,11 +205,17 @@ public:
 		float		flWeight;
 		Vector		pos;
 		Quaternion	q;
+		bool		onWorld;
 	} est; // estimate contact position
 	struct x5 {
-		Vector		p1;
-		Vector		p2;
-		Vector		p3;
+		float		hipToFoot;	// distance from hip
+		float		hipToKnee;	// distance from hip to knee
+		float		kneeToFoot;	// distance from knee to foot
+		Vector		hip;		// location of hip
+		Vector		closest;	// closest valid location from hip to foot that the foot can move to
+		Vector		knee;		// pre-ik location of knee
+		Vector		farthest;	// farthest valid location from hip to foot that the foot can move to
+		Vector		lowest;		// lowest position directly below hip that the foot can drop to
 	} trace;
 private:
 	// internally latched footset, position
@@ -223,6 +232,8 @@ private:
 		Quaternion	q;
 		Vector		deltaPos;	// acculated error
 		Quaternion	deltaQ;
+		Vector		debouncePos;
+		Quaternion	debounceQ;
 	} latched;
 	struct x6 {
 		float		flTime; // time last error was detected
@@ -266,6 +277,9 @@ struct ikcontextikrule_t
 	float		peak;	// start of full influence
 	float		tail;	// end of full influence
 	float		end;	// end of all influence
+
+	float		top;
+	float		drop;
 
 	float		commit;		// frame footstep target should be committed
 	float		release;	// frame ankle should end rotation from latched orientation
@@ -312,7 +326,12 @@ public:
 	void AddSequenceLocks( mstudioseqdesc_t &SeqDesc, Vector pos[], Quaternion q[] );
 	void SolveSequenceLocks( mstudioseqdesc_t &SeqDesc, Vector pos[], 	Quaternion q[] );
 	
-	CUtlVector< CIKTarget >	m_target;
+	void AddAllLocks( Vector pos[], Quaternion q[] );
+	void SolveAllLocks( Vector pos[], Quaternion q[] );
+
+	void SolveLock( const mstudioiklock_t *plock, int i, Vector pos[], Quaternion q[], matrix3x4_t boneToWorld[], CBoneBitList &boneComputed );
+
+	CUtlVectorFixed< CIKTarget, 12 >	m_target;
 
 private:
 
@@ -446,7 +465,7 @@ public:
 	void			ReadCachedBones( matrix3x4_t *pBoneToWorld );
 	void			ReadCachedBonePointers( matrix3x4_t **bones, int numbones );
 
-	bool			IsValid( float time, float dt = 0.1f );
+	bool			IsValid( float curtime, float dt = 0.1f );
 
 public:
 	float			m_timeValid;
@@ -470,7 +489,7 @@ void Studio_DestroyBoneCache( memhandle_t cacheHandle );
 void Studio_InvalidateBoneCache( memhandle_t cacheHandle );
 
 // Given a ray, trace for an intersection with this studiomodel.  Get the array of bones from StudioSetupHitboxBones
-bool TraceToStudio( const Ray_t& ray, CStudioHdr *pStudioHdr, mstudiohitboxset_t *set, matrix3x4_t **hitboxbones, int fContentsMask, trace_t &trace );
+bool TraceToStudio( class IPhysicsSurfaceProps *pProps, const Ray_t& ray, CStudioHdr *pStudioHdr, mstudiohitboxset_t *set, matrix3x4_t **hitboxbones, int fContentsMask, trace_t &trace );
 
 
 void QuaternionSM( float s, const Quaternion &p, const Quaternion &q, Quaternion &qt );

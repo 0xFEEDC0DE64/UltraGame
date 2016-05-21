@@ -11,6 +11,7 @@
 #endif
 
 class Vector;
+#include "utlsymbol.h"
 
 //-----------------------------------------------------------------------------
 // Purpose:  Client side only 
@@ -19,7 +20,7 @@ struct SndInfo_t
 {
 	// Sound Guid
 	int			m_nGuid;
-	char const	*m_pszName;
+	FileNameHandle_t m_filenameHandle;		// filesystem filename handle - call IFilesystem to conver this to a string
 	int			m_nSoundSource;
 	int			m_nChannel;
 	// If a sound is being played through a speaker entity (e.g., on a monitor,), this is the

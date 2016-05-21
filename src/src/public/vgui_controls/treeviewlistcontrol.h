@@ -11,8 +11,8 @@
 #endif
 
 
-#include <UtlLinkedList.h>
-#include <UtlVector.h>
+#include <utllinkedlist.h>
+#include <utlvector.h>
 #include <vgui/VGUI.h>
 #include <vgui_controls/Panel.h>
 #include "utlsymbol.h"

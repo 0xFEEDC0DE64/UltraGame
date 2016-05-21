@@ -90,8 +90,12 @@
 #define XUNZIP_H
 
 
+#ifndef DECLARE_XZIP_HANDLE
+#define DECLARE_XZIP_HANDLE(name) struct name##__ { int unused; }; typedef struct name##__ *name
+#endif
+
 #ifndef XZIP_H
-DECLARE_HANDLE(HZIP);	// An HZIP identifies a zip file that has been opened
+DECLARE_XZIP_HANDLE(HZIP);	// An HZIP identifies a zip file that has been opened
 #endif
 
 typedef DWORD ZRESULT;

@@ -6,11 +6,7 @@
 //
 //=============================================================================//
 
-#ifdef _XBOX
-#include "xbox/xbox_platform.h"
-#include "xbox/xbox_win32stubs.h"
-#endif
-#if defined(_WIN32) && !defined(_XBOX)
+#if defined( _WIN32 ) && !defined( _X360 )
 #include <windows.h>		// for WideCharToMultiByte and MultiByteToWideChar
 #elif defined(_LINUX)
 #include <wchar.h> // wcslen()
@@ -83,22 +79,22 @@ public:
 	// Hit an error, report it and the parsing stack for context
 	void ReportError( const char *pError )
 	{
-		DevMsg( 1, "KeyValues Error: %s in file %s\n", pError, m_pFilename );
+		Warning( "KeyValues Error: %s in file %s\n", pError, m_pFilename );
 		for ( int i = 0; i < m_maxErrorIndex; i++ )
 		{
 			if ( m_errorStack[i] != INVALID_KEY_SYMBOL )
 			{
 				if ( i < m_errorIndex )
 				{
-					DevMsg( 1, "%s, ", KeyValuesSystem()->GetStringForSymbol(m_errorStack[i]) );
+					Warning( "%s, ", KeyValuesSystem()->GetStringForSymbol(m_errorStack[i]) );
 				}
 				else
 				{
-					DevMsg( 1, "(*%s*), ", KeyValuesSystem()->GetStringForSymbol(m_errorStack[i]) );
+					Warning( "(*%s*), ", KeyValuesSystem()->GetStringForSymbol(m_errorStack[i]) );
 				}
 			}
 		}
-		DevMsg( 1, "\n" );
+		Warning( "\n" );
 	}
 
 private:
@@ -292,8 +288,8 @@ void KeyValues::Init()
 	
 	m_bHasEscapeSequences = false;
 
-	// Needed for backward compatibility
-	memset( reserved, 0, sizeof(reserved) );
+	// for future proof
+	memset( unused, 0, sizeof(unused) );
 }
 
 //-----------------------------------------------------------------------------
@@ -374,9 +370,10 @@ int KeyValues::GetNameSymbol() const
 // Purpose: Read a single token from buffer (0 terminated)
 //-----------------------------------------------------------------------------
 #pragma warning (disable:4706)
-const char *KeyValues::ReadToken( CUtlBuffer &buf, bool &wasQuoted )
+const char *KeyValues::ReadToken( CUtlBuffer &buf, bool &wasQuoted, bool &wasConditional )
 {
 	wasQuoted = false;
+	wasConditional = false;
 
 	if ( !buf.IsValid() )
 		return NULL; 
@@ -417,6 +414,7 @@ const char *KeyValues::ReadToken( CUtlBuffer &buf, bool &wasQuoted )
 
 	// read in the token until we hit a whitespace or a control character
 	bool bReportedError = false;
+	bool bConditionalStart = false;
 	int nCount = 0;
 	while ( c = (const char*)buf.PeekGet( sizeof(char), 0 ) )
 	{
@@ -427,6 +425,14 @@ const char *KeyValues::ReadToken( CUtlBuffer &buf, bool &wasQuoted )
 		// break if any control character appears in non quoted tokens
 		if ( *c == '"' || *c == '{' || *c == '}' )
 			break;
+
+		if ( *c == '[' )
+			bConditionalStart = true;
+
+		if ( *c == ']' && bConditionalStart )
+		{
+			wasConditional = true;
+		}
 
 		// break on whitespace
 		if ( isspace(*c) )
@@ -466,33 +472,35 @@ void KeyValues::UsesEscapeSequences(bool state)
 bool KeyValues::LoadFromFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID )
 {
 	Assert(filesystem);
-	Assert( IsXbox() || ( IsPC() && _heapchk() == _HEAPOK ) );
+	Assert( IsX360() || ( IsPC() && _heapchk() == _HEAPOK ) );
 
 	FileHandle_t f = filesystem->Open(resourceName, "rb", pathID);
-	if (!f)
+	if ( !f )
 		return false;
 
 	s_LastFileLoadingFrom = (char*)resourceName;
 
 	// load file into a null-terminated buffer
-	int fileSize = filesystem->Size(f);
+	int fileSize = filesystem->Size( f );
 	unsigned bufSize = ((IFileSystem *)filesystem)->GetOptimalReadSize( f, fileSize + 1 );
 
 	char *buffer = (char*)((IFileSystem *)filesystem)->AllocOptimalReadBuffer( f, bufSize );
+	Assert( buffer );
 	
-	Assert(buffer);
-	
-	((IFileSystem *)filesystem)->ReadEx(buffer, bufSize, fileSize, f); // read into local buffer
-
-	buffer[fileSize] = 0; // null terminate file as EOF
+	// read into local buffer
+	bool bRetOK = ( ((IFileSystem *)filesystem)->ReadEx( buffer, bufSize, fileSize, f ) != 0 );
 
 	filesystem->Close( f );	// close file after reading
 
-	bool retOK = LoadFromBuffer( resourceName, buffer, filesystem );
+	if ( bRetOK )
+	{
+		buffer[fileSize] = 0; // null terminate file as EOF
+		bRetOK = LoadFromBuffer( resourceName, buffer, filesystem );
+	}
 
 	((IFileSystem *)filesystem)->FreeOptimalReadBuffer( buffer );
 
-	return retOK;
+	return bRetOK;
 }
 
 //-----------------------------------------------------------------------------
@@ -662,7 +670,8 @@ void KeyValues::RecursiveSaveToFile( IBaseFileSystem *filesystem, FileHandle_t f
 					INTERNALWRITE("\"\t\t\"", 4);
 
 					char buf[32];
-					Q_binarytohex((byte *)dat->m_sValue, sizeof(uint64), buf, sizeof(buf));
+					// write "0x" + 16 char 0-padded hex encoded 64 bit value
+					Q_snprintf( buf, sizeof( buf ), "0x%016I64X", *( (uint64 *)dat->m_sValue ) );
 
 					INTERNALWRITE(buf, Q_strlen(buf));
 					INTERNALWRITE("\"\n", 2);
@@ -738,7 +747,12 @@ KeyValues *KeyValues::FindKey(const char *keyName, bool bCreate)
 	}
 
 	// lookup the symbol for the search string
-	HKeySymbol iSearchStr = KeyValuesSystem()->GetSymbolForString(searchStr);
+	HKeySymbol iSearchStr = KeyValuesSystem()->GetSymbolForString( searchStr, bCreate );
+	if ( iSearchStr == INVALID_KEY_SYMBOL )
+	{
+		// not found, couldn't possibly be in key value list
+		return NULL;
+	}
 
 	KeyValues *lastItem = NULL;
 	KeyValues *dat;
@@ -1074,8 +1088,13 @@ float KeyValues::GetFloat( const char *keyName, float defaultValue )
 		case TYPE_STRING:
 			return (float)atof(dat->m_sValue);
 		case TYPE_WSTRING:
-			return 0.0f;		// no wtof
-		case TYPE_FLOAT:
+#ifdef _WIN32
+			return (float) _wtof(dat->m_wsValue);		// no wtof
+#else
+			Assert(0);
+			return 0.;
+#endif
+			case TYPE_FLOAT:
 			return dat->m_flValue;
 		case TYPE_INT:
 			return (float)dat->m_iValue;
@@ -1120,11 +1139,12 @@ const char *KeyValues::GetString( const char *keyName, const char *defaultValue 
 		{
 #ifdef _WIN32
 			// convert the string to char *, set it for future use, and return it
-			static char buf[512];
-			int result = ::WideCharToMultiByte(CP_UTF8, 0, dat->m_wsValue, -1, buf, 512, NULL, NULL);
+			char wideBuf[512];
+			int result = ::WideCharToMultiByte(CP_UTF8, 0, dat->m_wsValue, -1, wideBuf, 512, NULL, NULL);
 			if ( result )
 			{
-				SetString( keyName, buf );
+				// note: this will copy wideBuf
+				SetString( keyName, wideBuf );
 			}
 			else
 			{
@@ -1735,6 +1755,81 @@ void KeyValues::ParseIncludedKeys( char const *resourceName, const char *filetoi
 	// s_CurrentFileSymbol = save;
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : baseKeys - 
+//-----------------------------------------------------------------------------
+void KeyValues::MergeBaseKeys( CUtlVector< KeyValues * >& baseKeys )
+{
+	int includeCount = baseKeys.Count();
+	int i;
+	for ( i = 0; i < includeCount; i++ )
+	{
+		KeyValues *kv = baseKeys[ i ];
+		Assert( kv );
+
+		RecursiveMergeKeyValues( kv );
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+// Input  : baseKV - keyvalues we're basing ourselves on
+//-----------------------------------------------------------------------------
+void KeyValues::RecursiveMergeKeyValues( KeyValues *baseKV )
+{
+	// Merge ourselves
+	// we always want to keep our value, so nothing to do here
+
+	// Now merge our children
+	for ( KeyValues *baseChild = baseKV->m_pSub; baseChild != NULL; baseChild = baseChild->m_pPeer )
+	{
+		// for each child in base, see if we have a matching kv
+
+		bool bFoundMatch = false;
+
+		// If we have a child by the same name, merge those keys
+		for ( KeyValues *newChild = m_pSub; newChild != NULL; newChild = newChild->m_pPeer )
+		{
+			if ( !Q_strcmp( baseChild->GetName(), newChild->GetName() ) )
+			{
+				newChild->RecursiveMergeKeyValues( baseChild );
+				bFoundMatch = true;
+				break;
+			}	
+		}
+
+		// If not merged, append this key
+		if ( !bFoundMatch )
+		{
+			KeyValues *dat = baseChild->MakeCopy();
+			Assert( dat );
+			AddSubKey( dat );
+		}
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Returns whether a keyvalues conditional evaluates to true or false
+// Needs more flexibility with conditionals, checking convars would be nice.
+//-----------------------------------------------------------------------------
+bool EvaluateConditional( const char *str )
+{
+	bool bResult = false;
+	bool bXboxUI = IsX360();
+
+	if ( bXboxUI )
+	{
+		bResult = !Q_stricmp( "[$X360]", str );
+	}
+	else
+	{
+		bResult = !Q_stricmp( "[$WIN32]", str );
+	}
+
+	return bResult;
+}
+
 
 //-----------------------------------------------------------------------------
 // Read from a buffer...
@@ -1744,18 +1839,22 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 	KeyValues *pPreviousKey = NULL;
 	KeyValues *pCurrentKey = this;
 	CUtlVector< KeyValues * > includedKeys;
+	CUtlVector< KeyValues * > baseKeys;
 	bool wasQuoted;
+	bool wasConditional;
 	g_KeyValuesErrorStack.SetFilename( resourceName );	
 	do 
 	{
+		bool bAccepted = true;
+
 		// the first thing must be a key
-		const char *s = ReadToken( buf, wasQuoted );
+		const char *s = ReadToken( buf, wasQuoted, wasConditional );
 		if ( !buf.IsValid() || !s || *s == 0 )
 			break;
 
 		if ( !Q_stricmp( s, "#include" ) )	// special include macro (not a key name)
 		{
-			s = ReadToken( buf, wasQuoted );
+			s = ReadToken( buf, wasQuoted, wasConditional );
 			// Name of subfile to load is now in s
 
 			if ( !s || *s == 0 )
@@ -1765,6 +1864,22 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 			else
 			{
 				ParseIncludedKeys( resourceName, s, pFileSystem, pPathID, includedKeys );
+			}
+
+			continue;
+		}
+		else if ( !Q_stricmp( s, "#base" ) )
+		{
+			s = ReadToken( buf, wasQuoted, wasConditional );
+			// Name of subfile to load is now in s
+
+			if ( !s || *s == 0 )
+			{
+				g_KeyValuesErrorStack.ReportError("#base is NULL " );
+			}
+			else
+			{
+				ParseIncludedKeys( resourceName, s, pFileSystem, pPathID, baseKeys );
 			}
 
 			continue;
@@ -1788,7 +1903,15 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 		}
 
 		// get the '{'
-		s = ReadToken( buf, wasQuoted );
+		s = ReadToken( buf, wasQuoted, wasConditional );
+
+		if ( wasConditional )
+		{
+			bAccepted = EvaluateConditional( s );
+
+			// Now get the '{'
+			s = ReadToken( buf, wasQuoted, wasConditional );
+		}
 
 		if ( s && *s == '{' && !wasQuoted )
 		{
@@ -1800,11 +1923,42 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBase
 			g_KeyValuesErrorStack.ReportError("LoadFromBuffer: missing {" );
 		}
 
-		pPreviousKey = pCurrentKey;
-		pCurrentKey = NULL;
+		if ( !bAccepted )
+		{
+			if ( pPreviousKey )
+			{
+				pPreviousKey->SetNextKey( NULL );
+			}
+			pCurrentKey->Clear();
+		}
+		else
+		{
+			pPreviousKey = pCurrentKey;
+			pCurrentKey = NULL;
+		}
 	} while ( buf.IsValid() );
 
 	AppendIncludedKeys( includedKeys );
+	{
+		// delete included keys!
+		int i;
+		for ( i = includedKeys.Count() - 1; i > 0; i-- )
+		{
+			KeyValues *kv = includedKeys[ i ];
+			kv->deleteThis();
+		}
+	}
+
+	MergeBaseKeys( baseKeys );
+	{
+		// delete base keys!
+		int i;
+		for ( i = baseKeys.Count() - 1; i >= 0; i-- )
+		{
+			KeyValues *kv = baseKeys[ i ];
+			kv->deleteThis();
+		}
+	}
 
 	g_KeyValuesErrorStack.SetFilename( "" );	
 
@@ -1825,7 +1979,6 @@ bool KeyValues::LoadFromBuffer( char const *resourceName, const char *pBuffer, I
 	return LoadFromBuffer( resourceName, buf, pFileSystem, pPathID );
 }
 
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -1833,12 +1986,15 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 {
 	CKeyErrorContext errorReport(this);
 	bool wasQuoted;
+	bool wasConditional;
 	// keep this out of the stack until a key is parsed
 	CKeyErrorContext errorKey( INVALID_KEY_SYMBOL );
 	while ( 1 )
 	{
+		bool bAccepted = true;
+
 		// get the key name
-		const char * name = ReadToken( buf, wasQuoted );
+		const char * name = ReadToken( buf, wasQuoted, wasConditional );
 
 		if ( !name )	// EOF stop reading
 		{
@@ -1860,8 +2016,17 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 		KeyValues *dat = CreateKey( name );
 
 		errorKey.Reset( dat->GetNameSymbol() );
+
 		// get the value
-		const char * value = ReadToken( buf, wasQuoted );
+		const char * value = ReadToken( buf, wasQuoted, wasConditional );
+
+		if ( wasConditional && value )
+		{
+			bAccepted = EvaluateConditional( value );
+
+			// get the real value
+			value = ReadToken( buf, wasQuoted, wasConditional );
+		}
 
 		if ( !value )
 		{
@@ -1884,6 +2049,12 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 		}
 		else 
 		{
+			if ( wasConditional )
+			{
+				g_KeyValuesErrorStack.ReportError("RecursiveLoadFromBuffer:  got conditional between key and value" );
+				break;
+			}
+			
 			if (dat->m_sValue)
 			{
 				delete[] dat->m_sValue;
@@ -1903,6 +2074,24 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 			if ( *value == 0 )
 			{
 				dat->m_iDataType = TYPE_STRING;	
+			}
+			else if ( ( 18 == len ) && ( value[0] == '0' ) && ( value[1] == 'x' ) )
+			{
+				// an 18-byte value prefixed with "0x" (followed by 16 hex digits) is an int64 value
+				int64 retVal = 0;
+				for( int i=2; i < 2 + 16; i++ )
+				{
+					char digit = value[i];
+					if ( digit >= 'a' ) 
+						digit -= 'a' - ( '9' + 1 );
+					else
+						if ( digit >= 'A' )
+							digit -= 'A' - ( '9' + 1 );
+					retVal = ( retVal * 16 ) + ( digit - '0' );
+				}
+				dat->m_sValue = new char[sizeof(uint64)];
+				*((uint64 *)dat->m_sValue) = retVal;
+				dat->m_iDataType = TYPE_UINT64;
 			}
 			else if ( (pFEnd > pIEnd) && (pFEnd == pSEnd) )
 			{
@@ -1925,6 +2114,25 @@ void KeyValues::RecursiveLoadFromBuffer( char const *resourceName, CUtlBuffer &b
 				dat->m_sValue = new char[len+1];
 				Q_memcpy( dat->m_sValue, value, len+1 );
 			}
+
+			// Look ahead one token for a conditional tag
+			int prevPos = buf.TellGet();
+			const char *peek = ReadToken( buf, wasQuoted, wasConditional );
+			if ( wasConditional )
+			{
+				bAccepted = EvaluateConditional( peek );
+			}
+			else
+			{
+				buf.SeekGet( CUtlBuffer::SEEK_HEAD, prevPos );
+			}
+		}
+
+		if ( !bAccepted )
+		{
+			this->RemoveSubKey( dat );
+			dat->deleteThis();
+			dat = NULL;
 		}
 	}
 }
@@ -2154,4 +2362,155 @@ void KeyValues::operator delete( void *pMem, int nBlockUse, const char *pFileNam
 	KeyValuesSystem()->FreeKeyValuesMemory(pMem);
 }
 
-#include "tier0/memdbgon.h"
+void KeyValues::UnpackIntoStructure( KeyValuesUnpackStructure const *pUnpackTable, void *pDest )
+{
+	uint8 *dest=(uint8 *) pDest;
+	while( pUnpackTable->m_pKeyName )
+	{
+		uint8 *dest_field=dest+pUnpackTable->m_nFieldOffset;
+		KeyValues *find_it=FindKey( pUnpackTable->m_pKeyName );
+		switch( pUnpackTable->m_eDataType )
+		{
+			case UNPACK_TYPE_FLOAT:
+			{
+				float default_value=(pUnpackTable->m_pKeyDefault)?atof(pUnpackTable->m_pKeyDefault):0.0;
+				*( ( float *) dest_field)=GetFloat( pUnpackTable->m_pKeyName, default_value );
+				break;
+			}
+			break;
+
+			case UNPACK_TYPE_VECTOR:
+			{
+				Vector *dest_v=(Vector *) dest_field;
+				char const *src_string=
+					GetString( pUnpackTable->m_pKeyName, pUnpackTable->m_pKeyDefault );
+				if ( (!src_string) ||
+					 ( sscanf(src_string,"%f %f %f",
+							  &(dest_v->x), &(dest_v->y), &(dest_v->z)) != 3))
+					dest_v->Init( 0, 0, 0 );
+			}
+			break;
+
+			case UNPACK_TYPE_FOUR_FLOATS:
+			{
+				float *dest_f=(float *) dest_field;
+				char const *src_string=
+					GetString( pUnpackTable->m_pKeyName, pUnpackTable->m_pKeyDefault );
+				if ( (!src_string) ||
+					 ( sscanf(src_string,"%f %f %f %f",
+							  dest_f,dest_f+1,dest_f+2,dest_f+3)) != 4)
+					memset( dest_f, 0, 4*sizeof(float) );
+			}
+			break;
+
+			case UNPACK_TYPE_TWO_FLOATS:
+			{
+				float *dest_f=(float *) dest_field;
+				char const *src_string=
+					GetString( pUnpackTable->m_pKeyName, pUnpackTable->m_pKeyDefault );
+				if ( (!src_string) ||
+					 ( sscanf(src_string,"%f %f",
+							  dest_f,dest_f+1)) != 2)
+					memset( dest_f, 0, 2*sizeof(float) );
+			}
+			break;
+
+			case UNPACK_TYPE_STRING:
+			{
+				char *dest_s=(char *) dest_field;
+				strncpy( dest_s, GetString( pUnpackTable->m_pKeyName,
+											pUnpackTable->m_pKeyDefault ),
+						 pUnpackTable->m_nFieldSize );
+
+			}
+			break;
+
+			case UNPACK_TYPE_INT:
+			{
+				int *dest_i=(int *) dest_field;
+				int default_int=0;
+				if ( pUnpackTable->m_pKeyDefault)
+					default_int = atoi( pUnpackTable->m_pKeyDefault );
+				*(dest_i)=GetInt( pUnpackTable->m_pKeyName, default_int );
+			}
+			break;
+
+			case UNPACK_TYPE_VECTOR_COLOR:
+			{
+				Vector *dest_v=(Vector *) dest_field;
+				if (find_it)
+				{
+					Color c=GetColor( pUnpackTable->m_pKeyName );
+					dest_v->x = c.r();
+					dest_v->y = c.g();
+					dest_v->z = c.b();
+				}
+				else
+				{
+					if ( pUnpackTable->m_pKeyDefault )
+						sscanf(pUnpackTable->m_pKeyDefault,"%f %f %f",
+							   &(dest_v->x), &(dest_v->y), &(dest_v->z));
+					else
+						dest_v->Init( 0, 0, 0 );
+				}
+				*(dest_v) *= (1.0/255);
+			}
+		}
+		pUnpackTable++;
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Helper function for processing a keyvalue tree for console resolution support.
+// Alters key/values for easier console video resolution support. 
+// If running SD (640x480), the presence of "???_lodef" creates or slams "???".
+// If running HD (1280x720), the presence of "???_hidef" creates or slams "???".
+//-----------------------------------------------------------------------------
+bool KeyValues::ProcessResolutionKeys( const char *pResString )
+{	
+	if ( !pResString )
+	{
+		// not for pc, console only
+		return false;
+	}
+
+	KeyValues *pSubKey = GetFirstSubKey();
+	if ( !pSubKey )
+	{
+		// not a block
+		return false;
+	}
+
+	for ( ; pSubKey != NULL; pSubKey = pSubKey->GetNextKey() )
+	{
+		// recursively descend each sub block
+		pSubKey->ProcessResolutionKeys( pResString );
+
+		// check to see if our substring is present
+		if ( Q_stristr( pSubKey->GetName(), pResString ) != NULL )
+		{
+			char normalKeyName[128];
+			V_strncpy( normalKeyName, pSubKey->GetName(), sizeof( normalKeyName ) );
+
+			// substring must match exactly, otherwise keys like "_lodef" and "_lodef_wide" would clash.
+			char *pString = Q_stristr( normalKeyName, pResString );
+			if ( pString && !Q_stricmp( pString, pResString ) )
+			{
+				*pString = '\0';
+
+				// find and delete the original key (if any)
+				KeyValues *pKey = FindKey( normalKeyName );
+				if ( pKey )
+				{		
+					// remove the key
+					RemoveSubKey( pKey );
+				}
+
+				// rename the marked key
+				pSubKey->SetName( normalKeyName );
+			}
+		}
+	}
+
+	return true;
+}

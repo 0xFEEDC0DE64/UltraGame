@@ -1,3 +1,6 @@
+use String::CRC32;
+BEGIN {use File::Basename; push @INC, dirname($0); }
+require "valve_perl_helpers.pl";
 
 sub WriteHelperVar
 {
@@ -265,57 +268,6 @@ sub CreateFuncToSetPerlVars
 	eval $out;
 }
 
-sub BackToForwardSlash
-{
-	my( $path ) = shift;
-	$path =~ s,\\,/,g;
-	return $path;
-}
-
-sub RemoveFileName
-{
-	my( $in ) = shift;
-	$in = &BackToForwardSlash( $in );
-	$in =~ s,/[^/]*$,,;
-	return $in;
-}
-
-sub RemovePath
-{
-	my( $in ) = shift;
-	$in = &BackToForwardSlash( $in );
-	$in =~ s,^(.*)/([^/]*)$,$2,;
-	return $in;
-}
-
-sub MakeDirHier
-{
-	my( $in ) = shift;
-#	print "MakeDirHier( $in )\n";
-	$in = &BackToForwardSlash( $in );
-	my( @path );
-	while( $in =~ m,/, ) # while $in still has a slash
-	{
-		my( $end ) = &RemovePath( $in );
-		push @path, $end;
-#		print $in . "\n";
-		$in = &RemoveFileName( $in );
-	}
-	my( $i );
-	my( $numelems ) = scalar( @path );
-	my( $curpath );
-	for( $i = $numelems - 1; $i >= 0; $i-- )
-	{
-		$curpath .= "/" . $path[$i];
-		my( $dir ) = $in . $curpath;
-		if( !stat $dir )
-		{
-#			print "mkdir $dir\n";
-			mkdir $dir, 0777;
-		}
-	}
-}
-
 # These sections can be interchanged to enable profiling.
 #$ShowTimers = 1;
 #use Time::HiRes;
@@ -331,13 +283,13 @@ $total_start_time = SampleTime();
 
 # NOTE: These must match the same values in macros.vsh!
 $vPos				= "v0";
-$vBoneWeights		= "v1";
-$vBoneIndices		= "v2";
+$vBoneWeights			= "v1";
+$vBoneIndices			= "v2";
 $vNormal			= "v3";
-if( $g_xbox )
+if( $g_x360 )
 {
 	$vPosFlex		= "v4";
-	$vNormalFlex	= "v13";
+	$vNormalFlex		= "v13";
 }
 $vColor				= "v5";
 $vSpecular			= "v6";
@@ -349,7 +301,50 @@ $vTangentS			= "v11";
 $vTangentT			= "v12";
 $vUserData			= "v14";
 
-sub ReadInputFile
+sub ReadInputFileWithLineInfo
+{
+	local( $base_filename ) = shift;
+
+	local( *INPUT );
+	local( @output );
+
+	# Look in the stdshaders directory, followed by the current directory.
+	# (This is for the SDK, since some of its files are under stdshaders).
+	local( $filename ) = $base_filename;
+	if ( !-e $filename )
+	{
+		$filename = "$g_SourceDir\\materialsystem\\stdshaders\\$base_filename";
+		if ( !-e $filename )
+		{
+			die "\nvsh_prep.pl ERROR: missing include file: $filename.\n\n";
+		}
+	}
+
+	open INPUT, "<$filename" || die;
+
+	local( $line );
+	local( $linenum ) = 1;
+	while( $line = <INPUT> )
+	{
+		$line =~ s/\n//g;
+		local( $postfix ) = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
+		$postfix .= "; LINEINFO($filename)($linenum)\n";
+		if( $line =~ m/\#include\s+\"(.*)\"/i )
+		{
+			push @output, &ReadInputFileWithLineInfo( $1 );
+		}
+		else
+		{
+			push @output, $line . $postfix;
+		}
+		$linenum++;
+	}
+
+	close INPUT;
+	return @output;
+}
+
+sub ReadInputFileWithoutLineInfo
 {
 	local( $base_filename ) = shift;
 
@@ -371,21 +366,16 @@ sub ReadInputFile
 	open INPUT, "<$filename" || die;
 
 	local( $line );
-	local( $linenum ) = 1;
 	while( $line = <INPUT> )
 	{
-		$line =~ s/\n//g;
-		local( $postfix ) = "\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t";
-		$postfix .= "; LINEINFO($filename)($linenum)\n";
 		if( $line =~ m/\#include\s+\"(.*)\"/i )
 		{
-			push @output, &ReadInputFile( $1 );
+			push @output, &ReadInputFileWithoutLineInfo( $1 );
 		}
 		else
 		{
-			push @output, $line . $postfix;
+			push @output, $line;
 		}
-		$linenum++;
 	}
 
 	close INPUT;
@@ -550,10 +540,7 @@ sub TranslateDXKeywords
 	$line =~ s/\bENDIF\b/endif/g;
 	$line =~ s/\bIF\b/if/g;
 	$line =~ s/\bELSE\b/else/g;
-	if ( $g_xbox )
-	{
-		$line =~ s/^\s*vs\.1\.[0-9]/xvs.1.1/i;
-	}
+
 	return $line;
 }
 
@@ -571,7 +558,6 @@ sub GetLeadingWhiteSpace
 }
 
 $g_dx9 = 1;
-$shaderoutputdir = "shaders";
 $g_SourceDir = "..\\..";
 
 while( 1 )
@@ -582,20 +568,17 @@ while( 1 )
 	{
 		$g_SourceDir = shift;
 	}
-	elsif( $filename =~ m/-xbox/i )
+	elsif( $filename =~ m/-x360/i )
 	{
-		$g_xbox = 1;
-		$g_dx9 = 0;
-	}
-	elsif( $filename =~ m/-shaderoutputdir/i )
-	{
-		$shaderoutputdir = shift;
+		$g_x360 = 1;
 	}
 	else
 	{
 		last;
 	}
 }
+
+$filename =~ s/-----.*$//;
 
 
 #
@@ -617,13 +600,13 @@ if( !defined $shaderVersion )
 close FILE;
 
 
-if( $g_xbox )
+if( $g_x360 )
 {
-	$vshtmp = "vshtmp_xbox";
+	$vshtmp = "vshtmp9_360_tmp";
 }
 else
 {
-	$vshtmp = "vshtmp9";
+	$vshtmp = "vshtmp9_tmp";
 }
 
 if( !stat $vshtmp )
@@ -632,7 +615,7 @@ if( !stat $vshtmp )
 }
 
 # suck in all files, including $include files.
-@input = &ReadInputFile( $filename );
+@input = &ReadInputFileWithLineInfo( $filename );
 
 sub CalcNumCombos
 {
@@ -676,8 +659,8 @@ foreach $_ ( @input )
 		if (/\[(.*)\]/)
 		{
 			$platforms=$1;
-			next if ( ($g_xbox) && (!($platforms=~/XBOX/i)) );
-			next if ( (!$g_xbox) && (!($platforms=~/PC/i)) );
+			next if ( ($g_x360) && (!($platforms=~/XBOX/i)) );
+			next if ( (!$g_x360) && (!($platforms=~/PC/i)) );
 		}
 		push @staticDefineNames, $name;
 		push @staticDefineMin, $min;
@@ -692,8 +675,8 @@ foreach $_ ( @input )
 		if (/\[(.*)\]/)
 		{
 			$platforms=$1;
-			next if ( ($g_xbox) && (!($platforms=~/XBOX/i)) );
-			next if ( (!$g_xbox) && (!($platforms=~/PC/i)) );
+			next if ( ($g_x360) && (!($platforms=~/XBOX/i)) );
+			next if ( (!$g_x360) && (!($platforms=~/PC/i)) );
 		}
 #		print "\"$name\" \"$min..$max\"\n";
 		push @dynamicDefineNames, $name;
@@ -723,11 +706,6 @@ else
 
 #print $perlskipcode . "\n";
 
-if ( $g_xbox )
-{
-	# add mandatory epilogue code
-	push @outputProgram, "push \@output, \"" . "#pragma screenspace" . "\\n\";\n";
-}
 
 # Translate the input into a perl program that'll unroll everything and
 # substitute variables.
@@ -754,13 +732,6 @@ while( $inputLine = shift @input )
 		push @outputProgram, &GetLeadingWhiteSpace( $inputLine ) . "push \@output, \"" . 
 			$inputLine . "\\n\";\n";
 	}
-}
-
-if ( $g_xbox )
-{	
-	# add mandatory prologue code
-	push @outputProgram, "push \@output, \"" . "mul oPos.xyz, r12, \$SHADER_VIEWPORT_CONST_SCALE +rcc r1.x, r12.w" . "\\n\";\n";
-	push @outputProgram, "push \@output, \"" . "mad oPos.xyz, r12, r1.x, \$SHADER_VIEWPORT_CONST_OFFSET" . "\\n\";\n";
 }
 
 $outputProgram = join "", @outputProgram;
@@ -806,15 +777,10 @@ $perlskipfunc = "sub SkipCombo { return $perlskipcode; }\n";
 eval $perlskipfunc;
 &CreateFuncToSetPerlVars();
 
+my $incfilename = "$vshtmp/$filename_base" . ".inc";
+
 # Write the inc file that has indexing helpers, etc.
-local( *FILE );
-if( !open FILE, ">$vshtmp/$filename_base" . ".inc" )
-{
-	die "\n\nUnable to open $vshtmp/$filename_base for writing\n\n";
-}
-print FILE @outputHeader;
-close FILE;
-undef @outputHeader;
+&WriteFile( $incfilename, join( "", @outputHeader ) );
 
 
 # Run the output program for all the combinations of bones and lights.
@@ -880,7 +846,7 @@ for( $i = 0; $i < $numCombos; $i++ )
 
 	# Have to make another pass through after we know which v registers are used. . yuck.
 	$g_usesPos				= &UsesRegister( $vPos, $strippedStr );
-	if( $g_xbox )
+	if( $g_x360 )
 	{
 		$g_usesPosFlex		= &UsesRegister( $vPosFlex, $strippedStr );
 		$g_usesNormalFlex	= &UsesRegister( $vNormalFlex, $strippedStr );
@@ -949,18 +915,16 @@ for( $i = 0; $i < $numCombos; $i++ )
 	{
 		# assemble the vertex shader
 		unlink "shader$i.o";
-		if( $g_xbox )
+		if( $g_x360 )
 		{
-			$vsa = "xsasm";
-			$vsadebug = "$vsa /nologo /D _XBOX=1 $outfilename shader$i.o";
-			$vsanodebug = "$vsa /nologo /D _XBOX=1 $outfilename shader$i.o";
+			$vsa = "..\\..\\x360xdk\\bin\\win32\\vsa";
 		}
 		else
 		{
 			$vsa = "..\\..\\dx9sdk\\utilities\\vsa";
-			$vsadebug = "$vsa /nologo /Foshader$i.o $outfilename";
-			$vsanodebug = "$vsa /nologo /Foshader$i.o $outfilename";
 		}
+		$vsadebug = "$vsa /nologo /Foshader$i.o $outfilename";
+		$vsanodebug = "$vsa /nologo /Foshader$i.o $outfilename";
 
 		$vsa_start_time = SampleTime();
 
@@ -1028,27 +992,53 @@ $finalheadername = "$vshtmp\\" . $filename_base . ".inc";
 #print FINALHEADER @finalheader;
 #close FINALHEADER;
 
-&MakeDirHier( "$shaderoutputdir/vsh" );
-open COMPILEDSHADER, ">$shaderoutputdir/vsh/$filename_base.vcs" || die;
-binmode( COMPILEDSHADER );
+&MakeDirHier( "shaders/vsh" );
 
+my $vcsName = "";
+if( $g_x360 )
+{
+	$vcsName = $filename_base . ".360.vcs";
+}
+else
+{
+	$vcsName = $filename_base . ".vcs";
+}
+open COMPILEDSHADER, ">shaders/vsh/$vcsName" || die;
+binmode( COMPILEDSHADER );
 
 #
 # Write out the part of the header that we know. . we'll write the rest after writing the object code.
 #
 
+# Pack arguments
+my $sInt = "i";
+my $uInt = "I";
+if ( $g_x360 )
+{
+	# Change arguments to "big endian long"
+	$sInt = "N";
+	$uInt = "N";
+}
+
+my $undecoratedinput = join "", &ReadInputFileWithoutLineInfo( $filename );
+#print STDERR "undecoratedinput: $undecoratedinput\n";
+my $crc = crc32( $undecoratedinput );
+#print STDERR "crc for $filename: $crc\n";
+
 # version
-print COMPILEDSHADER pack "i", $shaderVersion;
+print COMPILEDSHADER pack $sInt, 4;
 # totalCombos
-print COMPILEDSHADER pack "i", $numCombos;
+print COMPILEDSHADER pack $sInt, $numCombos;
 # dynamic combos
-print COMPILEDSHADER pack "i", $numDynamicCombos;
+print COMPILEDSHADER pack $sInt, $numDynamicCombos;
 # flags
-print COMPILEDSHADER pack "I", $flags;
+print COMPILEDSHADER pack $uInt, $flags;
 # centroid mask
-print COMPILEDSHADER pack "I", 0;
+print COMPILEDSHADER pack $uInt, 0;
 # reference size
-print COMPILEDSHADER pack "I", 0;
+print COMPILEDSHADER pack $uInt, 0;
+# crc32 of the source code
+print COMPILEDSHADER pack $uInt, $crc;
 
 my $beginningOfDir = tell COMPILEDSHADER;
 
@@ -1056,9 +1046,9 @@ my $beginningOfDir = tell COMPILEDSHADER;
 for( $i = 0; $i < $numCombos; $i++ )
 {
 	# offset from beginning of file.
-	print COMPILEDSHADER pack "i", 0;
+	print COMPILEDSHADER pack $sInt, 0;
 	# size
-	print COMPILEDSHADER pack "i", 0;
+	print COMPILEDSHADER pack $sInt, 0;
 }
 
 my $startByteCode = tell COMPILEDSHADER;
@@ -1088,9 +1078,9 @@ seek COMPILEDSHADER, $beginningOfDir, 0;
 for( $i = 0; $i < $numCombos; $i++ )
 {
 	# offset from beginning of file.
-	print COMPILEDSHADER pack "i", $byteCodeStart[$i];
+	print COMPILEDSHADER pack $sInt, $byteCodeStart[$i];
 	# size
-	print COMPILEDSHADER pack "i", $byteCodeSize[$i];
+	print COMPILEDSHADER pack $sInt, $byteCodeSize[$i];
 }
 
 close COMPILEDSHADER;

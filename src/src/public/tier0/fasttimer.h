@@ -14,20 +14,19 @@
 #include <assert.h>
 #include "tier0/platform.h"
 
-
 PLATFORM_INTERFACE int64 g_ClockSpeed;
 PLATFORM_INTERFACE unsigned long g_dwClockSpeed;
+#if defined( _X360 ) && defined( _CERT )
+PLATFORM_INTERFACE unsigned long g_dwFakeFastCounter;
+#endif
 
 PLATFORM_INTERFACE double g_ClockSpeedMicrosecondsMultiplier;
 PLATFORM_INTERFACE double g_ClockSpeedMillisecondsMultiplier;
 PLATFORM_INTERFACE double g_ClockSpeedSecondsMultiplier;
 
-
-
 class CCycleCount
 {
 friend class CFastTimer;
-
 
 public:
 					CCycleCount();
@@ -66,8 +65,7 @@ public:
 
 	static int64	GetTimestamp();
 
-
-	int64	m_Int64;
+	int64			m_Int64;
 };
 
 class CClockSpeedInit
@@ -80,6 +78,10 @@ public:
 
 	static void Init()
 	{
+#if defined( _X360 ) && !defined( _CERT )
+		PMCStart();
+		PMCInitIntervalTimer( 0 );
+#endif
 		const CPUInformation& pi = GetCPUInformation();
 
 		g_ClockSpeed = pi.m_Speed;
@@ -89,7 +91,6 @@ public:
 		g_ClockSpeedMillisecondsMultiplier = 1000.0 / (double)g_ClockSpeed;
 		g_ClockSpeedSecondsMultiplier = 1.0f / (double)g_ClockSpeed;
 	}
-
 };
 
 class CFastTimer
@@ -106,7 +107,6 @@ public:
 	static inline unsigned long	GetClockSpeed();
 
 private:
-
 	CCycleCount	m_Duration;
 #ifdef DEBUG_FASTTIMER
 	bool m_bRunning;		// Are we currently running?
@@ -176,7 +176,9 @@ inline void CTimeAdder::End()
 
 // -------------------------------------------------------------------------- // 
 // Simple tool to support timing a block of code, and reporting the results on
-// program exit
+// program exit or at each iteration
+//
+//	Macros used because dbg.h uses this header, thus Msg() is unavailable
 // -------------------------------------------------------------------------- // 
 
 #define PROFILE_SCOPE(name) \
@@ -195,6 +197,21 @@ inline void CTimeAdder::End()
 	}; \
 	static C##name##ACC name##_ACC; \
 	CAverageTimeMarker name##_ATM( &name##_ACC )
+
+#define TIME_SCOPE(name) \
+	class CTimeScopeMsg_##name \
+	{ \
+	public: \
+		CTimeScopeMsg_##name() { m_Timer.Start(); } \
+		~CTimeScopeMsg_##name() \
+		{ \
+			m_Timer.End(); \
+			Msg( #name "time: %.4fms\n", m_Timer.GetDuration().GetMillisecondsF() ); \
+		} \
+	private:	\
+		CFastTimer	m_Timer; \
+	} name##_TSM;
+
 
 // -------------------------------------------------------------------------- // 
 
@@ -240,7 +257,7 @@ private:
 
 inline CCycleCount::CCycleCount()
 {
-	m_Int64 = 0;
+	Init( (int64)0 );
 }
 
 inline CCycleCount::CCycleCount( int64 cycles )
@@ -250,15 +267,15 @@ inline CCycleCount::CCycleCount( int64 cycles )
 
 inline void CCycleCount::Init()
 {
-	m_Int64 = 0;
+	Init( (int64)0 );
 }
 
 inline void CCycleCount::Init( float initTimeMsec )
 {
 	if ( g_ClockSpeedMillisecondsMultiplier > 0 )
-		m_Int64 = initTimeMsec / g_ClockSpeedMillisecondsMultiplier;
+		Init( (int64)(initTimeMsec / g_ClockSpeedMillisecondsMultiplier) );
 	else
-		m_Int64 = 0;
+		Init( (int64)0 );
 }
 
 inline void CCycleCount::Init( int64 cycles )
@@ -266,10 +283,31 @@ inline void CCycleCount::Init( int64 cycles )
 	m_Int64 = cycles;
 }
 
+#pragma warning(push)
+#pragma warning(disable : 4189) // warning C4189: local variable is initialized but not referenced
+
 inline void CCycleCount::Sample()
 {
+#if defined( _X360 )
+#if !defined( _CERT )
+	// read the highest resolution timer directly (ticks at native 3.2GHz), bypassing any calls into PMC
+	// can only resolve 32 bits, rollover is ~1.32 secs
+	// based on PMCGetIntervalTimer() from the April 2007 XDK
+	int64 temp;
+	__asm 
+	{
+		lis		r11,08FFFh
+		ld		r11,011E0h(r11)
+		rldicl	r11,r11,32,32
+		// unforunate can't get the inline assembler to write directly into desired target
+		std		r11,temp
+	}
+	m_Int64 = temp;
+#else
+	m_Int64 = ++g_dwFakeFastCounter;
+#endif
+#elif defined( _WIN32 )
 	unsigned long* pSample = (unsigned long *)&m_Int64;
-#ifdef _WIN32
 	__asm
 	{
 		// force the cpu to synchronize the instruction queue
@@ -279,19 +317,22 @@ inline void CCycleCount::Sample()
 		//cpuid
 		mov		ecx, pSample
 		rdtsc
-		mov		[ecx],     eax
-		mov		[ecx+4],   edx
+		mov		[ecx], eax
+		mov		[ecx+4], edx
 	}
-#elif defined _LINUX
-       __asm__ __volatile__ (  
-			"rdtsc\n\t"
-			"movl %%eax,  (%0)\n\t"
-                        "movl %%edx, 4(%0)\n\t"
-                        : /* no output regs */
-                        : "D" (pSample)
-                        : "%eax", "%edx");
+#elif defined( _LINUX )
+	unsigned long* pSample = (unsigned long *)&m_Int64;
+    __asm__ __volatile__ (  
+		"rdtsc\n\t"
+		"movl %%eax,  (%0)\n\t"
+		"movl %%edx, 4(%0)\n\t"
+		: /* no output regs */
+		: "D" (pSample)
+		: "%eax", "%edx" );
 #endif
 }
+
+#pragma warning(pop)
 
 
 inline CCycleCount& CCycleCount::operator+=( CCycleCount const &other )
@@ -391,7 +432,19 @@ inline void CFastTimer::End()
 {
 	CCycleCount cnt;
 	cnt.Sample();
+	if ( IsX360() )
+	{
+		// have to handle rollover, hires timer is only accurate to 32 bits
+		// more than one overflow should not have occured, otherwise caller should use a slower timer
+		if ( (uint64)cnt.m_Int64 <= (uint64)m_Duration.m_Int64 )
+		{
+			// rollover occured	
+			cnt.m_Int64 += 0x100000000LL;	
+		}
+	}
+
 	m_Duration.m_Int64 = cnt.m_Int64 - m_Duration.m_Int64;
+
 #ifdef DEBUG_FASTTIMER
 	m_bRunning = false;
 #endif
@@ -401,7 +454,17 @@ inline CCycleCount CFastTimer::GetDurationInProgress() const
 {
 	CCycleCount cnt;
 	cnt.Sample();
-	
+	if ( IsX360() )
+	{
+		// have to handle rollover, hires timer is only accurate to 32 bits
+		// more than one overflow should not have occured, otherwise caller should use a slower timer
+		if ( (uint64)cnt.m_Int64 <= (uint64)m_Duration.m_Int64 )
+		{
+			// rollover occured	
+			cnt.m_Int64 += 0x100000000LL;	
+		}
+	}
+
 	CCycleCount result;
 	result.m_Int64 = cnt.m_Int64 - m_Duration.m_Int64;
 	

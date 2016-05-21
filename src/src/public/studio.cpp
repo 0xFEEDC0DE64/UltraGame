@@ -14,6 +14,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
@@ -35,28 +36,142 @@ mstudioanimdesc_t &studiohdr_t::pAnimdesc( int i ) const
 	return *pStudioHdr->pLocalAnimdesc( pVModel->m_anim[i].index );
 }
 
+//-----------------------------------------------------------------------------
+// Purpose:
+//-----------------------------------------------------------------------------
+
+mstudioanim_t *mstudioanimdesc_t::pAnimBlock( int block, int index ) const
+{
+	if (block == -1)
+	{
+		return (mstudioanim_t *)NULL;
+	}
+	if (block == 0)
+	{
+		return (mstudioanim_t *)(((byte *)this) + index);
+	}
+
+	byte *pAnimBlock = pStudiohdr()->GetAnimBlock( block );
+	if ( pAnimBlock )
+	{
+		return (mstudioanim_t *)(pAnimBlock + index);
+	}
+
+	return (mstudioanim_t *)NULL;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
 
-mstudioanim_t *mstudioanimdesc_t::pAnim( void ) const
+static ConVar mod_load_showstall( "mod_load_showstall", "0", 0, "1 - show hitches , 2 - show stalls" );
+mstudioanim_t *mstudioanimdesc_t::pAnim( int *piFrame ) const
 {
-	if (animblock == 0)
+	float flStall;
+	return pAnim( piFrame, flStall );
+}
+
+mstudioanim_t *mstudioanimdesc_t::pAnim( int *piFrame, float &flStall ) const
+{
+	mstudioanim_t *panim = NULL;
+
+	int block = animblock;
+	int index = animindex;
+	int section = 0;
+
+	if (sectionframes != 0)
 	{
-		return  (mstudioanim_t *)(((byte *)this) + animindex);
-	}
-	else
-	{
-		byte *pAnimBlocks = pStudiohdr()->GetAnimBlock( animblock );
-		
-		if ( pAnimBlocks )
+		if (numframes > sectionframes && *piFrame == numframes - 1)
 		{
-			return (mstudioanim_t *)(pAnimBlocks + animindex);
+			// last frame on long anims is stored separately
+			*piFrame = 0;
+			section = (numframes / sectionframes) + 1;
+		}
+		else
+		{
+			section = *piFrame / sectionframes;
+			*piFrame -= section * sectionframes;
+		}
+
+		block = pSection( section )->animblock;
+		index = pSection( section )->animindex;
+	}
+
+	if (block == -1)
+	{
+		// model needs to be recompiled
+		return NULL;
+	}
+
+	panim = pAnimBlock( block, index );
+
+	// force a preload on the next block
+	if ( sectionframes != 0 )
+	{
+		int count = ( numframes / sectionframes) + 2;
+		for ( int i = section + 1; i < count; i++ )
+		{
+			if ( pSection( i )->animblock != block )
+			{
+				pAnimBlock( pSection( i )->animblock, pSection( i )->animindex );
+				break;
+			}
 		}
 	}
 
-	return NULL;
+	if (panim == NULL)
+	{
+		if (section > 0 && mod_load_showstall.GetInt() > 0)
+		{
+			Msg("[%8.3f] hitch on %s:%s:%d:%d\n", Plat_FloatTime(), pStudiohdr()->pszName(), pszName(), section, block );
+		}
+		// back up until a previously loaded block is found
+		while (--section >= 0)
+		{
+			block = pSection( section )->animblock;
+			index = pSection( section )->animindex;
+			panim = pAnimBlock( block, index );
+			if (panim)
+			{
+				// set it to the last frame in the last valid section
+				*piFrame = sectionframes - 1;
+				break;
+			}
+		}
+	}
+
+	// try to guess a valid stall time interval (tuned for the X360)
+	flStall = 0.0f;
+	if (panim == NULL && section <= 0)
+	{
+		zeroframestalltime = Plat_FloatTime();
+		flStall = 1.0f;
+	}
+	else if (panim != NULL && zeroframestalltime != 0.0f)
+	{
+		float dt = Plat_FloatTime() - zeroframestalltime;
+		if (dt >= 0.0)
+		{
+			flStall = SimpleSpline( clamp( (0.200f - dt) * 5.0, 0.0f, 1.0f ) );
+		}
+
+		if (flStall == 0.0f)
+		{
+			// disable stalltime
+			zeroframestalltime = 0.0f;
+		}
+		else if (mod_load_showstall.GetInt() > 1)
+		{
+			Msg("[%8.3f] stall blend %.2f on %s:%s:%d:%d\n", Plat_FloatTime(), flStall, pStudiohdr()->pszName(), pszName(), section, block );
+		}
+	}
+
+	if (panim == NULL && mod_load_showstall.GetInt() > 1)
+	{
+		Msg("[%8.3f] stall on %s:%s:%d:%d\n", Plat_FloatTime(), pStudiohdr()->pszName(), pszName(), section, block );
+	}
+
+	return panim;
 }
 
 mstudioikrule_t *mstudioanimdesc_t::pIKRule( int i ) const
@@ -85,6 +200,28 @@ mstudioikrule_t *mstudioanimdesc_t::pIKRule( int i ) const
 	return NULL;
 }
 
+
+mstudiolocalhierarchy_t *mstudioanimdesc_t::pHierarchy( int i ) const
+{
+	if (localhierarchyindex)
+	{
+		if (animblock == 0)
+		{
+			return  (mstudiolocalhierarchy_t *)(((byte *)this) + localhierarchyindex) + i;
+		}
+		else
+		{
+			byte *pAnimBlocks = pStudiohdr()->GetAnimBlock( animblock );
+			
+			if ( pAnimBlocks )
+			{
+				return (mstudiolocalhierarchy_t *)(pAnimBlocks + localhierarchyindex) + i;
+			}
+		}
+	}
+
+	return NULL;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -566,26 +703,11 @@ int	studiohdr_t::RemapAnimBone( int iAnim, int iLocalBone ) const
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
 
-CStudioHdr::CStudioHdr( void )
+CStudioHdr::CStudioHdr( void ) 
 {
 	// set pointer to bogus value
 	m_nFrameUnlockCounter = 0;
@@ -593,28 +715,18 @@ CStudioHdr::CStudioHdr( void )
 	Init( NULL );
 }
 
-CStudioHdr::CStudioHdr( IMDLCache *modelcache )
+CStudioHdr::CStudioHdr( const studiohdr_t *pStudioHdr, IMDLCache *mdlcache ) 
 {
-	SetModelCache( modelcache );
-	Init( NULL );
-}
-
-CStudioHdr::CStudioHdr( const studiohdr_t *pStudioHdr, IMDLCache *modelcache )
-{
-	SetModelCache( modelcache );
-	Init( pStudioHdr );
-}
-
-
-void CStudioHdr::SetModelCache( IMDLCache *modelcache )
-{
-	m_pFrameUnlockCounter = modelcache->GetFrameUnlockCounterPtr( MDLCACHE_STUDIOHDR );
+	// preset pointer to bogus value (it may be overwritten with legitimate data later)
+	m_nFrameUnlockCounter = 0;
+	m_pFrameUnlockCounter = &m_nFrameUnlockCounter;
+	Init( pStudioHdr, mdlcache );
 }
 
 
 // extern IDataCache *g_pDataCache;
 
-void CStudioHdr::Init( const studiohdr_t *pStudioHdr )
+void CStudioHdr::Init( const studiohdr_t *pStudioHdr, IMDLCache *mdlcache )
 {
 	m_pStudioHdr = pStudioHdr;
 
@@ -623,23 +735,43 @@ void CStudioHdr::Init( const studiohdr_t *pStudioHdr )
 
 	if (m_pStudioHdr == NULL)
 	{
-		// make sure the tag says it's not ready
-		m_nFrameUnlockCounter = *m_pFrameUnlockCounter - 1;
 		return;
 	}
 
-	m_nFrameUnlockCounter = *m_pFrameUnlockCounter;
+	if ( mdlcache )
+	{
+		m_pFrameUnlockCounter = mdlcache->GetFrameUnlockCounterPtr( MDLCACHE_STUDIOHDR );
+		m_nFrameUnlockCounter = *m_pFrameUnlockCounter - 1;
+	}
 
 	if (m_pStudioHdr->numincludemodels == 0)
 	{
-		return;
+#if STUDIO_SEQUENCE_ACTIVITY_LAZY_INITIALIZE
+#else
+		m_ActivityToSequence.Initialize(this);
+#endif
+	}
+	else
+	{
+		ResetVModel( m_pStudioHdr->GetVirtualModel() );
+#if STUDIO_SEQUENCE_ACTIVITY_LAZY_INITIALIZE
+#else
+		m_ActivityToSequence.Initialize(this);
+#endif
 	}
 
-	ResetVModel( m_pStudioHdr->GetVirtualModel() );
-
-	return;
+	m_boneFlags.EnsureCount( numbones() );
+	m_boneParent.EnsureCount( numbones() );
+	for (int i = 0; i < numbones(); i++)
+	{
+		m_boneFlags[i] = pBone( i )->flags;
+		m_boneParent[i] = pBone( i )->parent;
+	}
 }
 
+void CStudioHdr::Term()
+{
+}
 
 //-----------------------------------------------------------------------------
 // Purpose:
@@ -655,19 +787,19 @@ bool CStudioHdr::SequencesAvailable() const
 	if (m_pVModel == NULL)
 	{
 		// repoll m_pVModel
-		ResetVModel( m_pStudioHdr->GetVirtualModel() );
+		return (ResetVModel( m_pStudioHdr->GetVirtualModel() ) != NULL);
 	}
-
-	return ( m_pVModel != NULL );
+	else
+		return true;
 }
 
 
-void CStudioHdr::ResetVModel( const virtualmodel_t *pVModel ) const
+const virtualmodel_t * CStudioHdr::ResetVModel( const virtualmodel_t *pVModel ) const
 {
-	m_pVModel = (virtualmodel_t *)pVModel;
-
-	if (m_pVModel != NULL)
+	if (pVModel != NULL)
 	{
+		m_pVModel = (virtualmodel_t *)pVModel;
+		Assert( !pVModel->m_Lock.GetOwnerId() );
 		m_pStudioHdrCache.SetCount( m_pVModel->m_group.Count() );
 
 		int i;
@@ -675,15 +807,47 @@ void CStudioHdr::ResetVModel( const virtualmodel_t *pVModel ) const
 		{
 			m_pStudioHdrCache[ i ] = NULL;
 		}
+		
+		return const_cast<virtualmodel_t *>(pVModel);
+	}
+	else
+	{
+		m_pVModel = NULL;
+		return NULL;
 	}
 }
 
 const studiohdr_t *CStudioHdr::GroupStudioHdr( int i ) const
 {
+	if ( !this )
+	{
+		ExecuteNTimes( 5, Warning( "Call to NULL CStudioHdr::GroupStudioHdr()\n" ) );
+	}
+
+	if ( m_nFrameUnlockCounter != *m_pFrameUnlockCounter )
+	{
+		m_FrameUnlockCounterMutex.Lock();
+		if ( *m_pFrameUnlockCounter != m_nFrameUnlockCounter ) // i.e., this thread got the mutex
+		{
+			memset( m_pStudioHdrCache.Base(), 0, m_pStudioHdrCache.Count() * sizeof(studiohdr_t *) );
+			m_nFrameUnlockCounter = *m_pFrameUnlockCounter;
+		}
+		m_FrameUnlockCounterMutex.Unlock();
+	}
+
+	if ( !m_pStudioHdrCache.IsValidIndex( i ) )
+	{
+		const char *pszName = ( m_pStudioHdr ) ? m_pStudioHdr->pszName() : "<<null>>";
+		ExecuteNTimes( 5, Warning( "Invalid index passed to CStudioHdr(%s)::GroupStudioHdr(): %d, but max is %d [%d]\n", pszName, i, m_pStudioHdrCache.Count() ) );
+		DebuggerBreakIfDebugging();
+		return m_pStudioHdr; // return something known to probably exist, certainly things will be messed up, but hopefully not crash before the warning is noticed
+	}
+
 	const studiohdr_t *pStudioHdr = m_pStudioHdrCache[ i ];
 
 	if (pStudioHdr == NULL)
 	{
+		Assert( !m_pVModel->m_Lock.GetOwnerId() );
 		virtualgroup_t *pGroup = &m_pVModel->m_group[ i ];
 		pStudioHdr = pGroup->GetStudioHdr();
 		m_pStudioHdrCache[ i ] = pStudioHdr;
@@ -733,36 +897,6 @@ mstudioanimdesc_t &CStudioHdr::pAnimdesc( int i ) const
 	return *pStudioHdr->pLocalAnimdesc( m_pVModel->m_anim[i].index );
 }
 
-#if 0
-
-//-----------------------------------------------------------------------------
-// Purpose:
-//-----------------------------------------------------------------------------
-
-mstudioanim_t *mstudioanimdesc_t::pAnim( void ) const
-{
-	if (animblock == 0)
-	{
-		return  (mstudioanim_t *)(((byte *)this) + animindex);
-	}
-	else
-	{
-		byte *pAnimBlocks = pStudiohdr()->GetAnimBlock( animblock );
-		
-		if ( !pAnimBlocks )
-		{
-			Error( "Error loading .ani file info block for '%s'\n",
-				pStudiohdr()->name );
-		}
-		
-		return (mstudioanim_t *)(pAnimBlocks + animindex);
-	}
-
-	return NULL;
-}
-
-#endif
-
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
@@ -784,6 +918,11 @@ int CStudioHdr::GetNumSeq( void ) const
 mstudioseqdesc_t &CStudioHdr::pSeqdesc( int i ) const
 {
 	Assert( i >= 0 && i < GetNumSeq() );
+	if ( i < 0 || i >= GetNumSeq() )
+	{
+		// Avoid reading random memory.
+		i = 0;
+	}
 	
 	if (m_pVModel == NULL)
 	{
@@ -1220,6 +1359,7 @@ int	CStudioHdr::RemapAnimBone( int iAnim, int iLocalBone ) const
 // JasonM hack
 //ConVar	flex_maxrule( "flex_maxrule", "0" );
 
+
 //-----------------------------------------------------------------------------
 // Purpose: run the interpreted FAC's expressions, converting flex_controller 
 //			values into FAC weights
@@ -1277,12 +1417,155 @@ void CStudioHdr::RunFlexRules( const float *src, float *dest )
 			case STUDIO_CONST: stack[k] = pops->d.value; k++; break;
 			case STUDIO_FETCH1: 
 				{ 
-				int m = pFlexcontroller(pops->d.index)->link;
+				int m = pFlexcontroller( (LocalFlexController_t)pops->d.index)->localToGlobal;
 				stack[k] = src[m];
 				k++; 
 				break;
 				}
-			case STUDIO_FETCH2: stack[k] = dest[pops->d.index]; k++; break;
+			case STUDIO_FETCH2:
+				{
+					stack[k] = dest[pops->d.index]; k++; break;
+				}
+			case STUDIO_COMBO:
+				{
+					int m = pops->d.index;
+					int km = k - m;
+					for ( int i = km + 1; i < k; ++i )
+					{
+						stack[ km ] *= stack[ i ];
+					}
+					k = k - m + 1;
+				}
+				break;
+			case STUDIO_DOMINATE:
+				{
+					int m = pops->d.index;
+					int km = k - m;
+					float dv = stack[ km ];
+					for ( int i = km + 1; i < k; ++i )
+					{
+						dv *= stack[ i ];
+					}
+					stack[ km - 1 ] *= 1.0f - dv;
+					k -= m;
+				}
+				break;
+			case STUDIO_2WAY_0:
+				{ 
+					int m = pFlexcontroller( (LocalFlexController_t)pops->d.index )->localToGlobal;
+					stack[ k ] = RemapValClamped( src[m], -1.0f, 0.0f, 1.0f, 0.0f );
+					k++; 
+				}
+				break;
+			case STUDIO_2WAY_1:
+				{ 
+					int m = pFlexcontroller( (LocalFlexController_t)pops->d.index )->localToGlobal;
+					stack[ k ] = RemapValClamped( src[m], 0.0f, 1.0f, 0.0f, 1.0f );
+					k++; 
+				}
+				break;
+			case STUDIO_NWAY:
+				{
+					LocalFlexController_t valueControllerIndex = static_cast< LocalFlexController_t >( (int)stack[ k - 1 ] );
+					int m = pFlexcontroller( valueControllerIndex )->localToGlobal;
+					float flValue = src[ m ];
+					int v = pFlexcontroller( (LocalFlexController_t)pops->d.index )->localToGlobal;
+
+					const Vector4D filterRamp( stack[ k - 5 ], stack[ k - 4 ], stack[ k - 3 ], stack[ k - 2 ] );
+
+					// Apply multicontrol remapping
+					if ( flValue <= filterRamp.x || flValue >= filterRamp.w )
+					{
+						flValue = 0.0f;
+					}
+					else if ( flValue < filterRamp.y )
+					{
+						flValue = RemapValClamped( flValue, filterRamp.x, filterRamp.y, 0.0f, 1.0f );
+					}
+					else if ( flValue > filterRamp.z )
+					{
+						flValue = RemapValClamped( flValue, filterRamp.z, filterRamp.w, 1.0f, 0.0f );
+					}
+					else
+					{
+						flValue = 1.0f;
+					}
+
+					stack[ k - 5 ] = flValue * src[ v ];
+
+					k -= 4; 
+				}
+				break;
+			case STUDIO_DME_LOWER_EYELID:
+				{ 
+					const mstudioflexcontroller_t *const pCloseLidV = pFlexcontroller( (LocalFlexController_t)pops->d.index );
+					const float flCloseLidV = RemapValClamped( src[ pCloseLidV->localToGlobal ], pCloseLidV->min, pCloseLidV->max, 0.0f, 1.0f );
+
+					const mstudioflexcontroller_t *const pCloseLid = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 1 ] ) );
+					const float flCloseLid = RemapValClamped( src[ pCloseLid->localToGlobal ], pCloseLid->min, pCloseLid->max, 0.0f, 1.0f );
+
+					int nBlinkIndex = static_cast< int >( stack[ k - 2 ] );
+					float flBlink = 0.0f;
+					if ( nBlinkIndex >= 0 )
+					{
+						const mstudioflexcontroller_t *const pBlink = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 2 ] ) );
+						flBlink = RemapValClamped( src[ pBlink->localToGlobal ], pBlink->min, pBlink->max, 0.0f, 1.0f );
+					}
+
+					int nEyeUpDownIndex = static_cast< int >( stack[ k - 3 ] );
+					float flEyeUpDown = 0.0f;
+					if ( nEyeUpDownIndex >= 0 )
+					{
+						const mstudioflexcontroller_t *const pEyeUpDown = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 3 ] ) );
+						flEyeUpDown = RemapValClamped( src[ pEyeUpDown->localToGlobal ], pEyeUpDown->min, pEyeUpDown->max, -1.0f, 1.0f );
+					}
+
+					if ( flEyeUpDown > 0.0 )
+					{
+						stack [ k - 3 ] = ( 1.0f - flEyeUpDown ) * ( 1.0f - flCloseLidV ) * flCloseLid;
+					}
+					else
+					{
+						stack [ k - 3 ] = ( 1.0f - flCloseLidV ) * flCloseLid;
+					}
+					k -= 2;
+				}
+				break;
+			case STUDIO_DME_UPPER_EYELID:
+				{ 
+					const mstudioflexcontroller_t *const pCloseLidV = pFlexcontroller( (LocalFlexController_t)pops->d.index );
+					const float flCloseLidV = RemapValClamped( src[ pCloseLidV->localToGlobal ], pCloseLidV->min, pCloseLidV->max, 0.0f, 1.0f );
+
+					const mstudioflexcontroller_t *const pCloseLid = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 1 ] ) );
+					const float flCloseLid = RemapValClamped( src[ pCloseLid->localToGlobal ], pCloseLid->min, pCloseLid->max, 0.0f, 1.0f );
+
+					int nBlinkIndex = static_cast< int >( stack[ k - 2 ] );
+					float flBlink = 0.0f;
+					if ( nBlinkIndex >= 0 )
+					{
+						const mstudioflexcontroller_t *const pBlink = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 2 ] ) );
+						flBlink = RemapValClamped( src[ pBlink->localToGlobal ], pBlink->min, pBlink->max, 0.0f, 1.0f );
+					}
+
+					int nEyeUpDownIndex = static_cast< int >( stack[ k - 3 ] );
+					float flEyeUpDown = 0.0f;
+					if ( nEyeUpDownIndex >= 0 )
+					{
+						const mstudioflexcontroller_t *const pEyeUpDown = pFlexcontroller( static_cast< LocalFlexController_t >( (int)stack[ k - 3 ] ) );
+						flEyeUpDown = RemapValClamped( src[ pEyeUpDown->localToGlobal ], pEyeUpDown->min, pEyeUpDown->max, -1.0f, 1.0f );
+					}
+
+					if ( flEyeUpDown < 0.0f )
+					{
+						stack [ k - 3 ] = ( 1.0f + flEyeUpDown ) * flCloseLidV * flCloseLid;
+					}
+					else
+					{
+						stack [ k - 3 ] = flCloseLidV * flCloseLid;
+					}
+					k -= 2;
+				}
+				break;
 			}
 
 			pops++;
@@ -1308,4 +1591,229 @@ void CStudioHdr::RunFlexRules( const float *src, float *dest )
 		// end JasonM hack
 
 	}
+}
+
+
+
+//-----------------------------------------------------------------------------
+//	CODE PERTAINING TO ACTIVITY->SEQUENCE MAPPING SUBCLASS
+//-----------------------------------------------------------------------------
+#define iabs(i) (( (i) >= 0 ) ? (i) : -(i) )
+
+
+extern void SetActivityForSequence( CStudioHdr *pstudiohdr, int i );
+void CStudioHdr::CActivityToSequenceMapping::Initialize( CStudioHdr * __restrict pstudiohdr )
+{
+	// Algorithm: walk through every sequence in the model, determine to which activity
+	// it corresponds, and keep a count of sequences per activity. Once the total count
+	// is available, allocate an array large enough to contain them all, update the 
+	// starting indices for every activity's section in the array, and go back through,
+	// populating the array with its data.
+
+	AssertMsg1( m_pSequenceTuples == NULL, "Tried to double-initialize sequence mapping for %s", pstudiohdr->pszName() );
+	if ( m_pSequenceTuples != NULL )
+		return; // don't double initialize.
+
+	SetValidationPair(pstudiohdr);
+
+	if ( ! pstudiohdr->SequencesAvailable() )
+		return; // nothing to do.
+
+#if STUDIO_SEQUENCE_ACTIVITY_LAZY_INITIALIZE
+	m_bIsInitialized = true;
+#endif
+	
+	// Some studio headers have no activities at all. In those
+	// cases we can avoid a lot of this effort.
+	bool bFoundOne = false;
+
+	// for each sequence in the header...
+	const int NumSeq = pstudiohdr->GetNumSeq();
+	for ( int i = 0 ; i < NumSeq ; ++i )
+	{
+		const mstudioseqdesc_t &seqdesc = pstudiohdr->pSeqdesc( i );
+#if defined(SERVER_DLL) || defined(CLIENT_DLL) || defined(GAME_DLL)
+		if (!(seqdesc.flags & STUDIO_ACTIVITY))
+		{
+			// AssertMsg2( false, "Sequence %d on studiohdr %s didn't have its activity initialized!", i, pstudiohdr->pszName() );
+			SetActivityForSequence( pstudiohdr, i );
+		}
+#endif
+
+		// is there an activity associated with this sequence?
+		if (seqdesc.activity >= 0)
+		{
+			bFoundOne = true;
+
+			// look up if we already have an entry. First we need to make a speculative one --
+			HashValueType entry(seqdesc.activity, 0, 1, iabs(seqdesc.actweight));
+			UtlHashHandle_t handle = m_ActToSeqHash.Find(entry);
+			if ( m_ActToSeqHash.IsValidHandle(handle) )
+			{	
+				// we already have an entry and must update it by incrementing count
+				HashValueType * __restrict toUpdate = &m_ActToSeqHash.Element(handle);
+				toUpdate->count += 1;
+				toUpdate->totalWeight += iabs(seqdesc.actweight);
+			}
+			else
+			{
+				// we do not have an entry yet; create one.
+				m_ActToSeqHash.Insert(entry);
+			}
+		}
+	}
+
+	// if we found nothing, don't bother with any other initialization!
+	if (!bFoundOne)
+		return;
+
+	// Now, create starting indices for each activity. For an activity n, 
+	// the starting index is of course the sum of counts [0..n-1]. 
+	register int sequenceCount = 0;
+	int topActivity = 0; // this will store the highest seen activity number (used later to make an ad hoc map on the stack)
+	for ( UtlHashHandle_t handle = m_ActToSeqHash.GetFirstHandle() ; 
+		  m_ActToSeqHash.IsValidHandle(handle) ;
+		  handle = m_ActToSeqHash.GetNextHandle(handle) )
+	{
+		HashValueType &element = m_ActToSeqHash[handle];
+		element.startingIdx = sequenceCount;
+		sequenceCount += element.count;
+		topActivity = max(topActivity, element.activityIdx);
+	}
+	
+
+	// Allocate the actual array of sequence information. Note the use of restrict;
+	// this is an important optimization, but means that you must never refer to this
+	// array through m_pSequenceTuples in the scope of this function.
+	SequenceTuple * __restrict tupleList = new SequenceTuple[sequenceCount];
+	m_pSequenceTuples = tupleList; // save it off -- NEVER USE m_pSequenceTuples in this function!
+	m_iSequenceTuplesCount = sequenceCount;
+
+
+
+	// Now we're going to actually populate that list with the relevant data. 
+	// First, create an array on the stack to store how many sequences we've written
+	// so far for each activity. (This is basically a very simple way of doing a map.)
+	// This stack may potentially grow very large; so if you have problems with it, 
+	// go to a utlmap or similar structure.
+	unsigned int allocsize = (topActivity + 1) * sizeof(int);
+#define ALIGN_VALUE( val, alignment ) ( ( val + alignment - 1 ) & ~( alignment - 1 ) ) //  need macro for constant expression
+	allocsize = ALIGN_VALUE(allocsize,16);
+	int * __restrict seqsPerAct = static_cast<int *>(stackalloc(allocsize));
+	memset(seqsPerAct, 0, allocsize);
+
+	// okay, walk through all the sequences again, and write the relevant data into 
+	// our little table.
+	for ( int i = 0 ; i < NumSeq ; ++i )
+	{
+		const mstudioseqdesc_t &seqdesc = pstudiohdr->pSeqdesc( i );
+		if (seqdesc.activity >= 0)
+		{
+			const HashValueType &element = m_ActToSeqHash[m_ActToSeqHash.Find(HashValueType(seqdesc.activity, 0, 0, 0))];
+			
+			// If this assert trips, we've written more sequences per activity than we allocated 
+			// (therefore there must have been a miscount in the first for loop above).
+			int tupleOffset = seqsPerAct[seqdesc.activity];
+			Assert( tupleOffset < element.count );
+
+			// You might be tempted to collapse this pointer math into a single pointer --
+			// don't! the tuple list is marked __restrict above.
+			(tupleList + element.startingIdx + tupleOffset)->seqnum = i; // store sequence number
+			(tupleList + element.startingIdx + tupleOffset)->weight = iabs(seqdesc.actweight);
+
+			seqsPerAct[seqdesc.activity] += 1;
+		}
+	}
+
+#ifdef DBGFLAG_ASSERT
+	// double check that we wrote exactly the right number of sequences.
+	unsigned int chkSequenceCount = 0;
+	for (int j = 0 ; j <= topActivity ; ++j)
+	{
+		chkSequenceCount += seqsPerAct[j];
+	}
+	Assert(chkSequenceCount == m_iSequenceTuplesCount);
+#endif
+
+}
+
+/// Force Initialize() to occur again, even if it has already occured.
+void CStudioHdr::CActivityToSequenceMapping::Reinitialize( CStudioHdr *pstudiohdr )
+{
+	m_bIsInitialized = false;
+	if (m_pSequenceTuples)
+	{
+		delete m_pSequenceTuples;
+		m_pSequenceTuples = NULL;
+	}
+	m_ActToSeqHash.RemoveAll();
+
+	Initialize(pstudiohdr);
+}
+
+// Look up relevant data for an activity's sequences. This isn't terribly efficient, due to the
+// load-hit-store on the output parameters, so the most common case -- SelectWeightedSequence --
+// is specially implemented.
+const CStudioHdr::CActivityToSequenceMapping::SequenceTuple *CStudioHdr::CActivityToSequenceMapping::GetSequences( int forActivity, int * __restrict outSequenceCount, int * __restrict outTotalWeight )
+{
+	// Construct a dummy entry so we can do a hash lookup (the UtlHash does not divorce keys from values)
+
+	HashValueType entry(forActivity, 0, 0, 0);
+	UtlHashHandle_t handle = m_ActToSeqHash.Find(entry);
+	
+	if (m_ActToSeqHash.IsValidHandle(handle))
+	{
+		const HashValueType &element = m_ActToSeqHash[handle];
+		const SequenceTuple *retval = m_pSequenceTuples + element.startingIdx;
+		*outSequenceCount = element.count;
+		*outTotalWeight = element.totalWeight;
+
+		return retval;
+	}
+	else
+	{
+		// invalid handle; return NULL.
+		// this is actually a legit use case, so no need to assert.
+		return NULL;
+	}
+}
+
+int CStudioHdr::CActivityToSequenceMapping::NumSequencesForActivity( int forActivity )
+{
+	// If this trips, you've called this function on something that doesn't 
+	// have activities.
+	//Assert(m_pSequenceTuples != NULL);
+	if ( m_pSequenceTuples == NULL )
+		return 0;
+
+	HashValueType entry(forActivity, 0, 0, 0);
+	UtlHashHandle_t handle = m_ActToSeqHash.Find(entry);
+	if (m_ActToSeqHash.IsValidHandle(handle))
+	{
+		return m_ActToSeqHash[handle].count;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+// double-check that the data I point to hasn't changed
+bool CStudioHdr::CActivityToSequenceMapping::ValidateAgainst( const CStudioHdr * RESTRICT pstudiohdr ) RESTRICT
+{
+	if (m_bIsInitialized)
+	{
+		return m_expectedPStudioHdr == pstudiohdr->GetRenderHdr() &&
+			   m_expectedVModel == pstudiohdr->GetVirtualModel();
+	}
+	else
+	{
+		return true; // Allow an ordinary initialization to take place without printing a panicky assert.
+	}
+}
+
+void CStudioHdr::CActivityToSequenceMapping::SetValidationPair( const CStudioHdr *RESTRICT pstudiohdr ) RESTRICT
+{
+	m_expectedPStudioHdr = pstudiohdr->GetRenderHdr();
+	m_expectedVModel = pstudiohdr->GetVirtualModel();
 }

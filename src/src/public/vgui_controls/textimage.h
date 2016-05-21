@@ -16,7 +16,7 @@
 #include <vgui/ILocalize.h>
 #include <vgui_controls/Image.h>
 
-#include <UtlVector.h>
+#include <utlvector.h>
 
 class KeyValues;
 
@@ -37,7 +37,7 @@ public:
 	// takes the string and looks it up in the localization file to convert it to unicode
 	virtual void SetText(const char *text);
 	// sets unicode text directly
-	virtual void SetText(const wchar_t *text);
+	virtual void SetText(const wchar_t *text, bool bClearUnlocalizedSymbol = false);
 	// get the full text in the image
 	virtual void GetText(char *buffer, int bufferSize);
 	virtual void GetText(wchar_t *buffer, int bufferLength);
@@ -58,6 +58,7 @@ public:
 	void GetDrawWidth(int &width); 
 
     void ResizeImageToContent();
+	void ResizeImageToContentMaxWidth( int nMaxWidth );
 
 	// set the size of the image
 	virtual void SetSize(int wide,int tall);
@@ -70,6 +71,11 @@ public:
 
 	void SetWrap( bool bWrap );
 	void RecalculateNewLinePositions();
+
+	void SetUseFallbackFont( bool bState, HFont hFallback );
+	
+	void SetCenterWrap( bool bWrap );
+	void RecalculateCenterWrapIndents();
 
 protected:
 	// truncate the _text string to fit into the draw width
@@ -84,15 +90,21 @@ private:
 	short _textBufferLen;	// size of the text buffer
 	short _textLen;		// length of the text string
 	vgui::HFont _font;	// font of the text string
+	vgui::HFont _fallbackFont;
 	int _drawWidth;		// this is the width of the window we are drawing into. 
 						// if there is not enough room truncate the txt	and add an elipsis
 
 	StringIndex_t _unlocalizedTextSymbol;	// store off the unlocalized text index for build mode
-	bool m_bRecalculateTruncation;
 	wchar_t *m_pwszEllipsesPosition;
 
-	bool m_bWrap;
-	CUtlVector<wchar_t *>	   m_LineBreaks;		// an array that holds the index in the buffer to wrap lines at
+	bool m_bRecalculateTruncation : 1;
+	bool m_bWrap : 1;
+	bool m_bUseFallbackFont : 1;
+	bool m_bRenderUsingFallbackFont : 1;
+	CUtlVector<wchar_t *>		m_LineBreaks;		// an array that holds the index in the buffer to wrap lines at
+
+	bool m_bWrapCenter;								// Separate from m_bWrap to ensure it doesn't break legacy code.
+	CUtlVector<int>				m_LineXIndent;		// For centered word wrap. The X indent for each line.
 };
 
 } // namespace vgui

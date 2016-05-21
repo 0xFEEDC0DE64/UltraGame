@@ -12,8 +12,8 @@
 #pragma once
 #endif
 
-#include <UtlLinkedList.h>
-#include <UtlVector.h>
+#include <utllinkedlist.h>
+#include <utlvector.h>
 #include <vgui/VGUI.h>
 #include <vgui_controls/Panel.h>
 
@@ -60,7 +60,7 @@ public:
 	bool IsMultipleSelectionAllowed() const;
 
 	virtual void ClearSelection();
-    virtual void AddSelectedItem( int itemIndex, bool clearCurrentSelection, bool requestFocus = true );
+    virtual void AddSelectedItem( int itemIndex, bool clearCurrentSelection, bool requestFocus = true, bool bMakeItemVisible = true );
 	virtual void RemoveSelectedItem( int itemIndex );
 	virtual void SelectAll();
 
@@ -127,6 +127,7 @@ public:
 	virtual bool IsItemDroppable( int itemIndex, CUtlVector< KeyValues * >& msglist );
 	virtual void OnItemDropped( int itemIndex, CUtlVector< KeyValues * >& msglist );
 	virtual bool GetItemDropContextMenu( int itemIndex, Menu *menu, CUtlVector< KeyValues * >& msglist );
+	virtual HCursor GetItemDropCursor( int itemIndex, CUtlVector< KeyValues * >& msglist );
 
 	virtual int		GetPrevChildItemIndex( int itemIndex );
 	virtual int		GetNextChildItemIndex( int itemIndex );
@@ -156,8 +157,6 @@ protected:
 	virtual void ApplySchemeSettings(IScheme *pScheme);
 	MESSAGE_FUNC_INT( OnSliderMoved, "ScrollBarSliderMoved", position );
 	virtual void SetBgColor( Color color );
-
-//	virtual void OnKeyCodeTyped(enum KeyCode code);
 
 private:
     friend class TreeNode;

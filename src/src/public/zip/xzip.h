@@ -95,11 +95,19 @@
 // zip.cpp. The repackaging was done by Lucian Wischik to simplify its
 // use in Windows/C++.
 
+#ifndef DECLARE_XZIP_HANDLE
+#define DECLARE_XZIP_HANDLE(name) struct name##__ { int unused; }; typedef struct name##__ *name
+#endif
+
 #ifndef XUNZIP_H
-DECLARE_HANDLE(HZIP);		// An HZIP identifies a zip file that is being created
+DECLARE_XZIP_HANDLE(HZIP);		// An HZIP identifies a zip file that is being created
 #endif
 
 typedef DWORD ZRESULT;		// result codes from any of the zip functions. Listed later.
+
+#ifdef _LINUX
+	typedef char TCHAR;
+#endif
 
 // flag values passed to some functions
 #define ZIP_HANDLE   1

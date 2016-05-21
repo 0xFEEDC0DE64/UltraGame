@@ -14,13 +14,13 @@
 #include <stdio.h>
 #include <math.h>
 #include "cmdlib.h"
-#include "mathlib.h"
+#include "mathlib/mathlib.h"
 #include "cmodel.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "physdll.h"
 #include "phyfile.h"
 #include "vphysics_interface.h"
-#include "vstdlib/icommandline.h"
+#include "tier0/icommandline.h"
 #include "tier0/vprof.h"
 
 HDC		camdc;
@@ -372,7 +372,7 @@ void ReadPolyFileType(const char *name, int nList, BOOL drawLines)
 	int		r;
 	float divisor;
 
-	f = fopen (name, "r");
+	f = fopen (name, "rt");
 	if (!f)
 		Error ("Couldn't open %s", name);
 
@@ -392,10 +392,13 @@ void ReadPolyFileType(const char *name, int nList, BOOL drawLines)
 
 	while (1)
 	{
-		r = fscanf (f, "%i\n", &numverts);
+		r = fscanf( f, "%i\n", &numverts);
 		if (!r || r == EOF)
 			break;
-		
+
+		if ( c > 65534*8)
+			break;
+
 		if (drawLines || numverts == 2)
 			glBegin(GL_LINE_LOOP);
 		else
@@ -403,8 +406,18 @@ void ReadPolyFileType(const char *name, int nList, BOOL drawLines)
 
 		for (i=0 ; i<numverts ; i++)
 		{
-			r = fscanf (f, "%f %f %f %f %f %f\n", &v[0], &v[1],
+			r = fscanf( f, "%f %f %f %f %f %f\n", &v[0], &v[1],
 				&v[2], &v[3], &v[4], &v[5]);
+
+			/*
+			if (!(fabs( v[0] ) < 32768.0&& fabs( v[1] ) < 32768.0 && fabs( v[2] ) < 32768.0 ) )
+				Error( "Out of range data\n");
+			*/
+
+			/*
+			if (v[3] <= 0.1 && v[4] <= 0.1 && v[5] <= 0.1 )
+				continue;
+			*/
 
 			if (drawLines)  // YELLOW OUTLINES
 				glColor4f(1.0, 1.0, 0.0, 0.5);
@@ -660,7 +673,6 @@ void AddVCollideToList( phyheader_t &header, vcollide_t &collide, phyviewparams_
 	ClearBounds( params.mins, params.maxs );
 	for ( int i = 0; i < header.solidCount; i++ )
 	{
-		Vector *outVerts;
 		ICollisionQuery *pQuery = physcollision->CreateQueryModel( collide.solids[i] );
 		for ( int j = 0; j < pQuery->ConvexCount(); j++ )
 		{
@@ -800,9 +812,8 @@ void ReadPolyFile (const char *name)
 	char ext[4];
 	Q_ExtractFileExtension( name, ext, 4 );
 
-	bool isPHX = !Q_stricmp( ext, "phx" );
 	bool isPHY = !Q_stricmp( ext, "phy" );
-	if ( isPHY || isPHX )
+	if ( isPHY )
 	{
 		CreateInterfaceFn physicsFactory = GetPhysicsFactory();
 		physcollision = (IPhysicsCollision *)physicsFactory( VPHYSICS_COLLISION_INTERFACE_VERSION, NULL );
@@ -814,15 +825,6 @@ void ReadPolyFile (const char *name)
 			ReadPHYFile( name, params );
 			Vector tmp = (params.mins + params.maxs) * 0.5;
 			tmp.CopyToArray(origin);
-			if ( isPHX )
-			{
-				params.offset.y = (params.maxs.y - params.mins.y) * 1.25f;
-				params.outputType = GL_LINE_LOOP;
-				char newname[1024];
-				Q_strncpy( newname, name, sizeof(newname));
-				Q_SetExtension( newname, ".phy", sizeof(newname));
-				ReadPHYFile(newname, params);
-			}
 			glEndList ();
 		}
 	}
@@ -839,7 +841,7 @@ void ReadPolyFile (const char *name)
 void ReadPortalFile (char *name)
 {
 	FILE	*f;
-	int		i, j, numverts;
+	int		i, numverts;
 	float	v[8];
 	int		c;
 	int		r;
@@ -1113,7 +1115,6 @@ LONG WINAPI WCam_WndProc (
 {
     LONG    lRet = 1;
     RECT	rect;
-	int		xPos, yPos, fwKeys;
 
     GetClientRect(hWnd, &rect);
 

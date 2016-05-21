@@ -11,7 +11,7 @@
 #endif
 
 
-#include "vector.h"
+#include "mathlib/vector.h"
 
 
 // The macro texture looks for a TGA file with the same name as the BSP file and in

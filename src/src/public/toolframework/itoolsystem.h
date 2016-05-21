@@ -13,9 +13,11 @@
 #include "itoolentity.h"
 #include "interface.h"
 #include "materialsystem/imaterialproxy.h"
+#include "inputsystem/iinputsystem.h"
 
 class KeyValues;
 struct SpatializationInfo_t;
+struct AudioState_t;
 
 //-----------------------------------------------------------------------------
 // Purpose: All tools expose this interface, which includes both client and server
@@ -68,6 +70,7 @@ public:
 	// called after entities think
 	virtual void	ServerFrameUpdatePostEntityThink() = 0;
 	virtual void	ServerPreClientUpdate() = 0;
+	virtual void	ServerPreSetupVisibility() = 0;
 
 	// Used to allow the tool to spawn different entities when it's active
 	virtual const char* GetEntityData( const char *pActualEntityData ) = 0;
@@ -93,7 +96,7 @@ public:
 	virtual bool	SetupEngineView( Vector &origin, QAngle &angles, float &fov ) = 0;
 
 	// let tool override microphone
-	virtual bool	SetupEngineMicrophone( Vector &origin, QAngle &angles ) = 0;
+	virtual bool	SetupAudioState( AudioState_t &audioState ) = 0;
 
 	// Should the client be allowed to render the view normally?
 	virtual bool	ShouldGameRenderView() = 0;
@@ -116,7 +119,7 @@ public:
 	// Another tool is being activated
 	virtual void	OnToolDeactivate() = 0;
 
-	virtual bool	TrapKey( int key, bool down ) = 0;
+	virtual bool	TrapKey( ButtonCode_t key, bool down ) = 0;
 
 	virtual bool	GetSoundSpatialization( int iUserData, int guid, SpatializationInfo_t& info ) = 0;
 

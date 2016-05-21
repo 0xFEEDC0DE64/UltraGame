@@ -82,6 +82,11 @@ public:
 	// Set the slider's Paint enabled.
 	virtual void   SetPaintEnabled(bool state);
 
+	// Sets the scrollbar buttons visible or not
+	virtual void    SetScrollbarButtonsVisible(bool visible);
+
+	void			SetAutohideButtons( bool bAutohide ) { m_bAutoHideButtons = bAutohide; }
+
 	/* MESSAGES SENT:
 		"ScrollBarSliderMoved"
 			"position" - new value of the slider
@@ -103,6 +108,7 @@ private:
 	int     _buttonPressedScrollValue;
 	int		_scrollDelay; // used to control delays in scrolling
 	bool	_respond;
+	CPanelAnimationVar( bool, m_bAutoHideButtons, "autohide_buttons", "0" );
 };
 
 }

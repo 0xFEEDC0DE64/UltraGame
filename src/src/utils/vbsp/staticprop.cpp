@@ -13,13 +13,14 @@
 #include "gamebspfile.h"
 #include "VPhysics_Interface.h"
 #include "Studio.h"
+#include "byteswap.h"
 #include "UtlBuffer.h"
 #include "CollisionUtils.h"
 #include <float.h>
 #include "CModel.h"
 #include "PhysDll.h"
 #include "UtlSymbol.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "keyvalues.h"
 
 static void SetCurrentModel( studiohdr_t *pStudioHdr );
@@ -51,6 +52,8 @@ struct StaticPropBuild_t
 	float	m_FadeMaxDist;
 	bool	m_FadesOut;
 	float	m_flForcedFadeScale;
+	unsigned short	m_nMinDXLevel;
+	unsigned short	m_nMaxDXLevel;
 };
  
 
@@ -193,6 +196,7 @@ static CPhysConvex* ComputeConvexHull( mstudiomesh_t* pMesh )
 	// Generate a list of all verts in the mesh
 	Vector** ppVerts = (Vector**)stackalloc(pMesh->numvertices * sizeof(Vector*) );
 	const mstudio_meshvertexdata_t *vertData = pMesh->GetVertexData();
+	Assert( vertData ); // This can only return NULL on X360 for now
 	for (int i = 0; i < pMesh->numvertices; ++i)
 	{
 		ppVerts[i] = vertData->Position(i);
@@ -433,7 +437,7 @@ static void ComputeStaticPropLeaves( CPhysCollide* pCollide, Vector const& origi
 {
 	// Compute an axis-aligned bounding box for the collide
 	Vector mins, maxs;
-	s_pPhysCollision->CollideGetAABB( mins, maxs, pCollide, origin, angles );
+	s_pPhysCollision->CollideGetAABB( &mins, &maxs, pCollide, origin, angles );
 
 	// Find all leaves that intersect with the bounds
 	int tempNodeList[1024];
@@ -495,11 +499,15 @@ static void AddStaticPropToLump( StaticPropBuild_t const& build )
 	propLump.m_Skin = build.m_Skin;
 	propLump.m_Flags = build.m_Flags;
 	if (build.m_FadesOut)
+	{
 		propLump.m_Flags |= STATIC_PROP_FLAG_FADES;
+	}
 	propLump.m_FadeMinDist = build.m_FadeMinDist;
 	propLump.m_FadeMaxDist = build.m_FadeMaxDist;
 	propLump.m_flForcedFadeScale = build.m_flForcedFadeScale;
-
+	propLump.m_nMinDXLevel = build.m_nMinDXLevel;
+	propLump.m_nMaxDXLevel = build.m_nMaxDXLevel;
+	
 	if (build.m_pLightingOrigin && *build.m_pLightingOrigin)
 	{
 		if (ComputeLightingOrigin( build, propLump.m_LightingOrigin ))
@@ -524,18 +532,19 @@ static void AddStaticPropToLump( StaticPropBuild_t const& build )
 
 static void SetLumpData( )
 {
-	GameLumpHandle_t handle = GetGameLumpHandle(GAMELUMP_STATIC_PROPS);
-	if (handle != InvalidGameLump())
-		DestroyGameLump(handle);
+	GameLumpHandle_t handle = g_GameLumps.GetGameLumpHandle(GAMELUMP_STATIC_PROPS);
+	if (handle != g_GameLumps.InvalidGameLump())
+		g_GameLumps.DestroyGameLump(handle);
+
 	int dictsize = s_StaticPropDictLump.Size() * sizeof(StaticPropDictLump_t);
 	int objsize = s_StaticPropLump.Size() * sizeof(StaticPropLump_t);
 	int leafsize = s_StaticPropLeafLump.Size() * sizeof(StaticPropLeafLump_t);
 	int size = dictsize + objsize + leafsize + 3 * sizeof(int);
 
-	handle = CreateGameLump( GAMELUMP_STATIC_PROPS, size, 0, GAMELUMP_STATIC_PROPS_VERSION );
+	handle = g_GameLumps.CreateGameLump( GAMELUMP_STATIC_PROPS, size, 0, GAMELUMP_STATIC_PROPS_VERSION );
 
 	// Serialize the data
-	CUtlBuffer buf( GetGameLump(handle), size );
+	CUtlBuffer buf( g_GameLumps.GetGameLump(handle), size );
 	buf.PutInt( s_StaticPropDictLump.Size() );
 	if (dictsize)
 		buf.Put( s_StaticPropDictLump.Base(), dictsize );
@@ -588,6 +597,10 @@ void EmitStaticProps()
 			build.m_Skin = IntForKey( &entities[i], "skin" );
 			build.m_FadeMaxDist = FloatForKey( &entities[i], "fademaxdist" );
 			build.m_Flags = 0;//IntForKey( &entities[i], "spawnflags" ) & STATIC_PROP_WC_MASK;
+			if (IntForKey( &entities[i], "ignorenormals" ) == 1)
+			{
+				build.m_Flags |= STATIC_PROP_IGNORE_NORMALS;
+			}
 			if (IntForKey( &entities[i], "disableshadows" ) == 1)
 			{
 				build.m_Flags |= STATIC_PROP_NO_SHADOW;
@@ -629,7 +642,8 @@ void EmitStaticProps()
 			{
 				build.m_FadeMinDist = 0;
 			}
-
+			build.m_nMinDXLevel = (unsigned short)IntForKey( &entities[i], "mindxlevel" );
+			build.m_nMaxDXLevel = (unsigned short)IntForKey( &entities[i], "maxdxlevel" );
 			AddStaticPropToLump( build );
 
 			// strip this ent from the .bsp file
@@ -667,19 +681,18 @@ static void FreeCurrentModelVertexes()
 	}
 }
 
-const mstudio_modelvertexdata_t *mstudiomodel_t::GetVertexData()
+const vertexFileHeader_t * mstudiomodel_t::CacheVertexData( void * pModelData )
 {
 	char				fileName[260];
 	FileHandle_t		fileHandle;
 	vertexFileHeader_t	*pVvdHdr;
 
+	Assert( pModelData == NULL );
 	Assert( g_pActiveStudioHdr );
 
 	if ( g_pActiveStudioHdr->pVertexBase )
 	{
-		vertexdata.pVertexData  = (byte *)g_pActiveStudioHdr->pVertexBase + ((vertexFileHeader_t *)g_pActiveStudioHdr->pVertexBase)->vertexDataStart;
-		vertexdata.pTangentData = (byte *)g_pActiveStudioHdr->pVertexBase + ((vertexFileHeader_t *)g_pActiveStudioHdr->pVertexBase)->tangentDataStart;
-		return &vertexdata;
+		return (vertexFileHeader_t *)g_pActiveStudioHdr->pVertexBase;
 	}
 
 	// mandatory callback to make requested data resident
@@ -722,11 +735,7 @@ const mstudio_modelvertexdata_t *mstudiomodel_t::GetVertexData()
 		Error("Error Vertex File %s checksum %d should be %d\n", fileName, pVvdHdr->checksum, g_pActiveStudioHdr->checksum);
 	}
 
-	g_pActiveStudioHdr->pVertexBase = (void*)pVvdHdr; 
-
-	vertexdata.pVertexData  = (byte *)pVvdHdr + pVvdHdr->vertexDataStart;
-	vertexdata.pTangentData = (byte *)pVvdHdr + pVvdHdr->tangentDataStart;
-
-	return &vertexdata;
+	g_pActiveStudioHdr->pVertexBase = (void*)pVvdHdr;
+	return pVvdHdr;
 }
 

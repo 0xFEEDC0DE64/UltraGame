@@ -34,11 +34,14 @@ public:
 	~CheckButton();
 
 	// Check the button
-	virtual void SetSelected(bool state);
+	virtual void SetSelected(bool state );
 
 	// sets whether or not the state of the check can be changed
 	// if this is set to false, then no input in the code or by the user can change it's state
 	virtual void SetCheckButtonCheckable(bool state);
+
+	Color GetDisabledFgColor() { return _disabledFgColor; }
+	Color GetDisabledBgColor() { return _disabledBgColor; }
 
 protected:
 	virtual void ApplySchemeSettings(IScheme *pScheme);
@@ -57,7 +60,9 @@ private:
 	CheckImage *_checkBoxImage;
 	bool m_bCheckButtonCheckable;
 	Color _selectedFgColor;
-	friend CheckImage;
+	Color _disabledFgColor;
+	Color _disabledBgColor;
+	friend class CheckImage;
 };
 
 } // namespace vgui

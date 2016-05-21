@@ -56,12 +56,15 @@ public:
 	virtual	~IBaseInterface() {}
 };
 
-
+#if !defined( _X360 )
 #define CREATEINTERFACE_PROCNAME	"CreateInterface"
+#else
+// x360 only allows ordinal exports, .def files export "CreateInterface" at 1
+#define CREATEINTERFACE_PROCNAME	((const char*)1)
+#endif
+
 typedef void* (*CreateInterfaceFn)(const char *pName, int *pReturnCode);
 typedef void* (*InstantiateInterfaceFn)();
-
-
 
 // Used internally to register classes.
 class InterfaceReg
@@ -76,10 +79,6 @@ public:
 	InterfaceReg			*m_pNext; // For the global list.
 	static InterfaceReg		*s_pInterfaceRegs;
 };
-
-#if defined(_STATIC_LINKED) && defined(_SUBSYSTEM)
-
-#endif
 
 // Use this to expose an interface that can have multiple instances.
 // e.g.:
@@ -106,13 +105,13 @@ public:
 
 #if !defined(_STATIC_LINKED) || !defined(_SUBSYSTEM)
 #define EXPOSE_INTERFACE(className, interfaceName, versionName) \
-	static void* __Create##className##_interface() {return (interfaceName *)new className;} \
+	static void* __Create##className##_interface() {return static_cast<interfaceName *>( new className );} \
 	static InterfaceReg __g_Create##className##_reg(__Create##className##_interface, versionName );
 #else
 #define EXPOSE_INTERFACE(className, interfaceName, versionName) \
 	namespace _SUBSYSTEM \
 	{	\
-		static void* __Create##className##_interface() {return (interfaceName *)new className;} \
+		static void* __Create##className##_interface() {return static_cast<interfaceName *>( new className );} \
 		static InterfaceReg __g_Create##className##_reg(__Create##className##_interface, versionName ); \
 	}
 #endif
@@ -120,13 +119,13 @@ public:
 // Use this to expose a singleton interface with a global variable you've created.
 #if !defined(_STATIC_LINKED) || !defined(_SUBSYSTEM)
 #define EXPOSE_SINGLE_INTERFACE_GLOBALVAR(className, interfaceName, versionName, globalVarName) \
-	static void* __Create##className##interfaceName##_interface() {return (interfaceName *)&globalVarName;} \
+	static void* __Create##className##interfaceName##_interface() {return static_cast<interfaceName *>( &globalVarName );} \
 	static InterfaceReg __g_Create##className##interfaceName##_reg(__Create##className##interfaceName##_interface, versionName);
 #else
 #define EXPOSE_SINGLE_INTERFACE_GLOBALVAR(className, interfaceName, versionName, globalVarName) \
 	namespace _SUBSYSTEM \
 	{ \
-		static void* __Create##className##interfaceName##_interface() {return (interfaceName *)&globalVarName;} \
+		static void* __Create##className##interfaceName##_interface() {return static_cast<interfaceName *>( &globalVarName );} \
 		static InterfaceReg __g_Create##className##interfaceName##_reg(__Create##className##interfaceName##_interface, versionName); \
 	}
 #endif
@@ -145,10 +144,6 @@ public:
 	EXPOSE_SINGLE_INTERFACE_GLOBALVAR(className, interfaceName, versionName, __g_##className##_singleton)
 #endif
 
-// This function is automatically exported and allows you to access any interfaces exposed with the above macros.
-// if pReturnCode is set, it will return one of the following values
-// extend this for other error conditions/code
-
 // load/unload components
 class CSysModule;
 
@@ -159,10 +154,6 @@ enum
 	IFACE_FAILED
 };
 
-#if defined(_STATIC_LINKED) && defined(_SUBSYSTEM)
-
-#endif
-
 //-----------------------------------------------------------------------------
 // This function is automatically exported and allows you to access any interfaces exposed with the above macros.
 // if pReturnCode is set, it will return one of the following values (IFACE_OK, IFACE_FAILED)
@@ -170,14 +161,16 @@ enum
 //-----------------------------------------------------------------------------
 DLL_EXPORT void* CreateInterface(const char *pName, int *pReturnCode);
 
-extern CreateInterfaceFn	Sys_GetFactoryThis( void );
-
+#if defined( _X360 )
+DLL_EXPORT void *CreateInterfaceThunk( const char *pName, int *pReturnCode );
+#endif
 
 //-----------------------------------------------------------------------------
 // UNDONE: This is obsolete, use the module load/unload/get instead!!!
 //-----------------------------------------------------------------------------
+extern CreateInterfaceFn	Sys_GetFactory( CSysModule *pModule );
 extern CreateInterfaceFn	Sys_GetFactory( const char *pModuleName );
-
+extern CreateInterfaceFn	Sys_GetFactoryThis( void );
 
 //-----------------------------------------------------------------------------
 // Load & Unload should be called in exactly one place for each module
@@ -186,8 +179,6 @@ extern CreateInterfaceFn	Sys_GetFactory( const char *pModuleName );
 //-----------------------------------------------------------------------------
 extern CSysModule			*Sys_LoadModule( const char *pModuleName );
 extern void					Sys_UnloadModule( CSysModule *pModule );
-
-extern CreateInterfaceFn	Sys_GetFactory( CSysModule *pModule );
 
 // This is a helper function to load a module, get its factory, and get a specific interface.
 // You are expected to free all of these things.
@@ -198,6 +189,29 @@ bool Sys_LoadInterface(
 	CSysModule **pOutModule,
 	void **pOutInterface );
 
+bool Sys_IsDebuggerPresent();
+
+//-----------------------------------------------------------------------------
+// Purpose: Place this as a singleton at module scope (e.g.) and use it to get the factory from the specified module name.  
+// 
+// When the singleton goes out of scope (.dll unload if at module scope),
+//  then it'll call Sys_UnloadModule on the module so that the refcount is decremented 
+//  and the .dll actually can unload from memory.
+//-----------------------------------------------------------------------------
+class CDllDemandLoader
+{
+public:
+						CDllDemandLoader( char const *pchModuleName );
+	virtual				~CDllDemandLoader();
+	CreateInterfaceFn	GetFactory();
+	void				Unload();
+
+private:
+
+	char const	*m_pchModuleName;
+	CSysModule	*m_hModule;
+	bool		m_bLoadAttempted;
+};
 
 #endif
 

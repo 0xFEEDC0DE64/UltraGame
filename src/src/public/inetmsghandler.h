@@ -50,6 +50,9 @@ public:
 #define PROCESS_CLC_MESSAGE( name )	\
 	virtual bool Process##name( CLC_##name *msg )
 
+#define PROCESS_MM_MESSAGE( name )	\
+	virtual bool Process##name( MM_##name *msg )
+
 
 #define REGISTER_NET_MSG( name )				\
 	NET_##name * p##name = new NET_##name();	\
@@ -63,6 +66,11 @@ public:
 
 #define REGISTER_CLC_MSG( name )				\
 	CLC_##name * p##name = new CLC_##name();	\
+	p##name->m_pMessageHandler = this;			\
+	chan->RegisterMessage( p##name );			\
+
+#define REGISTER_MM_MSG( name )					\
+	MM_##name * p##name = new MM_##name();		\
 	p##name->m_pMessageHandler = this;			\
 	chan->RegisterMessage( p##name );			\
 
@@ -88,6 +96,8 @@ class CLC_Move;
 class CLC_VoiceData;
 class CLC_BaselineAck;
 class CLC_ListenEvents;
+class CLC_RespondCvarValue;
+class CLC_FileCRCCheck;
 
 class IClientMessageHandler : public INetMessageHandler
 {
@@ -99,6 +109,8 @@ public:
 	PROCESS_CLC_MESSAGE( VoiceData ) = 0;
 	PROCESS_CLC_MESSAGE( BaselineAck ) = 0;
 	PROCESS_CLC_MESSAGE( ListenEvents ) = 0;
+	PROCESS_CLC_MESSAGE( RespondCvarValue ) = 0;
+	PROCESS_CLC_MESSAGE( FileCRCCheck ) = 0;
 };
 
 class SVC_Print;
@@ -115,7 +127,6 @@ class SVC_SetView;
 class SVC_FixAngle;
 class SVC_CrosshairAngle;
 class SVC_BSPDecal;
-class SVC_TerrainMod;
 class SVC_GameEvent;
 class SVC_UserMessage;
 class SVC_EntityMessage;
@@ -124,6 +135,7 @@ class SVC_TempEntities;
 class SVC_Prefetch;
 class SVC_Menu;
 class SVC_GameEventList;
+class SVC_GetCvarValue;
 
 class IServerMessageHandler : public INetMessageHandler
 {
@@ -144,7 +156,6 @@ public:
 	PROCESS_SVC_MESSAGE( FixAngle ) = 0;
 	PROCESS_SVC_MESSAGE( CrosshairAngle ) = 0;
 	PROCESS_SVC_MESSAGE( BSPDecal ) = 0;
-	PROCESS_SVC_MESSAGE( TerrainMod ) = 0;
 	PROCESS_SVC_MESSAGE( GameEvent ) = 0;
 	PROCESS_SVC_MESSAGE( UserMessage ) = 0;
 	PROCESS_SVC_MESSAGE( EntityMessage ) = 0;
@@ -153,7 +164,29 @@ public:
 	PROCESS_SVC_MESSAGE( Prefetch ) = 0;
 	PROCESS_SVC_MESSAGE( Menu ) = 0;
 	PROCESS_SVC_MESSAGE( GameEventList ) = 0;
+	PROCESS_SVC_MESSAGE( GetCvarValue ) = 0;
+};
 
+class MM_Heartbeat;
+class MM_ClientInfo;
+class MM_JoinResponse;
+class MM_RegisterResponse;
+class MM_Migrate;
+class MM_Mutelist;
+class MM_Checkpoint;
+
+class IMatchmakingMessageHandler : public INetMessageHandler
+{
+public:
+	virtual ~IMatchmakingMessageHandler( void ) {};
+
+	PROCESS_MM_MESSAGE( Heartbeat ) = 0;
+	PROCESS_MM_MESSAGE( ClientInfo ) = 0;
+	PROCESS_MM_MESSAGE( JoinResponse ) = 0;
+	PROCESS_MM_MESSAGE( RegisterResponse ) = 0;
+	PROCESS_MM_MESSAGE( Migrate ) = 0;
+	PROCESS_MM_MESSAGE( Mutelist ) = 0;
+	PROCESS_MM_MESSAGE( Checkpoint) = 0;
 };
 
 class IConnectionlessPacketHandler

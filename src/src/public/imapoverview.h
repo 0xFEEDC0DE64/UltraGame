@@ -24,8 +24,8 @@
 // Purpose: interface for map overview panel
 //-----------------------------------------------------------------------------
 
-#include <vector.h>
-#include <vector2d.h>
+#include "mathlib/vector.h"
+#include "mathlib/vector2d.h"
 
 class IMapOverview // : public IBaseInterface
 {

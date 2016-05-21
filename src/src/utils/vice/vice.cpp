@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <malloc.h>
 #include <string.h>
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include <sys/stat.h>
 #include "conio.h"
 #include <direct.h>
@@ -20,10 +20,10 @@
 #include "UtlBuffer.h"
 #include "tier0/dbg.h"
 #include "cmdlib.h"
-#include "vstdlib/icommandline.h"
+#include "tier0/icommandline.h"
 #include "windows.h"
 
-#include <IceKey.h	>
+#include "mathlib/IceKey.h"
 #include <filesystem_tools.h>
 
 #define FF_TRYAGAIN 1
@@ -217,7 +217,7 @@ int main(int argc, char* argv[])
 		Exit("Error - missing files in commandline.\n");
 	}
 
-	CmdLib_InitFileSystem( argv[i], true );
+	CmdLib_InitFileSystem( argv[i] );
 
 	g_pFullFileSystem->GetCurrentDirectory( gamedir, sizeof(gamedir) );
 	g_pFullFileSystem->AddSearchPath( gamedir, "vice" );

@@ -89,7 +89,7 @@ protected:
 	HBITMAP GetCachedBitmap( UINT id );
 
 
-	int m_BufSize;
+	size_t m_BufSize;
 	char *m_Buf;
 	bool IsIndependentLeftLidControlEnabled();
 

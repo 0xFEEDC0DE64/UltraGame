@@ -463,9 +463,8 @@ int main( int argc, char* argv[] )
 	SpewOutputFunc( SpewFunc );
 	SpewActivate( "demoinfo", 2 );
 
-	int i;
-
-	for ( i=1 ; i<argc ; i++)
+	int i = 1;
+	for ( i ; i<argc ; i++)
 	{
 		if ( argv[ i ][ 0 ] == '-' )
 		{

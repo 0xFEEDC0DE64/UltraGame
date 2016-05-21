@@ -1,12 +1,8 @@
 //===== Copyright © 1996-2005, Valve Corporation, All rights reserved. ======//
 //
-// Purpose: 
-//
-// $NoKeywords: $
+// Purpose: String Tools
 //
 //===========================================================================//
-
-
 
 // These are redefined in the project settings to prevent anyone from using them.
 // We in this module are of a higher caste and thus are privileged in their use.
@@ -46,7 +42,6 @@
 	#undef strncat
 #endif
 
-
 // NOTE: I have to include stdio + stdarg first so vsnprintf gets compiled in
 #include <stdio.h>
 #include <stdarg.h>
@@ -58,11 +53,9 @@
 #define _getcwd getcwd
 #elif _WIN32
 #include <direct.h>
-#if !defined( _XBOX )
+#if !defined( _X360 )
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#else
-#include <xtl.h>
 #endif
 #endif
 
@@ -77,7 +70,9 @@
 #include <stdlib.h>
 #include "tier0/basetypes.h"
 #include "tier1/utldict.h"
-
+#if defined( _X360 )
+#include "xbox/xbox_win32stubs.h"
+#endif
 #include "tier0/memdbgon.h"
 
 void _V_memset (const char* file, int line, void *dest, int fill, int count)
@@ -183,8 +178,11 @@ char *_V_strstr(const char* file, int line,  const char *s1, const char *search 
 	AssertValidStringPtr( s1 );
 	AssertValidStringPtr( search );
 
-	// Casting the args to (char*) in order to get the overload of strstr() that returns a (char*) instead of (const char *). This is a changed brought about by VS2005. 
-	return strstr( (char*)s1, (char*)search );
+#if defined( _X360 )
+	return (char *)strstr( (char *)s1, search );
+#else
+	return (char *)strstr( s1, search );
+#endif
 }
 
 char *_V_strupr (const char* file, int line, char *start)
@@ -225,16 +223,21 @@ char *V_strnlwr(char *s, size_t count)
 	AssertValidStringPtr( s, count );
 
 	char* pRet = s;
-	if (!s)
+	if ( !s )
 		return s;
 
-	while (--count >= 0)
+	while ( --count >= 0 )
 	{
-		if (!*s)
+		if ( !*s )
 			break;
 
-		*s = tolower(*s);
+		*s = tolower( *s );
 		++s;
+	}
+
+	if ( count > 0 )
+	{
+		s[count-1] = 0;
 	}
 
 	return pRet;
@@ -268,12 +271,12 @@ int V_strncasecmp (const char *s1, const char *s2, int n)
 	return 0; // n characters compared the same
 }
 
-int V_strcasecmp (const char *s1, const char *s2)
+int V_strcasecmp( const char *s1, const char *s2 )
 {
-	AssertValidStringPtr(s1);
-	AssertValidStringPtr(s2);
+	AssertValidStringPtr( s1 );
+	AssertValidStringPtr( s2 );
 
-	return V_strncasecmp (s1, s2, 99999);
+	return stricmp( s1, s2 );
 }
 
 int V_strnicmp (const char *s1, const char *s2, int n)
@@ -284,6 +287,34 @@ int V_strnicmp (const char *s1, const char *s2, int n)
 
 	return V_strncasecmp( s1, s2, n );
 }
+
+
+const char *StringAfterPrefix( const char *str, const char *prefix )
+{
+	AssertValidStringPtr( str );
+	AssertValidStringPtr( prefix );
+	do
+	{
+		if ( !*prefix )
+			return str;
+	}
+	while ( tolower( *str++ ) == tolower( *prefix++ ) );
+	return NULL;
+}
+
+const char *StringAfterPrefixCaseSensitive( const char *str, const char *prefix )
+{
+	AssertValidStringPtr( str );
+	AssertValidStringPtr( prefix );
+	do
+	{
+		if ( !*prefix )
+			return str;
+	}
+	while ( *str++ == *prefix++ );
+	return NULL;
+}
+
 
 int V_atoi (const char *str)
 {
@@ -607,6 +638,36 @@ void V_wcsncpy( wchar_t *pDest, wchar_t const *pSrc, int maxLenInBytes )
 }
 
 
+
+int V_snwprintf( wchar_t *pDest, int maxLen, const wchar_t *pFormat, ... )
+{
+	Assert( maxLen >= 0 );
+	AssertValidWritePtr( pDest, maxLen );
+	AssertValidReadPtr( pFormat );
+
+	va_list marker;
+
+	va_start( marker, pFormat );
+#ifdef _WIN32
+	int len = _snwprintf( pDest, maxLen, pFormat, marker );
+#elif _LINUX
+	int len = swprintf( pDest, maxLen, pFormat, marker );
+#else
+#error "define vsnwprintf type."
+#endif
+	va_end( marker );
+
+	// Len < 0 represents an overflow
+	if( len < 0 )
+	{
+		len = maxLen;
+		pDest[maxLen-1] = 0;
+	}
+	
+	return len;
+}
+
+
 int V_snprintf( char *pDest, int maxLen, char const *pFormat, ... )
 {
 	Assert( maxLen >= 0 );
@@ -712,11 +773,6 @@ char *V_pretifymem( float value, int digitsafterdecimal /*= 2*/, bool usebinaryo
 {
 	static char output[ NUM_PRETIFYMEM_BUFFERS ][ 32 ];
 	static int  current;
-
-#ifdef _XBOX
-	// undo the confusing metric reports
-	usebinaryonek = true;
-#endif
 
 	float		onekb = usebinaryonek ? 1024.0f : 1000.0f;
 	float		onemb = onekb * onekb;
@@ -1096,28 +1152,26 @@ void V_StripExtension( const char *in, char *out, int outSize )
 {
 	// Find the last dot. If it's followed by a dot or a slash, then it's part of a 
 	// directory specifier like ../../somedir/./blah.
-	const char *pLastExt = in;
-	const char *pTest = strrchr( pLastExt, '.' );
-	if ( pTest )
+
+	// scan backward for '.'
+	int end = V_strlen( in ) - 1;
+	while ( end > 0 && in[end] != '.' && !PATHSEPARATOR( in[end] ) )
 	{
-		// This handles things like ".\blah" or "c:\my@email.com\abc\def\geh"
-		// Which would otherwise wind up with "" and "c:\my@email", respectively.
-		if ( strrchr( in, '\\' ) < pTest && strrchr( in, '/' ) < pTest )
-		{
-			pLastExt = pTest + 1;
-		}
+		--end;
 	}
 
-	// Copy up to the last dot.
-	if ( pLastExt > in )
+	if (end > 0 && !PATHSEPARATOR( in[end] ) && end < outSize)
 	{
-		int nChars = pLastExt - in - 1;
-		nChars = min( nChars, outSize-1 );
-		memcpy( out, in, nChars );
+		int nChars = min( end, outSize-1 );
+		if ( out != in )
+		{
+			memcpy( out, in, nChars );
+		}
 		out[nChars] = 0;
 	}
 	else
 	{
+		// nothing found
 		if ( out != in )
 		{
 			V_strncpy( out, in, outSize );
@@ -1214,6 +1268,27 @@ void V_FixSlashes( char *pname, char separator /* = CORRECT_PATH_SEPARATOR */ )
 			*pname = separator;
 		}
 		pname++;
+	}
+}
+
+
+//-----------------------------------------------------------------------------
+// Purpose: This function fixes cases of filenames like materials\\blah.vmt or somepath\otherpath\\ and removes the extra double slash.
+//-----------------------------------------------------------------------------
+void V_FixDoubleSlashes( char *pStr )
+{
+	int len = V_strlen( pStr );
+
+	for ( int i=1; i < len-1; i++ )
+	{
+		if ( (pStr[i] == '/' || pStr[i] == '\\') && (pStr[i+1] == '/' || pStr[i+1] == '\\') )
+		{
+			// This means there's a double slash somewhere past the start of the filename. That 
+			// can happen in Hammer if they use a material in the root directory. You'll get a filename 
+			// that looks like 'materials\\blah.vmt'
+			V_memmove( &pStr[i], &pStr[i+1], len - i );
+			--len;
+		}
 	}
 }
 
@@ -1372,11 +1447,27 @@ const char * V_GetFileExtension( const char * path )
 	return src;
 }
 
-bool V_RemoveDotSlashes( char *pFilename )
+bool V_RemoveDotSlashes( char *pFilename, char separator )
 {
-	// Get rid of "./"'s
+	// Remove '//' or '\\'
 	char *pIn = pFilename;
 	char *pOut = pFilename;
+	bool bPrevPathSep = false;
+	while ( *pIn )
+	{
+		bool bIsPathSep = PATHSEPARATOR( *pIn );
+		if ( !bIsPathSep || !bPrevPathSep )
+		{
+			*pOut++ = *pIn;
+		}
+		bPrevPathSep = bIsPathSep;
+		++pIn;
+	}
+	*pOut = 0;
+
+	// Get rid of "./"'s
+	pIn = pFilename;
+	pOut = pFilename;
 	while ( *pIn )
 	{
 		// The logic on the second line is preventing it from screwing up "../"
@@ -1393,7 +1484,6 @@ bool V_RemoveDotSlashes( char *pFilename )
 		}
 	}
 	*pOut = 0;
-
 
 	// Get rid of a trailing "/." (needless).
 	int len = strlen( pFilename );
@@ -1439,7 +1529,7 @@ bool V_RemoveDotSlashes( char *pFilename )
 		}
 	}
 	
-	V_FixSlashes( pFilename );	
+	V_FixSlashes( pFilename, separator );	
 	return true;
 }
 
@@ -1474,14 +1564,8 @@ void V_MakeAbsolutePath( char *pOut, int outLen, const char *pPath, const char *
 		}
 		else
 		{
-#ifndef _XBOX
 			if ( !_getcwd( pOut, outLen ) )
 				Error( "V_MakeAbsolutePath: _getcwd failed." );
-#else
-			Assert( 0 );
-			if ( outLen )
-				*pOut = 0;
-#endif
 
 			if ( pStartingDir )
 			{
@@ -1502,10 +1586,98 @@ void V_MakeAbsolutePath( char *pOut, int outLen, const char *pPath, const char *
 }
 
 
+//-----------------------------------------------------------------------------
+// Makes a relative path
+//-----------------------------------------------------------------------------
+bool V_MakeRelativePath( const char *pFullPath, const char *pDirectory, char *pRelativePath, int nBufLen )
+{
+	pRelativePath[0] = 0;
+
+	const char *pPath = pFullPath;
+	const char *pDir = pDirectory;
+
+	// Strip out common parts of the path
+	const char *pLastCommonPath = NULL;
+	const char *pLastCommonDir = NULL;
+	while ( *pPath && ( tolower( *pPath ) == tolower( *pDir ) || 
+						( PATHSEPARATOR( *pPath ) && ( PATHSEPARATOR( *pDir ) || (*pDir == 0) ) ) ) )
+	{
+		if ( PATHSEPARATOR( *pPath ) )
+		{
+			pLastCommonPath = pPath + 1;
+			pLastCommonDir = pDir + 1;
+		}
+		if ( *pDir == 0 )
+		{
+			--pLastCommonDir;
+			break;
+		}
+		++pDir; ++pPath;
+	}
+
+	// Nothing in common
+	if ( !pLastCommonPath )
+		return false;
+
+	// For each path separator remaining in the dir, need a ../
+	int nOutLen = 0;
+	bool bLastCharWasSeparator = true;
+	for ( ; *pLastCommonDir; ++pLastCommonDir )
+	{
+		if ( PATHSEPARATOR( *pLastCommonDir ) )
+		{
+			pRelativePath[nOutLen++] = '.';
+			pRelativePath[nOutLen++] = '.';
+			pRelativePath[nOutLen++] = CORRECT_PATH_SEPARATOR;
+			bLastCharWasSeparator = true;
+		}
+		else
+		{
+			bLastCharWasSeparator = false;
+		}
+	}
+
+	// Deal with relative paths not specified with a trailing slash
+	if ( !bLastCharWasSeparator )
+	{
+		pRelativePath[nOutLen++] = '.';
+		pRelativePath[nOutLen++] = '.';
+		pRelativePath[nOutLen++] = CORRECT_PATH_SEPARATOR;
+	}
+
+	// Copy the remaining part of the relative path over, fixing the path separators
+	for ( ; *pLastCommonPath; ++pLastCommonPath )
+	{
+		if ( PATHSEPARATOR( *pLastCommonPath ) )
+		{
+			pRelativePath[nOutLen++] = CORRECT_PATH_SEPARATOR;
+		}
+		else
+		{
+			pRelativePath[nOutLen++] = *pLastCommonPath;
+		}
+
+		// Check for overflow
+		if ( nOutLen == nBufLen - 1 )
+			break;
+	}
+
+	pRelativePath[nOutLen] = 0;
+	return true;
+}
+
+
+//-----------------------------------------------------------------------------
 // small helper function shared by lots of modules
+//-----------------------------------------------------------------------------
 bool V_IsAbsolutePath( const char *pStr )
 {
-	return ( pStr[0] && pStr[1] == ':' ) || pStr[0] == '/' || pStr[0] == '\\';
+	bool bIsAbsolute = ( pStr[0] && pStr[1] == ':' ) || pStr[0] == '/' || pStr[0] == '\\';
+	if ( IsX360() && !bIsAbsolute )
+	{
+		bIsAbsolute = ( V_stristr( pStr, ":" ) != NULL );
+	}
+	return bIsAbsolute;
 }
 
 
@@ -1532,6 +1704,19 @@ static bool CopyToMaxChars( char *pOut, int outSize, const char *pIn, int nChars
 	
 	pOut[iOut] = 0;
 	return true;
+}
+
+
+//-----------------------------------------------------------------------------
+// Fixes up a file name, removing dot slashes, fixing slashes, converting to lowercase, etc.
+//-----------------------------------------------------------------------------
+void V_FixupPathName( char *pOut, size_t nOutLen, const char *pPath )
+{
+	V_strncpy( pOut, pPath, nOutLen );
+	V_FixSlashes( pOut );
+	V_RemoveDotSlashes( pOut );
+	V_FixDoubleSlashes( pOut );
+	V_strlower( pOut );
 }
 
 
@@ -1652,6 +1837,26 @@ void V_SplitString( const char *pString, const char *pSeparator, CUtlVector<char
 }
 
 
+bool V_GetCurrentDirectory( char *pOut, int maxLen )
+{
+#ifdef LINUX
+	return getcwd( pOut, maxLen ) == pOut;
+#else
+	return _getcwd( pOut, maxLen ) == pOut;
+#endif
+}
+
+
+bool V_SetCurrentDirectory( const char *pDirName )
+{
+#ifdef LINUX
+	return chdir( pDirName ) == 0;
+#else
+	return _chdir( pDirName ) == 0;
+#endif
+}
+
+
 // This function takes a slice out of pStr and stores it in pOut.
 // It follows the Python slice convention:
 // Negative numbers wrap around the string (-1 references the last character).
@@ -1733,7 +1938,6 @@ void V_StrRight( const char *pStr, int nChars, char *pOut, int outSize )
 //-----------------------------------------------------------------------------
 // Convert multibyte to wchar + back
 //-----------------------------------------------------------------------------
-#ifndef _XBOX
 void V_strtowcs( const char *pString, int nInSize, wchar_t *pWString, int nOutSize )
 {
 #ifdef _WIN32
@@ -1763,5 +1967,49 @@ void V_wcstostr( const wchar_t *pWString, int nInSize, char *pString, int nOutSi
 	}
 #endif
 }
-#endif
 
+
+
+//--------------------------------------------------------------------------------
+// backslashification
+//--------------------------------------------------------------------------------
+
+static char s_BackSlashMap[]="\tt\nn\rr\"\"\\\\";
+
+char *V_AddBackSlashesToSpecialChars( char const *pSrc )
+{
+	// first, count how much space we are going to need
+	int nSpaceNeeded = 0;
+	for( char const *pScan = pSrc; *pScan; pScan++ )
+	{
+		nSpaceNeeded++;
+		for(char const *pCharSet=s_BackSlashMap; *pCharSet; pCharSet += 2 )
+		{
+			if ( *pCharSet == *pScan )
+				nSpaceNeeded++;								// we need to store a bakslash
+		}
+	}
+	char *pRet = new char[ nSpaceNeeded + 1 ];				// +1 for null
+	char *pOut = pRet;
+	
+	for( char const *pScan = pSrc; *pScan; pScan++ )
+	{
+		bool bIsSpecial = false;
+		for(char const *pCharSet=s_BackSlashMap; *pCharSet; pCharSet += 2 )
+		{
+			if ( *pCharSet == *pScan )
+			{
+				*( pOut++ ) = '\\';
+				*( pOut++ ) = pCharSet[1];
+				bIsSpecial = true;
+				break;
+			}
+		}
+		if (! bIsSpecial )
+		{
+			*( pOut++ ) = *pScan;
+		}
+	}
+	*( pOut++ ) = 0;
+	return pRet;
+}

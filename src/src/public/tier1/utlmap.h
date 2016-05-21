@@ -22,6 +22,14 @@
 //
 //-----------------------------------------------------------------------------
 
+// This is a useful macro to iterate from start to end in order in a map
+#define FOR_EACH_MAP( mapName, iteratorName ) \
+	for ( int iteratorName = mapName.FirstInorder(); iteratorName != mapName.InvalidIndex(); iteratorName = mapName.NextInorder( iteratorName ) )
+
+// faster iteration, but in an unspecified order
+#define FOR_EACH_MAP_FAST( mapName, iteratorName ) \
+	for ( int iteratorName = 0; iteratorName < mapName.MaxElement(); ++iteratorName ) if ( !mapName.IsValidIndex( iteratorName ) ) continue; else
+
 template <typename K, typename T, typename I = unsigned short> 
 class CUtlMap
 {
@@ -114,6 +122,7 @@ public:
 	}
 	
 	void     RemoveAll( )									{ m_Tree.RemoveAll(); }
+	void     Purge( )										{ m_Tree.Purge(); }
 			
 	// Iteration
 	IndexType_t  FirstInorder() const						{ return m_Tree.FirstInorder(); }
@@ -139,6 +148,11 @@ public:
 		}
 		
 		return Insert( key, insert );
+	}
+
+	void Swap( CUtlMap< K, T, I > &that )
+	{
+		m_Tree.Swap( that.m_Tree );
 	}
 
 

@@ -133,14 +133,20 @@ Vector PointInsideBrush( bspbrush_t *brush )
 {
 	Vector insidePoint = vec3_origin;
 
-	for (int i = 0; i < brush->numsides; i++)
+	bool bInside = false;
+	for ( int k = 0; k < 4 && !bInside; k++ )
 	{
-		side_t *side = &brush->sides[i];
-		plane_t *plane = &mapplanes[side->planenum];
-		float d = DotProduct( plane->normal, insidePoint ) - plane->dist;
-		if ( d < 0 )
+		bInside = true;
+		for (int i = 0; i < brush->numsides; i++)
 		{
-			insidePoint -= d * plane->normal;
+			side_t *side = &brush->sides[i];
+			plane_t *plane = &mapplanes[side->planenum];
+			float d = DotProduct( plane->normal, insidePoint ) - plane->dist;
+			if ( d < 0 )
+			{
+				bInside = false;
+				insidePoint -= d * plane->normal;
+			}
 		}
 	}
 	return insidePoint;
@@ -417,8 +423,16 @@ node_t	*PointInLeaf (node_t *node, Vector& point)
 	while (node->planenum != PLANENUM_LEAF)
 	{
 		plane = &mapplanes[node->planenum];
-		d = DotProduct (point, plane->normal) - plane->dist;
-		if (d > 0)
+		if (plane->type < 3)
+		{
+			d = point[plane->type] - plane->dist;
+		}
+		else
+		{
+			d = DotProduct (point, plane->normal) - plane->dist;
+		}
+
+		if (d >= 0)
 			node = node->children[0];
 		else
 			node = node->children[1];
@@ -847,7 +861,7 @@ side_t *SelectSplitSide (bspbrush_t *brushes, node_t *node)
 	int			bsplits;
 	int			bestsplits;
 	int			epsilonbrush;
-	qboolean	hintsplit;
+	qboolean	hintsplit = false;
 
 	bestside = NULL;
 	bestvalue = -99999;

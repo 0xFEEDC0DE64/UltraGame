@@ -79,6 +79,8 @@ private:
 
 	MESSAGE_FUNC_CHARPTR( OnSetClipboardText, "SetClipboardText", text );
 
+	MESSAGE_FUNC_INT( OnChangeChild, "OnChangeChild", direction );
+
 	Panel *m_pCurrentPanel;
 	BuildGroup *m_pBuildGroup;
 	Label *m_pStatusLabel;
@@ -120,6 +122,9 @@ private:
 
 	ComboBox	*m_pEditableParents;
 	ComboBox	*m_pEditableChildren;
+
+	Button		*m_pNextChild;
+	Button		*m_pPrevChild;
 
 	friend class PanelList;
 };

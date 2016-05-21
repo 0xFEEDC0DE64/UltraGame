@@ -68,6 +68,9 @@ public:
 
 	virtual void OnCommand( const char *pCommand );
 
+	// Shows the message box over the cursor
+	void ShowMessageBoxOverCursor( bool bEnable );
+
 protected:
 	virtual void PerformLayout();
 	virtual void ApplySchemeSettings(IScheme *pScheme);
@@ -85,7 +88,8 @@ private:
 	KeyValues *m_OkCommand;
 	KeyValues *m_CancelCommand;
 	vgui::Frame *m_pFrameOver;
-	bool m_bNoAutoClose;
+	bool m_bNoAutoClose : 1;
+	bool m_bShowMessageBoxOverCursor : 1;
 };
 
 } // namespace vgui

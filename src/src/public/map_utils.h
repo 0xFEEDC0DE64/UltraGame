@@ -11,7 +11,7 @@
 #endif
 
 
-#include "vector.h"
+#include "mathlib/vector.h"
 
 
 // angles comes from the "angles" property

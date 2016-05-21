@@ -15,9 +15,16 @@
 #endif
 
 #include "tier1/utlmemory.h"
+#include "tier1/byteswap.h"
 #include <stdarg.h>
 
 
+//-----------------------------------------------------------------------------
+// Forward declarations
+//-----------------------------------------------------------------------------
+struct characterset_t;
+
+	
 //-----------------------------------------------------------------------------
 // Description of character conversions for string output
 // Here's an example of how to use the macros to define a character conversion
@@ -124,6 +131,8 @@ public:
 	// Constructors for growable + external buffers for serialization/unserialization
 	CUtlBuffer( int growSize = 0, int initSize = 0, int nFlags = 0 );
 	CUtlBuffer( const void* pBuffer, int size, int nFlags = 0 );
+	// This one isn't actually defined so that we catch contructors that are trying to pass a bool in as the third param.
+	CUtlBuffer( const void *pBuffer, int size, bool crap );
 
 	unsigned char	GetFlags() const;
 
@@ -137,9 +146,19 @@ public:
 	// Attaches the buffer to external memory....
 	void			SetExternalBuffer( void* pMemory, int nSize, int nInitialPut, int nFlags = 0 );
 	bool			IsExternallyAllocated() const;
+	void			AssumeMemory( void *pMemory, int nSize, int nInitialPut, int nFlags = 0 );
 
-	// Controls endian-ness of binary utlbufs
-	void			SetLittleEndian( bool littleendian );
+	FORCEINLINE void ActivateByteSwappingIfBigEndian( void )
+	{
+		if ( IsX360() )
+			ActivateByteSwapping( true );
+	}
+
+
+	// Controls endian-ness of binary utlbufs - default matches the current platform
+	void			ActivateByteSwapping( bool bActivate );
+	void			SetBigEndian( bool bigEndian );
+	bool			IsBigEndian( void );
 
 	// Resets the buffer; but doesn't free memory
 	void			Clear();
@@ -164,6 +183,9 @@ public:
 	void			GetString( char* pString, int nMaxChars = 0 );
 	void			Get( void* pMem, int size );
 	void			GetLine( char* pLine, int nMaxChars = 0 );
+
+	// Used for getting objects that have a byteswap datadesc defined
+	template <typename T> void GetObjects( T *dest, int count = 1 );
 
 	// This will get at least 1 byte and up to nSize bytes. 
 	// It will return the number of bytes actually read.
@@ -213,6 +235,10 @@ public:
 	// String test is case-insensitive.
 	bool			GetToken( const char *pToken );
 
+	// Parses the next token, given a set of character breaks to stop at
+	// Returns the length of the token parsed in bytes (-1 if none parsed)
+	int				ParseToken( characterset_t *pBreaks, char *pTokenBuf, int nMaxLen, bool bParseComments = true );
+
 	// Write stuff in
 	// Binary mode: it'll just write the bits directly in, and strings will be
 	//		written with a null terminating character
@@ -228,6 +254,9 @@ public:
 	void			PutDouble( double d );
 	void			PutString( const char* pString );
 	void			Put( const void* pMem, int size );
+
+	// Used for putting objects that have a byteswap datadesc defined
+	template <typename T> void PutObjects( T *src, int count = 1 );
 
 	// This version of PutString converts \ to \\ and " to \", etc.
 	// It also places " at the beginning and end of the string
@@ -314,9 +343,6 @@ protected:
 
 	void AddNullTermination( );
 
-	// Deals with little-endian data
-	void PutLittleEndianData( int nSizeInBytes, void *pValue );
-
 	// Methods to help with pretty-printing
 	bool WasLastCharacterCR();
 	void PutTabs();
@@ -346,8 +372,12 @@ protected:
 	bool CheckArbitraryPeekGet( int nOffset, int &nIncrement );
 
 	template <typename T> void GetType( T& dest, const char *pszFmt );
+	template <typename T> void GetTypeBin( T& dest );
+	template <typename T> void GetObject( T *src );
+
 	template <typename T> void PutType( T src, const char *pszFmt );
 	template <typename T> void PutTypeBin( T src );
+	template <typename T> void PutObject( T *src );
 
 	CUtlMemory<unsigned char> m_Memory;
 	int m_Get;
@@ -355,14 +385,154 @@ protected:
 
 	unsigned char m_Error;
 	unsigned char m_Flags;
-	bool m_bLittleEndian;
 	unsigned char m_Reserved;
+#if defined( _X360 )
+	unsigned char pad;
+#endif
 
 	int m_nTab;
 	int m_nMaxPut;
 	int m_nOffset;
+
 	UtlBufferOverflowFunc_t m_GetOverflowFunc;
 	UtlBufferOverflowFunc_t m_PutOverflowFunc;
+
+	CByteswap	m_Byteswap;
+};
+
+
+// Stream style output operators for CUtlBuffer
+inline CUtlBuffer &operator<<( CUtlBuffer &b, char v )
+{
+	b.PutChar( v );
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, unsigned char v )
+{
+	b.PutUnsignedChar( v );
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, short v )
+{
+	b.PutShort( v );
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, unsigned short v )
+{
+	b.PutUnsignedShort( v );
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, int v )
+{
+	b.PutInt( v );
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, unsigned int v )
+{
+	b.PutUnsignedInt( v );
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, float v )
+{
+	b.PutFloat( v );
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, double v )
+{
+	b.PutDouble( v );
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, const char *pv )
+{
+	b.PutString( pv );
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, const Vector &v )
+{
+	b << v.x << " " << v.y << " " << v.z;
+	return b;
+}
+
+inline CUtlBuffer &operator<<( CUtlBuffer &b, const Vector2D &v )
+{
+	b << v.x << " " << v.y;
+	return b;
+}
+
+
+class CUtlInplaceBuffer : public CUtlBuffer
+{
+public:
+	CUtlInplaceBuffer( int growSize = 0, int initSize = 0, int nFlags = 0 );
+
+	//
+	// Routines returning buffer-inplace-pointers
+	//
+public:
+	//
+	// Upon success, determines the line length, fills out the pointer to the
+	// beginning of the line and the line length, advances the "get" pointer
+	// offset by the line length and returns "true".
+	//
+	// If end of file is reached or upon error returns "false".
+	//
+	// Note:	the returned length of the line is at least one character because the
+	//			trailing newline characters are also included as part of the line.
+	//
+	// Note:	the pointer returned points into the local memory of this buffer, in
+	//			case the buffer gets relocated or destroyed the pointer becomes invalid.
+	//
+	// e.g.:	-------------
+	//
+	//			char *pszLine;
+	//			int nLineLen;
+	//			while ( pUtlInplaceBuffer->InplaceGetLinePtr( &pszLine, &nLineLen ) )
+	//			{
+	//				...
+	//			}
+	//
+	//			-------------
+	//
+	// @param	ppszInBufferPtr		on return points into this buffer at start of line
+	// @param	pnLineLength		on return holds num bytes accessible via (*ppszInBufferPtr)
+	//
+	// @returns	true				if line was successfully read
+	//			false				when EOF is reached or error occurs
+	//
+	bool InplaceGetLinePtr( /* out */ char **ppszInBufferPtr, /* out */ int *pnLineLength );
+
+	//
+	// Determines the line length, advances the "get" pointer offset by the line length,
+	// replaces the newline character with null-terminator and returns the initial pointer
+	// to now null-terminated line.
+	//
+	// If end of file is reached or upon error returns NULL.
+	//
+	// Note:	the pointer returned points into the local memory of this buffer, in
+	//			case the buffer gets relocated or destroyed the pointer becomes invalid.
+	//
+	// e.g.:	-------------
+	//
+	//			while ( char *pszLine = pUtlInplaceBuffer->InplaceGetLinePtr() )
+	//			{
+	//				...
+	//			}
+	//
+	//			-------------
+	//
+	// @returns	ptr-to-zero-terminated-line		if line was successfully read and buffer modified
+	//			NULL							when EOF is reached or error occurs
+	//
+	char * InplaceGetLinePtr( void );
 };
 
 
@@ -398,19 +568,95 @@ inline const void* CUtlBuffer::PeekGet( int offset ) const
 //-----------------------------------------------------------------------------
 
 template <typename T> 
+inline void CUtlBuffer::GetObject( T *dest )
+{
+	if ( CheckGet( sizeof(T) ) )
+	{
+		if ( !m_Byteswap.IsSwappingBytes() || ( sizeof( T ) == 1 ) )
+		{
+			*dest = *(T *)PeekGet();
+		}
+		else
+		{
+			m_Byteswap.SwapFieldsToTargetEndian<T>( dest, (T*)PeekGet() );
+		}
+		m_Get += sizeof(T);	
+	}
+	else
+	{
+		Q_memset( &dest, 0, sizeof(T) );
+	}
+}
+
+
+template <typename T> 
+inline void CUtlBuffer::GetObjects( T *dest, int count )
+{
+	for ( int i = 0; i < count; ++i, ++dest )
+	{
+		GetObject<T>( dest );
+	}
+}
+
+
+template <typename T> 
+inline void CUtlBuffer::GetTypeBin( T &dest )
+{
+	if ( CheckGet( sizeof(T) ) )
+	{
+		if ( !m_Byteswap.IsSwappingBytes() || ( sizeof( T ) == 1 ) )
+		{
+			dest = *(T *)PeekGet();
+		}
+		else
+		{
+			m_Byteswap.SwapBufferToTargetEndian<T>( &dest, (T*)PeekGet() );
+		}
+		m_Get += sizeof(T);	
+	}		
+	else
+	{
+		dest = 0;
+	}					
+}
+
+template <>
+inline void CUtlBuffer::GetTypeBin< float >( float &dest )
+{
+	if ( CheckGet( sizeof( float ) ) )
+	{
+		unsigned int pData = (unsigned int)PeekGet();
+		if ( IsX360() && ( pData & 0x03 ) )
+		{
+			// handle unaligned read
+			((unsigned char*)&dest)[0] = ((unsigned char*)pData)[0];
+			((unsigned char*)&dest)[1] = ((unsigned char*)pData)[1];
+			((unsigned char*)&dest)[2] = ((unsigned char*)pData)[2];
+			((unsigned char*)&dest)[3] = ((unsigned char*)pData)[3];
+		}
+		else
+		{
+			// aligned read
+			dest = *(float *)pData;
+		}
+		if ( m_Byteswap.IsSwappingBytes() )
+		{
+			m_Byteswap.SwapBufferToTargetEndian< float >( &dest, &dest );
+		}
+		m_Get += sizeof( float );	
+	}		
+	else
+	{
+		dest = 0;
+	}					
+}
+
+template <typename T> 
 inline void CUtlBuffer::GetType( T &dest, const char *pszFmt )
 {
 	if (!IsText())
 	{
-		if (CheckGet( sizeof(T) ))
-		{
-			dest = *(T *)PeekGet();
-			m_Get += sizeof(T);	
-		}		
-		else
-		{
-			dest = 0;
-		}					
+		GetTypeBin( dest );
 	}
 	else
 	{
@@ -529,41 +775,53 @@ inline void* CUtlBuffer::PeekPut( int offset )
 
 
 //-----------------------------------------------------------------------------
-// Deals with little-endian data
+// Various put methods
 //-----------------------------------------------------------------------------
-inline void CUtlBuffer::PutLittleEndianData( int nSizeInBytes, void *pValue )
+
+template <typename T> 
+inline void CUtlBuffer::PutObject( T *src )
 {
-	unsigned char *dest = (unsigned char *)PeekPut();
-	unsigned char *src = (unsigned char *)pValue + nSizeInBytes - 1;
-	while ( src >= (unsigned char *)pValue )
+	if ( CheckPut( sizeof(T) ) )
 	{
-		*dest++ = *src--;
+		if ( !m_Byteswap.IsSwappingBytes() || ( sizeof( T ) == 1 ) )
+		{
+			*(T *)PeekPut() = *src;
+		}
+		else
+		{
+			m_Byteswap.SwapFieldsToTargetEndian<T>( (T*)PeekPut(), src );
+		}
+		m_Put += sizeof(T);
+		AddNullTermination();
 	}
-	m_Put += nSizeInBytes;
-	AddNullTermination();
 }
 
 
-//-----------------------------------------------------------------------------
-// Various put methods
-//-----------------------------------------------------------------------------
+template <typename T> 
+inline void CUtlBuffer::PutObjects( T *src, int count )
+{
+	for ( int i = 0; i < count; ++i, ++src )
+	{
+		PutObject<T>( src );
+	}
+}
+
 
 template <typename T> 
 inline void CUtlBuffer::PutTypeBin( T src )
 {
 	if ( CheckPut( sizeof(T) ) )
 	{
-		if ( !m_bLittleEndian || ( sizeof( T ) == 1 ) )
+		if ( !m_Byteswap.IsSwappingBytes() || ( sizeof( T ) == 1 ) )
 		{
 			*(T *)PeekPut() = src;
-			m_Put += sizeof(T);
-			AddNullTermination();
 		}
 		else
 		{
-			T temp = src;
-			PutLittleEndianData( sizeof( T ), &temp );
+			m_Byteswap.SwapBufferToTargetEndian<T>( (T*)PeekPut(), &src );
 		}
+		m_Put += sizeof(T);
+		AddNullTermination();
 	}
 }
 

@@ -9,11 +9,17 @@
 #include "vbsp.h"
 #include "map_shared.h"
 #include "disp_vbsp.h"
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "builddisp.h"
-#include "vstdlib/ICommandLine.h"
+#include "tier0/icommandline.h"
 #include "keyvalues.h"
 #include "materialsub.h"
+
+
+#ifdef VSVMFIO
+#include "VmfImport.h"
+#endif // VSVMFIO
+
 
 // undefine to make plane finding use linear sort
 #define	USE_HASHING
@@ -81,6 +87,11 @@ ChunkFileResult_t LoadDispAlphasCallback(CChunkFile *pFile, mapdispinfo_t *pMapD
 ChunkFileResult_t LoadDispAlphasKeyCallback(const char *szKey, const char *szValue, mapdispinfo_t *pMapDispInfo);
 ChunkFileResult_t LoadDispTriangleTagsCallback(CChunkFile *pFile, mapdispinfo_t *pMapDispInfo);
 ChunkFileResult_t LoadDispTriangleTagsKeyCallback(const char *szKey, const char *szValue, mapdispinfo_t *pMapDispInfo);
+
+#ifdef VSVMFIO
+ChunkFileResult_t LoadDispOffsetNormalsCallback(CChunkFile *pFile, mapdispinfo_t *pMapDispInfo);
+ChunkFileResult_t LoadDispOffsetNormalsKeyCallback(const char *szKey, const char *szValue, mapdispinfo_t *pMapDispInfo);
+#endif // VSVMFIO
 
 ChunkFileResult_t LoadEntityCallback(CChunkFile *pFile, int nParam);
 ChunkFileResult_t LoadEntityKeyCallback(const char *szKey, const char *szValue, LoadEntity_t *pLoadEntity);
@@ -794,6 +805,10 @@ ChunkFileResult_t LoadDispInfoCallback(CChunkFile *pFile, mapdispinfo_t **ppMapD
 	Handlers.AddHandler("alphas", (ChunkHandler_t)LoadDispAlphasCallback, pMapDispInfo);
 	Handlers.AddHandler("triangle_tags", (ChunkHandler_t)LoadDispTriangleTagsCallback, pMapDispInfo);
 
+#ifdef VSVMFIO
+	Handlers.AddHandler("offset_normals", (ChunkHandler_t)LoadDispOffsetNormalsCallback, pMapDispInfo);
+#endif // VSVMFIO
+
 	//
 	// Read the displacement chunk.
 	//
@@ -824,6 +839,12 @@ ChunkFileResult_t LoadDispInfoKeyCallback(const char *szKey, const char *szValue
 	{
 		CChunkFile::ReadKeyValueInt(szValue, pMapDispInfo->power);
 	}
+#ifdef VSVMFIO
+	else if (!stricmp(szKey, "elevation"))
+	{
+		CChunkFile::ReadKeyValueFloat(szValue, pMapDispInfo->m_elevation);
+	}
+#endif // VSVMFIO
 	else if (!stricmp(szKey, "uaxis"))
 	{
 		CChunkFile::ReadKeyValueVector3(szValue, pMapDispInfo->uAxis);
@@ -964,6 +985,48 @@ ChunkFileResult_t LoadDispOffsetsKeyCallback(const char *szKey, const char *szVa
 
 	return(ChunkFile_Ok);
 }
+
+
+#ifdef VSVMFIO
+ChunkFileResult_t LoadDispOffsetNormalsCallback(CChunkFile *pFile, mapdispinfo_t *pMapDispInfo)
+{
+	return(pFile->ReadChunk((KeyHandler_t)LoadDispOffsetNormalsKeyCallback, pMapDispInfo));
+}
+
+
+ChunkFileResult_t LoadDispOffsetNormalsKeyCallback(const char *szKey, const char *szValue, mapdispinfo_t *pMapDispInfo)
+{
+	if (!strnicmp(szKey, "row", 3))
+	{
+		char szBuf[MAX_KEYVALUE_LEN];
+		strcpy(szBuf, szValue);
+
+		int nCols = (1 << pMapDispInfo->power) + 1;
+		int nRow = atoi(&szKey[3]);
+
+		char *pszNext0 = strtok(szBuf, " ");
+		char *pszNext1 = strtok(NULL, " ");
+		char *pszNext2 = strtok(NULL, " ");
+
+		int nIndex = nRow * nCols;
+
+		while ((pszNext0 != NULL) && (pszNext1 != NULL) && (pszNext2 != NULL))
+		{
+			pMapDispInfo->m_offsetNormals[nIndex][0] = (float)atof(pszNext0);
+			pMapDispInfo->m_offsetNormals[nIndex][1] = (float)atof(pszNext1);
+			pMapDispInfo->m_offsetNormals[nIndex][2] = (float)atof(pszNext2);
+
+			pszNext0 = strtok(NULL, " ");
+			pszNext1 = strtok(NULL, " ");
+			pszNext2 = strtok(NULL, " ");
+
+			nIndex++;
+		}
+	}
+
+	return(ChunkFile_Ok);
+}
+#endif // VSVMFIO
 
 
 //-----------------------------------------------------------------------------
@@ -1187,7 +1250,7 @@ static ChunkFileResult_t LoadOverlayDataTransitionKeyCallback( const char *szKey
 		Assert( strlen( pMaterialName ) < OVERLAY_MAP_STRLEN );
 		if ( strlen( pMaterialName ) >= OVERLAY_MAP_STRLEN )
 		{
-			Error( "Overlay Material Name > OVERLAY_MAP_STRLEN" );
+			Error( "Overlay Material Name (%s) > OVERLAY_MAP_STRLEN (%d)", pMaterialName, OVERLAY_MAP_STRLEN );
 			return ChunkFile_Fail;
 		}
 		strcpy( pOverlay->szMaterialName, pMaterialName );	
@@ -1347,9 +1410,6 @@ ChunkFileResult_t LoadEntityCallback(CChunkFile *pFile, int nParam)
 		g_MapError.ReportError ("num_entities == MAX_MAP_ENTITIES");
 	}
 
-	int startbrush = nummapbrushes;
-	int startsides = nummapbrushsides;
-
 	entity_t *mapent = &entities[num_entities];
 	num_entities++;
 	memset(mapent, 0, sizeof(*mapent));
@@ -1402,13 +1462,13 @@ ChunkFileResult_t LoadEntityCallback(CChunkFile *pFile, int nParam)
 			// Set min and max to default values.
 			if( min == 0 )
 			{
-				min = 60;
+				min = g_nDXLevel;
 			}
 			if( max == 0 )
 			{
-				max = 90;
+				max = g_nDXLevel;
 			}
-			if( g_nDXLevel < min || g_nDXLevel > max )
+			if( ( g_nDXLevel != 0 ) && ( g_nDXLevel < min || g_nDXLevel > max ) )
 			{
 				mapent->numbrushes = 0;
 				mapent->epairs = NULL;
@@ -1451,6 +1511,14 @@ ChunkFileResult_t LoadEntityCallback(CChunkFile *pFile, int nParam)
 			return(ChunkFile_Ok);
 		}
 
+		// these get added to a list for processing the portal file
+		// but aren't necessary to emit to the BSP
+		if ( !strcmp( "func_viscluster", pClassName ) )
+		{
+			AddVisCluster(mapent);
+			return(ChunkFile_Ok);
+		}
+
 		//
 		// func_ladder brushes are moved into the world entity.  We convert the func_ladder to an info_ladder
 		// that holds the ladder's mins and maxs, and leave the entity.  This helps the bots figure out ladders.
@@ -1469,7 +1537,7 @@ ChunkFileResult_t LoadEntityCallback(CChunkFile *pFile, int nParam)
 
 		if( !strcmp( "env_cubemap", pClassName ) )
 		{
-			if( g_nDXLevel >= 70 )
+			if( ( g_nDXLevel == 0 ) || ( g_nDXLevel >= 70 ) )
 			{
 				const char *pSideListStr = ValueForKey( mapent, "sides" );
 				int size;
@@ -1490,10 +1558,24 @@ ChunkFileResult_t LoadEntityCallback(CChunkFile *pFile, int nParam)
 
 		if ( !strcmp( "info_overlay", pClassName ) )
 		{
-			Overlay_GetFromEntity( mapent );
+			int iAccessorID = Overlay_GetFromEntity( mapent );
 
-			// Clear out this entity.
-			mapent->epairs = NULL;
+			if ( iAccessorID < 0 )
+			{
+				// Clear out this entity.
+				mapent->epairs = NULL;
+			}
+			else
+			{
+				// Convert to info_overlay_accessor entity
+				SetKeyValue( mapent, "classname", "info_overlay_accessor" );
+
+				// Remember the id for accessing the overlay
+				char buf[16];
+				Q_snprintf( buf, sizeof(buf), "%i", iAccessorID );
+				SetKeyValue( mapent, "OverlayID", buf );
+			}
+
 			return ( ChunkFile_Ok );
 		}
 
@@ -1532,6 +1614,77 @@ ChunkFileResult_t LoadEntityCallback(CChunkFile *pFile, int nParam)
 			MoveBrushesToWorld (mapent);
 			return(ChunkFile_Ok);
 		}
+
+#ifdef VSVMFIO
+		if ( !Q_stricmp( pClassName, "light" ) )
+		{
+			CVmfImport::GetVmfImporter()->ImportLightCallback(
+				ValueForKey( mapent, "hammerid" ),
+				ValueForKey( mapent, "origin" ),
+				ValueForKey( mapent, "_light" ),
+				ValueForKey( mapent, "_lightHDR" ),
+				ValueForKey( mapent, "_lightscaleHDR" ),
+				ValueForKey( mapent, "_quadratic_attn" ) );
+		}
+
+		if ( !Q_stricmp( pClassName, "light_spot" ) )
+		{
+			CVmfImport::GetVmfImporter()->ImportLightSpotCallback(
+				ValueForKey( mapent, "hammerid" ),
+				ValueForKey( mapent, "origin" ),
+				ValueForKey( mapent, "angles" ),
+				ValueForKey( mapent, "pitch" ),
+				ValueForKey( mapent, "_light" ),
+				ValueForKey( mapent, "_lightHDR" ),
+				ValueForKey( mapent, "_lightscaleHDR" ),
+				ValueForKey( mapent, "_quadratic_attn" ),
+				ValueForKey( mapent, "_inner_cone" ),
+				ValueForKey( mapent, "_cone" ),
+				ValueForKey( mapent, "_exponent" ) );
+		}
+
+		if ( !Q_stricmp( pClassName, "light_dynamic" ) )
+		{
+			CVmfImport::GetVmfImporter()->ImportLightDynamicCallback(
+				ValueForKey( mapent, "hammerid" ),
+				ValueForKey( mapent, "origin" ),
+				ValueForKey( mapent, "angles" ),
+				ValueForKey( mapent, "pitch" ),
+				ValueForKey( mapent, "_light" ),
+				ValueForKey( mapent, "_quadratic_attn" ),
+				ValueForKey( mapent, "_inner_cone" ),
+				ValueForKey( mapent, "_cone" ),
+				ValueForKey( mapent, "brightness" ),
+				ValueForKey( mapent, "distance" ),
+				ValueForKey( mapent, "spotlight_radius" ) );
+		}
+
+		if ( !Q_stricmp( pClassName, "light_environment" ) )
+		{
+			CVmfImport::GetVmfImporter()->ImportLightEnvironmentCallback(
+				ValueForKey( mapent, "hammerid" ),
+				ValueForKey( mapent, "origin" ),
+				ValueForKey( mapent, "angles" ),
+				ValueForKey( mapent, "pitch" ),
+				ValueForKey( mapent, "_light" ),
+				ValueForKey( mapent, "_lightHDR" ),
+				ValueForKey( mapent, "_lightscaleHDR" ),
+				ValueForKey( mapent, "_ambient" ),
+				ValueForKey( mapent, "_ambientHDR" ),
+				ValueForKey( mapent, "_AmbientScaleHDR" ),
+				ValueForKey( mapent, "SunSpreadAngle" ) );
+		}
+
+		const char *pModel = ValueForKey( mapent, "model" );
+		if ( pModel && Q_strlen( pModel ) )
+		{
+			CVmfImport::GetVmfImporter()->ImportModelCallback(
+				pModel,
+				ValueForKey( mapent, "hammerid" ),
+				ValueForKey( mapent, "angles" ),
+				ValueForKey( mapent, "origin" ) );
+		}
+#endif // VSVMFIO
 
 		// If it's not in the world at this point, unmark CONTENTS_DETAIL from all sides...
 		if ( mapent != &entities[ 0 ] )
@@ -1583,7 +1736,7 @@ void ForceFuncAreaPortalWindowContents()
 		if( !IsAreaPortal( pClassName ) || !Q_stricmp( pClassName, "func_areaportal" ) )
 			continue;
 
-		const char *pTestEntName = ValueForKey( e, "targetname" );
+//		const char *pTestEntName = ValueForKey( e, "targetname" );
 
 		for( int iTarget=0; iTarget < nTargets; iTarget++ )
 		{
@@ -1611,6 +1764,27 @@ void ForceFuncAreaPortalWindowContents()
 //-----------------------------------------------------------------------------
 void LoadMapFile(const char *pszFileName)
 {
+#ifdef VSVMFIO
+	{
+		// All of the crazy global state
+		// This seems to more or less handle it... not sure if this is all of it or not
+		entity_num = 0;
+
+		nummapplanes = 0;
+		memset( mapplanes, 0, sizeof( mapplanes ) );
+
+		nummapbrushes = 0;
+		memset( mapbrushes, 0, sizeof( mapbrushes ) );
+
+		nummapbrushsides = 0;
+		memset( brushsides, 0, sizeof( brushsides ) );
+
+		memset( side_brushtextures, 0, sizeof( side_brushtextures ) );
+
+		memset( planehash, 0, sizeof( planehash ) );
+	}
+#endif // VSVMFIO
+
 	//
 	// Dummy this up for the texture handling. This can be removed when old .MAP file
 	// support is removed.
@@ -1814,6 +1988,17 @@ ChunkFileResult_t LoadSideCallback(CChunkFile *pFile, LoadSide_t *pSideInfo)
 				side_brushtextures[nummapbrushsides] = pSideInfo->td;
 				nummapbrushsides++;
 				b->numsides++;
+
+#ifdef VSVMFIO
+				// Tell Maya We Have Another Side
+				if ( CVmfImport::GetVmfImporter() )
+				{
+					CVmfImport::GetVmfImporter()->AddSideCallback(
+						b, side, pSideInfo->td,
+						pSideInfo->planepts[ 0 ], pSideInfo->planepts[ 1 ], pSideInfo->planepts[ 2 ] );
+				}
+#endif // VSVMFIO
+
 			}
 		}
 		else
@@ -2085,6 +2270,13 @@ ChunkFileResult_t LoadSolidCallback(CChunkFile *pFile, LoadEntity_t *pLoadEntity
 			return(ChunkFile_Ok);
 		}
 
+#ifdef VSVMFIO
+		if ( CVmfImport::GetVmfImporter() )
+		{
+			CVmfImport::GetVmfImporter()->MapBrushToMayaCallback( b );
+		}
+#endif // VSVMFIO
+
 		//
 		// find a map brushes with displacement surfaces and remove them from the "world"
 		//
@@ -2204,7 +2396,7 @@ mapdispinfo_t *ParseDispInfoChunk( void )
     // check to see if we exceeded the maximum displacement info list size
     //
     if( nummapdispinfo > MAX_MAP_DISPINFO )
-        g_MapError.ReportError( "ParseDispInfoChunk: nummapdispinfo > MAX_MAP_DISPINFO" );
+        g_MapError.ReportError( "ParseDispInfoChunk: nummapdispinfo > MAX_MAP_DISPINFO");
 
     // get a pointer to the next available displacement info slot
     pMapDispInfo = &mapdispinfo[nummapdispinfo];

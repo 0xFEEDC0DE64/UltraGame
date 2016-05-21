@@ -17,9 +17,12 @@ typedef unsigned char uint8;
 #endif
 
 
-#ifdef __x86_64__
+#if defined(__x86_64__) || defined(_WIN64)
 #define X64BITS
 #endif
+
+typedef unsigned char uint8;
+typedef signed char int8;
 
 #if defined( _WIN32 )
 
@@ -29,8 +32,14 @@ typedef __int32 int32;
 typedef unsigned __int32 uint32;
 typedef __int64 int64;
 typedef unsigned __int64 uint64;
-typedef __int32 intp;				// intp is an integer that can accomodate a pointer
-typedef unsigned __int32 uintp;		// (ie, sizeof(intp) >= sizeof(int) && sizeof(intp) >= sizeof(void *)
+
+#ifdef X64BITS
+typedef __int64 intp;				// intp is an integer that can accomodate a pointer
+typedef unsigned __int64 uintp;		// (ie, sizeof(intp) >= sizeof(int) && sizeof(intp) >= sizeof(void *)
+#else
+typedef __int32 intp;
+typedef unsigned __int32 uintp;
+#endif
 
 #else // _WIN32
 
@@ -55,5 +64,12 @@ const int k_cubSaltSize   = 8;
 
 typedef	uint8 SHADigest_t[ k_cubDigestSize ];
 typedef	uint8 Salt_t[ k_cubSaltSize ];
+
+typedef uint64 GID_t;		// globally unique identifier
+
+// RTime32
+// We use this 32 bit time representing real world time.
+// It offers 1 second resolution beginning on January 1, 1970 (Unix time)
+typedef uint32 RTime32;
 
 #endif // STEAMTYPES_H

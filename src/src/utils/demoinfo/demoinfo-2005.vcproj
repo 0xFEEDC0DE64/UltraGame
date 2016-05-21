@@ -46,7 +46,7 @@
 				Name="VCCLCompilerTool"
 				Optimization="2"
 				InlineFunctionExpansion="1"
-				AdditionalIncludeDirectories="..\common,..\..\public,..\..\public\tier1"
+				AdditionalIncludeDirectories="..\common,..\..\public,..\..\public\tier1;..\..\public\tier0"
 				PreprocessorDefinitions="WIN32;NDEBUG;_CONSOLE"
 				StringPooling="true"
 				RuntimeLibrary="0"
@@ -75,10 +75,10 @@
 			<Tool
 				Name="VCLinkerTool"
 				OutputFile=".\Release/demoinfo.exe"
-				LinkIncremental="2"
+				LinkIncremental="1"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="..\..\lib\public"
-				IgnoreDefaultLibraryNames="LIBCMT"
+				IgnoreDefaultLibraryNames="LIBCMTD"
 				ProgramDatabaseFile=".\Release/demoinfo.pdb"
 				SubSystem="1"
 				TargetMachine="1"
@@ -140,7 +140,7 @@
 			<Tool
 				Name="VCCLCompilerTool"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\..\public,..\..\public\tier1,..\common"
+				AdditionalIncludeDirectories="..\..\public,..\..\public\tier1,..\common;..\..\public\tier0"
 				PreprocessorDefinitions="WIN32;_DEBUG;_CONSOLE"
 				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
@@ -173,7 +173,8 @@
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
 				AdditionalLibraryDirectories="..\..\lib\public"
-				IgnoreDefaultLibraryNames="LIBCMT"
+				IgnoreAllDefaultLibraries="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmt"
 				GenerateDebugInformation="true"
 				ProgramDatabaseFile=".\Debug/demoinfo.pdb"
 				GenerateMapFile="true"
@@ -545,7 +546,7 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\MATHLIB.H"
+				RelativePath="..\..\Public\mathlib\MATHLIB.H"
 				>
 			</File>
 			<File
@@ -597,15 +598,15 @@
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector.h"
+				RelativePath="..\..\Public\mathlib\vector.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector2d.h"
+				RelativePath="..\..\Public\mathlib\vector2d.h"
 				>
 			</File>
 			<File
-				RelativePath="..\..\Public\vector4d.h"
+				RelativePath="..\..\Public\mathlib\vector4d.h"
 				>
 			</File>
 			<File
@@ -677,22 +678,6 @@
 		<File
 			RelativePath="..\..\lib\public\tier0.lib"
 			>
-			<FileConfiguration
-				Name="Release|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					CommandLine="if exist  ..\..\..\bin\demoinfo.exe attrib -r ..\..\..\bin\demoinfo.exe&#x0D;&#x0A;if exist &quot;$(TargetPath)&quot; copy &quot;$(TargetPath)&quot; ..\..\..\bin\demoinfo.exe&#x0D;&#x0A;"
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Debug|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					CommandLine="if exist  ..\..\..\bin\demoinfo.exe attrib -r ..\..\..\bin\demoinfo.exe&#x0D;&#x0A;if exist &quot;$(TargetPath)&quot; copy &quot;$(TargetPath)&quot; ..\..\..\bin\demoinfo.exe&#x0D;&#x0A;"
-				/>
-			</FileConfiguration>
 		</File>
 		<File
 			RelativePath="..\..\lib\public\tier1.lib"
@@ -705,22 +690,6 @@
 		<File
 			RelativePath="..\..\lib\public\vstdlib.lib"
 			>
-			<FileConfiguration
-				Name="Release|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					CommandLine="if exist  ..\..\..\bin\demoinfo.exe attrib -r ..\..\..\bin\demoinfo.exe&#x0D;&#x0A;if exist &quot;$(TargetPath)&quot; copy &quot;$(TargetPath)&quot; ..\..\..\bin\demoinfo.exe&#x0D;&#x0A;"
-				/>
-			</FileConfiguration>
-			<FileConfiguration
-				Name="Debug|Win32"
-				>
-				<Tool
-					Name="VCCustomBuildTool"
-					CommandLine="if exist  ..\..\..\bin\demoinfo.exe attrib -r ..\..\..\bin\demoinfo.exe&#x0D;&#x0A;if exist &quot;$(TargetPath)&quot; copy &quot;$(TargetPath)&quot; ..\..\..\bin\demoinfo.exe&#x0D;&#x0A;"
-				/>
-			</FileConfiguration>
 		</File>
 	</Files>
 	<Globals>

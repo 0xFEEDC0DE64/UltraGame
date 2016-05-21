@@ -47,6 +47,7 @@ public:
 
 	// modifies section info
 	virtual void SetSectionFgColor(int sectionID, Color color);
+	virtual void SetSectionDividerColor( int sectionID, Color color);
 	// forces a section to always be visible
 	virtual void SetSectionAlwaysVisible(int sectionID, bool visible = true);
 
@@ -59,8 +60,8 @@ public:
 		COLUMN_CENTER	= 0x08,		// set to center the text/image in the column
 		COLUMN_RIGHT	= 0x10,		// set to right-align the text in the column
 	};
-	virtual bool AddColumnToSection(int sectionID, const char *columnName, const char *columnText, int columnFlags, int width);
-	virtual bool AddColumnToSection(int sectionID, const char *columnName, const wchar_t *columnText, int columnFlags, int width);
+	virtual bool AddColumnToSection(int sectionID, const char *columnName, const char *columnText, int columnFlags, int width, HFont fallbackFont = INVALID_FONT );
+	virtual bool AddColumnToSection(int sectionID, const char *columnName, const wchar_t *columnText, int columnFlags, int width, HFont fallbackFont = INVALID_FONT );
 	
 	// modifies the text in an existing column
 	virtual bool ModifyColumn(int sectionID, const char *columnName, const wchar_t *columnText);
@@ -81,6 +82,7 @@ public:
 
 	// set the text color of an item
 	virtual void SetItemFgColor(int itemID, Color color);
+	virtual void SetItemFont( int itemID, HFont font );
 
 	/* MESSAGES SENT:
 		"RowSelected"
@@ -101,12 +103,16 @@ public:
 	virtual const wchar_t *GetColumnTextBySection(int sectionID, int columnIndex);
 	virtual int GetColumnFlagsBySection(int sectionID, int columnIndex);
 	virtual int GetColumnWidthBySection(int sectionID, int columnIndex);
+	virtual HFont GetColumnFallbackFontBySection( int sectionID, int columnIndex );
 
 	// returns the id of the currently selected item, -1 if nothing is selected
 	virtual int GetSelectedItem();
 
 	// sets which item is currently selected
 	virtual void SetSelectedItem(int itemID);
+
+	// remove selection
+	virtual void ClearSelection( void );
 
 	// returns the data of a selected item
 	// InvalidateItem(itemID) needs to be called if the KeyValues are modified
@@ -127,6 +133,9 @@ public:
 
 	// returns the item ID from the row, again ignoring section dividers - valid from [0, GetItemCount )
 	virtual int GetItemIDFromRow(int row);		
+
+	// returns the row that this itemID occupies. -1 if the itemID is invalid
+	virtual int GetRowFromItemID(int itemID);
 
 	// gets the local coordinates of a cell
 	virtual bool GetCellBounds(int itemID, int column, int &x, int &y, int &wide, int &tall);
@@ -153,16 +162,21 @@ public:
 
 	virtual void SetProportional(bool state);
 
+	void MoveSelectionDown( void );
+	void MoveSelectionUp( void );
+
 protected:
 	virtual void PerformLayout();
 	virtual void ApplySchemeSettings(IScheme *pScheme);
 	virtual void ApplySettings(KeyValues *inResourceData);
 	virtual void OnSizeChanged(int wide, int tall);
 	virtual void OnMouseWheeled(int delta);
-	virtual void OnMousePressed(enum MouseCode code);
-	virtual void OnKeyCodeTyped(enum KeyCode code);
+	virtual void OnMousePressed( MouseCode code);
+	virtual void OnKeyCodeTyped( KeyCode code);
 	virtual void OnSetFocus();						// called after the panel receives the keyboard focus
 
+public:
+	virtual void SetFontSection(int sectionID, HFont font);
 private:
 	MESSAGE_FUNC( OnSliderMoved, "ScrollBarSliderMoved" );
 
@@ -183,6 +197,7 @@ private:
 		wchar_t m_szColumnText[64];
 		int m_iColumnFlags;
 		int m_iWidth;
+		HFont m_hFallbackFont;
 	};
 	struct section_t
 	{
@@ -212,6 +227,8 @@ private:
 	bool m_bDeleteImageListWhenDone;
 	bool m_bSortNeeded;
 	bool m_bVerticalScrollbarEnabled;
+
+	CPanelAnimationVar( bool, m_bShowColumns, "show_columns", "false" );
 };
 
 } // namespace vgui

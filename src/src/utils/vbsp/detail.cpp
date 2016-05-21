@@ -274,7 +274,6 @@ face_t *MergeDetailTree( tree_t *worldtree, int brush_start, int brush_end )
 {
 	int			start;
 	bspbrush_t	*detailbrushes = NULL;
-	tree_t		*detailtree = NULL;
 	face_t		*pFaces = NULL;
 	face_t		*pLeafFaceList = NULL;
 
@@ -365,7 +364,6 @@ bool ClipFaceToBrush( face_t *pFace, bspbrush_t *pbrush, face_t **pOutputList )
 	if ( foundSide >= 0 )
 	{
 		sortedSides.RemoveAll();
-		int top = 0;
 		for ( i = 0; i < pbrush->numsides; i++ )
 		{
 			// don't clip to bevels

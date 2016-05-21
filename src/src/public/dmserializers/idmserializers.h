@@ -19,7 +19,7 @@
 #pragma once
 #endif
 
-#include "appframework/iappsystem.h"
+#include "appframework/IAppSystem.h"
 
 
 //-----------------------------------------------------------------------------
@@ -27,10 +27,19 @@
 //-----------------------------------------------------------------------------
 class IDmSerializers : public IAppSystem
 {
-public:
 };
 
+
+//-----------------------------------------------------------------------------
+// Used only by applications to hook in DmSerializers
+//-----------------------------------------------------------------------------
 #define DMSERIALIZERS_INTERFACE_VERSION		"VDmSerializers001"
+
+
+//-----------------------------------------------------------------------------
+// Singleton
+//-----------------------------------------------------------------------------
+extern IDmSerializers *g_pDmSerializers;
 
 
 #endif // DMSERIALIZERS_H

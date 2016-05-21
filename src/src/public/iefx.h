@@ -13,7 +13,7 @@
 #endif
 
 #include "interface.h"
-#include "vector.h"
+#include "mathlib/vector.h"
 
 struct model_t;
 struct dlight_t;
@@ -55,6 +55,9 @@ public:
 
 	// Retrieve decal texture name from decal by index
 	virtual	const char *Draw_DecalNameFromIndex( int nIndex ) = 0;
+
+	// Given an elight key, find it. Does not search ordinary dlights. May return NULL.
+	virtual dlight_t   *GetElightByKey( int key ) = 0;
 };
 
 #define VENGINE_EFFECTS_INTERFACE_VERSION "VEngineEffects001"

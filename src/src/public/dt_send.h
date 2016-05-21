@@ -458,6 +458,9 @@ public:
 	void		SetWriteFlag(bool bHasBeenWritten);
 	bool		GetWriteFlag() const;
 
+	bool		HasPropsEncodedAgainstTickCount() const;
+	void		SetHasPropsEncodedAgainstTickcount( bool bState );
+
 public:
 
 	SendProp	*m_pProps;
@@ -470,8 +473,9 @@ public:
 
 
 protected:		
-	bool		m_bInitialized;	
-	bool		m_bHasBeenWritten;		
+	bool		m_bInitialized : 1;	
+	bool		m_bHasBeenWritten : 1;		
+	bool		m_bHasPropsEncodedAgainstCurrentTickCount : 1; // m_flSimulationTime and m_flAnimTime, e.g.
 };
 
 
@@ -517,6 +521,15 @@ inline void SendTable::SetWriteFlag(bool bHasBeenWritten)
 	m_bHasBeenWritten = bHasBeenWritten;
 }
 
+inline bool SendTable::HasPropsEncodedAgainstTickCount() const
+{
+	return m_bHasPropsEncodedAgainstCurrentTickCount;
+}
+
+inline void SendTable::SetHasPropsEncodedAgainstTickcount( bool bState )
+{
+	m_bHasPropsEncodedAgainstCurrentTickCount = bState;
+}
 
 // ------------------------------------------------------------------------------------------------------ //
 // Use BEGIN_SEND_TABLE if you want to declare a SendTable and have it inherit all the properties from
@@ -615,6 +628,8 @@ void* SendProxy_DataTablePtrToDataTable( const SendProp *pProp, const void *pStr
 
 // Used on player entities - only sends the data to the local player (objectID-1).
 void* SendProxy_SendLocalDataTable( const SendProp *pProp, const void *pStruct, const void *pVarData, CSendProxyRecipients *pRecipients, int objectID );
+// Used on player entities - sends the data to every player otehr than the local player
+void* SendProxy_SendNonLocalDataTable( const SendProp *pProp, const void *pStruct, const void *pVarData, CSendProxyRecipients *pRecipients, int objectID );
 
 
 // ------------------------------------------------------------------------ //

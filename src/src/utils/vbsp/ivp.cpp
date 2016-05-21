@@ -6,7 +6,7 @@
 //=============================================================================//
 
 #include <stdio.h>
-#include "vector.h"
+#include "mathlib/vector.h"
 #include "bspfile.h"
 #include "bsplib.h"
 #include "cmdlib.h"
@@ -921,33 +921,6 @@ static bool PortalCrossesWater( waterleaf_t &baseleaf, portal_t *portal )
 }
 
 
-static void DumpWaterLeafs( CUtlVector<waterleaf_t> &list )
-{
-	FILE *fp = fopen( "jay.txt", "w" );
-	for ( int i = 0; i < list.Count(); i++ )
-	{
-		dleaf_t *pleaf = dleafs + list[i].waterLeafIndex;
-		dcluster_t *cluster = dclusters + pleaf->cluster;
-		for ( int j = 0; j < cluster->numportals; j++ )
-		{
-			int portalIndex = dclusterportals[cluster->firstportal + j];
-			dportal_t *portal = dportals + portalIndex;
-			dvertex_t *basevert = &dvertexes[dportalverts[portal->firstportalvert]];
-			for ( int k = 1; k < portal->numportalverts-1; k++ )
-			{
-				dvertex_t *vert1 = &dvertexes[dportalverts[portal->firstportalvert+k]];
-				dvertex_t *vert2 = &dvertexes[dportalverts[portal->firstportalvert+k+1]];
-				fprintf( fp, "3\n" );
-				fprintf( fp, "%6.3f %6.3f %6.3f 1 0 0\n", basevert->point.x, basevert->point.y, basevert->point.z );
-				fprintf( fp, "%6.3f %6.3f %6.3f 0 1 0\n", vert1->point.x, vert1->point.y, vert1->point.z );
-				fprintf( fp, "%6.3f %6.3f %6.3f 0 0 1\n", vert2->point.x, vert2->point.y, vert2->point.z );
-			}
-		}
-	}
-
-	fclose( fp );
-}
-
 static int FindOrCreateLeafWaterData( float surfaceZ, float minZ, int surfaceTexInfoID )
 {
 	int i;
@@ -1349,6 +1322,10 @@ static void BuildWorldPhysModel( CUtlVector<CPhysCollisionEntry *> &collisionLis
 	{
 		Disp_AddCollisionModels( collisionList, &dmodels[0], MASK_SOLID );
 	}
+	else
+	{
+		Disp_BuildVirtualMesh( MASK_SOLID );
+	}
 	ConvertWaterModelToPhysCollide( collisionList, 0, shrinkSize, mergeTolerance );
 }
 
@@ -1356,17 +1333,36 @@ static void BuildWorldPhysModel( CUtlVector<CPhysCollisionEntry *> &collisionLis
 // adds a collision entry for this brush model
 static void ConvertModelToPhysCollide( CUtlVector<CPhysCollisionEntry *> &collisionList, int modelIndex, int contents, float shrinkSize, float mergeTolerance )
 {
+	int i;
 	CPlaneList planes( shrinkSize, mergeTolerance );
 
 	planes.m_contentsMask = contents;
 
 	dmodel_t *pModel = dmodels + modelIndex;
 	VisitLeaves_r( planes, pModel->headnode );
-	int brushesAdded = planes.AddBrushes();
+	planes.AddBrushes();
 	int count = planes.m_convex.Count();
 	convertconvexparams_t params;
 	params.Defaults();
 	params.buildOuterConvexHull = count > 1 ? true : false;
+	params.buildDragAxisAreas = true;
+	Vector size = pModel->maxs - pModel->mins;
+
+	float minSurfaceArea = -1.0f;
+	for ( i = 0; i < 3; i++ )
+	{
+		int other = (i+1)%3;
+		int cross = (i+2)%3;
+		float surfaceArea = size[other] * size[cross];
+		if ( minSurfaceArea < 0 || surfaceArea < minSurfaceArea )
+		{
+			minSurfaceArea = surfaceArea;
+		}
+	}
+	// this can be really slow with super-large models and a low error tolerance
+	// Basically you get a ray cast through each square of epsilon surface area on each OBB side
+	// So compute it for 1% error (on the smallest side, less on larger sides)
+	params.dragAreaEpsilon = clamp( minSurfaceArea * 1e-2f, 1.0f, 1024.0f );
 	CPhysCollide *pCollide = physcollision->ConvertConvexToCollideParams( planes.m_convex.Base(), count, params );
 	
 	if ( !pCollide )
@@ -1382,7 +1378,6 @@ static void ConvertModelToPhysCollide( CUtlVector<CPhysCollisionEntry *> &collis
 	proplist[0].prop = -1;
 	proplist[0].area = 1;
 	// compute the array of props on the surface of this model
-	int i;
 
 	// NODRAW brushes no longer have any faces
 	if ( !dmodels[modelIndex].numfaces )

@@ -2,16 +2,9 @@
 //
 // Purpose: 
 //
-// $NoKeywords: $
-//
 //===========================================================================//
-#ifdef _WIN32
+#if defined( _WIN32 ) && !defined( _X360 )
 #include <windows.h>
-#endif
-
-#ifdef _XBOX
-#include "xbox/xbox_platform.h"
-#include "xbox/xbox_win32stubs.h"
 #endif
 
 #if !defined( DONT_PROTECT_FILEIO_FUNCTIONS )
@@ -25,21 +18,24 @@
 #include <stdio.h>
 #include "interface.h"
 #include "basetypes.h"
+#include "tier0/dbg.h"
 #include <string.h>
 #include <stdlib.h>
-#include "vstdlib/strtools.h"
+#include "tier1/strtools.h"
 #include "tier0/icommandline.h"
 #include "tier0/dbg.h"
+#include "tier0/threadtools.h"
 #ifdef _WIN32
 #include <direct.h> // getcwd
 #elif _LINUX
 #define _getcwd getcwd
 #endif
+#if defined( _X360 )
+#include "xbox/xbox_win32stubs.h"
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-
-
 
 // ------------------------------------------------------------------------------------ //
 // InterfaceReg.
@@ -111,7 +107,7 @@ void *GetModuleHandle(const char *name)
 }
 #endif
 
-#if defined(_WIN32) && !defined(_XBOX)
+#if defined( _WIN32 ) && !defined( _X360 )
 #define WIN32_LEAN_AND_MEAN
 #include "windows.h"
 #endif
@@ -123,7 +119,8 @@ void *GetModuleHandle(const char *name)
 //-----------------------------------------------------------------------------
 static void *Sys_GetProcAddress( const char *pModuleName, const char *pName )
 {
-	return GetProcAddress( GetModuleHandle(pModuleName), pName );
+	HMODULE hModule = GetModuleHandle( pModuleName );
+	return GetProcAddress( hModule, pName );
 }
 
 static void *Sys_GetProcAddress( HMODULE hModule, const char *pName )
@@ -131,47 +128,97 @@ static void *Sys_GetProcAddress( HMODULE hModule, const char *pName )
 	return GetProcAddress( hModule, pName );
 }
 
-static bool Sys_IsDebuggerPresent()
+bool Sys_IsDebuggerPresent()
 {
-#if defined(_WIN32) && !defined(_XBOX)
-	static BOOL (*pfnIsDebuggerPresent)(VOID);
-	static bool checked = false;
-	if ( !checked )
-	{
-		checked = true;
-		// We need to do this this way to work on win98/me without causing a run time .dll error (says Nick)
-		// Win98/Me don't export this from the Kernel
-		pfnIsDebuggerPresent = (BOOL (*)(VOID))Sys_GetProcAddress( "kernel32", "IsDebuggerPresent" );
-	}
-
-	if ( pfnIsDebuggerPresent )
-	{
-		return (*pfnIsDebuggerPresent)() ? true : false;
-	}
-#endif
-	return false;
+	return Plat_IsInDebugSession();
 }
+
+struct ThreadedLoadLibaryContext_t
+{
+	const char *m_pLibraryName;
+	HMODULE m_hLibrary;
+};
+
+#ifdef _WIN32
+
+// wraps LoadLibraryEx() since 360 doesn't support that
+static HMODULE InternalLoadLibrary( const char *pName )
+{
+#if defined(_X360)
+	return LoadLibrary( pName );
+#else
+	return LoadLibraryEx( pName, NULL, LOAD_WITH_ALTERED_SEARCH_PATH );
+#endif
+}
+unsigned ThreadedLoadLibraryFunc( void *pParam )
+{
+	ThreadedLoadLibaryContext_t *pContext = (ThreadedLoadLibaryContext_t*)pParam;
+	pContext->m_hLibrary = InternalLoadLibrary(pContext->m_pLibraryName);
+	return 0;
+}
+#endif
 
 HMODULE Sys_LoadLibrary( const char *pLibraryName )
 {
 	char str[1024];
-#if defined(_WIN32)
+#if defined( _WIN32 ) && !defined( _X360 )
 	const char *pModuleExtension = ".dll";
 	const char *pModuleAddition = pModuleExtension;
-#elif _LINUX
+#elif defined( _X360 )
+	const char *pModuleExtension = "_360.dll";
+	const char *pModuleAddition = pModuleExtension;
+#elif defined( _LINUX )
 	const char *pModuleExtension = ".so";
 	const char *pModuleAddition = "_i486.so"; // if an extension is on the filename assume the i486 binary set
 #endif
-	Q_strncpy(str, pLibraryName, sizeof(str));
+	Q_strncpy( str, pLibraryName, sizeof(str) );
 	if ( !Q_stristr( str, pModuleExtension ) )
 	{
+		if ( IsX360() )
+		{
+			Q_StripExtension( str, str, sizeof(str) );
+		}
 		Q_strncat( str, pModuleAddition, sizeof(str) );
 	}
 	Q_FixSlashes( str );
+
 #ifdef _WIN32
-	return LoadLibrary( str );
+	ThreadedLoadLibraryFunc_t threadFunc = GetThreadedLoadLibraryFunc();
+	if ( !threadFunc )
+		return InternalLoadLibrary( str );
+
+	ThreadedLoadLibaryContext_t context;
+	context.m_pLibraryName = str;
+	context.m_hLibrary = 0;
+
+	ThreadHandle_t h = CreateSimpleThread( ThreadedLoadLibraryFunc, &context );
+
+#ifdef _X360
+	ThreadSetAffinity( h, XBOX_PROCESSOR_3 );
+#endif
+
+	unsigned int nTimeout = 0;
+	while( ThreadWaitForObject( h, true, nTimeout ) == TW_TIMEOUT )
+	{
+		nTimeout = threadFunc();
+	}
+
+	ReleaseThreadHandle( h );
+	return context.m_hLibrary;
+
 #elif _LINUX
-	return dlopen( str, RTLD_NOW );
+	HMODULE ret = dlopen( str, RTLD_NOW );
+	if ( ! ret )
+	{
+		const char *pError = dlerror();
+		if ( pError && ( strstr( pError, "No such file" ) == 0 ) )
+		{
+			Msg( " failed to dlopen %s error=%s\n", str, pError );
+
+		}
+	}
+	
+	return ret;
 #endif
 }
 
@@ -185,32 +232,48 @@ CSysModule *Sys_LoadModule( const char *pModuleName )
 	// If using the Steam filesystem, either the DLL must be a minimum footprint
 	// file in the depot (MFP) or a filesystem GetLocalCopy() call must be made
 	// prior to the call to this routine.
-#ifndef _XBOX
 	char szCwd[1024];
-#endif
 	HMODULE hDLL = NULL;
-	// if a full path wasn't passed in use the current working dir
-#ifndef _XBOX
-	if ( !Q_IsAbsolutePath(pModuleName) ) // if a full path wasn't passed in
+
+	if ( !Q_IsAbsolutePath( pModuleName ) )
 	{
-		char szAbsoluteModuleName[1024];
+		// full path wasn't passed in, using the current working dir
 		_getcwd( szCwd, sizeof( szCwd ) );
-		if ( szCwd[ strlen( szCwd ) - 1 ] == '/' )
-        	    szCwd[ strlen( szCwd ) - 1 ] = 0;
-	    Q_snprintf( szAbsoluteModuleName, sizeof(szAbsoluteModuleName),"%s/bin/%s", szCwd, pModuleName );
-		hDLL = Sys_LoadLibrary(szAbsoluteModuleName);
+		if ( IsX360() )
+		{
+			int i = CommandLine()->FindParm( "-basedir" );
+			if ( i )
+			{
+				strcpy( szCwd, CommandLine()->GetParm( i+1 ) );
+			}
+		}
+		if (szCwd[strlen(szCwd) - 1] == '/' || szCwd[strlen(szCwd) - 1] == '\\' )
+		{
+			szCwd[strlen(szCwd) - 1] = 0;
+		}
+
+		char szAbsoluteModuleName[1024];
+		if ( strstr( pModuleName, "bin/") == pModuleName )
+		{
+			// don't make bin/bin path
+			Q_snprintf( szAbsoluteModuleName, sizeof(szAbsoluteModuleName), "%s/%s", szCwd, pModuleName );			
+		}
+		else
+		{
+			Q_snprintf( szAbsoluteModuleName, sizeof(szAbsoluteModuleName), "%s/bin/%s", szCwd, pModuleName );
+		}
+		hDLL = Sys_LoadLibrary( szAbsoluteModuleName );
 	}
-#endif
+
 	if ( !hDLL )
 	{
 		// full path failed, let LoadLibrary() try to search the PATH now
-		hDLL = Sys_LoadLibrary(pModuleName);
-
-#if defined(_DEBUG) && !defined(_XBOX)
-		if( !hDLL )
+		hDLL = Sys_LoadLibrary( pModuleName );
+#if defined( _DEBUG )
+		if ( !hDLL )
 		{
 // So you can see what the error is in the debugger...
-#ifdef _WIN32
+#if defined( _WIN32 ) && !defined( _X360 )
 			char *lpMsgBuf;
 			
 			FormatMessage( 
@@ -226,16 +289,17 @@ CSysModule *Sys_LoadModule( const char *pModuleName )
 			);
 
 			LocalFree( (HLOCAL)lpMsgBuf );
+#elif defined( _X360 )
+			Msg( "Failed to load %s:\n", pModuleName );
 #else
-			Error( "Failed to load %s: %s\n",pModuleName, dlerror() );
+			Error( "Failed to load %s: %s\n", pModuleName, dlerror() );
 #endif // _WIN32
 		}
 #endif // DEBUG
 	}
 
-#ifndef _XBOX
 	// If running in the debugger, assume debug binaries are okay, otherwise they must run with -allowdebug
-	if ( hDLL && 
+	if ( !IsX360() && hDLL && 
 		!CommandLine()->FindParm( "-allowdebug" ) && 
 		!Sys_IsDebuggerPresent() )
 	{
@@ -244,7 +308,6 @@ CSysModule *Sys_LoadModule( const char *pModuleName )
 			Error( "Module %s is a debug build\n", pModuleName );
 		}
 	}
-#endif
 
 	return reinterpret_cast<CSysModule *>(hDLL);
 }
@@ -354,6 +417,46 @@ bool Sys_LoadInterface(
 	return true;
 }
 
+//-----------------------------------------------------------------------------
+// Purpose: Place this as a singleton at module scope (e.g.) and use it to get the factory from the specified module name.  
+// 
+// When the singleton goes out of scope (.dll unload if at module scope),
+//  then it'll call Sys_UnloadModule on the module so that the refcount is decremented 
+//  and the .dll actually can unload from memory.
+//-----------------------------------------------------------------------------
+CDllDemandLoader::CDllDemandLoader( char const *pchModuleName ) : 
+	m_pchModuleName( pchModuleName ), 
+	m_hModule( 0 ),
+	m_bLoadAttempted( false )
+{
+}
 
+CDllDemandLoader::~CDllDemandLoader()
+{
+	Unload();
+}
 
-PUBLISH_DLL_SUBSYSTEM()
+CreateInterfaceFn CDllDemandLoader::GetFactory()
+{
+	if ( !m_hModule && !m_bLoadAttempted )
+	{
+		m_bLoadAttempted = true;
+		m_hModule = Sys_LoadModule( m_pchModuleName );
+	}
+
+	if ( !m_hModule )
+	{
+		return NULL;
+	}
+
+	return Sys_GetFactory( m_hModule );
+}
+
+void CDllDemandLoader::Unload()
+{
+	if ( m_hModule )
+	{
+		Sys_UnloadModule( m_hModule );
+		m_hModule = 0;
+	}
+}

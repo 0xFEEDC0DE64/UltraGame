@@ -11,30 +11,6 @@
 // $NoKeywords: $
 //=============================================================================//
 
-//
-// NOTE!!!
-//
-// VRAD has problems when linking to the release/multithreaded c libs, so 
-// we link to debug/multithreadded c libs instead.
-//
-// Here's Charlie's notes on the matter:
-//
-// "I checked in a version of vrad built in release mode with Debug Multi-Threaded 
-// standard libraries.  This will alleviate the red lighting bug until I (or someone) 
-// has more time to look into this problem.  For those interested in \map\red 
-// lighting bug is a map (redtest2.map) that consistently show the lighting problem 
-// for future testing."
-//
-// NJS:
-// I ran into this as well, and found it related to release / debug, and having nothing
-// to do with multi-threading.  For example, you will get the same wrong results linking
-// to Release Multi-threaded as Release Single-Threaded( with threads set to one of course)
-// and the same correct results linking with the debug versions of the above.  
-// Linking with Release vs. Debug makes a nearly 2x performance difference, though it's unclear
-// as to whether this is because it's just that much faster, or the code generated on Release
-// is skipping large operations erroniously.
-//
-
 #ifndef VRAD_H
 #define VRAD_H
 #pragma once
@@ -43,7 +19,7 @@
 #include "commonmacros.h"
 #include "worldsize.h"
 #include "cmdlib.h"
-#include "mathlib.h"
+#include "mathlib/mathlib.h"
 #include "bsplib.h"
 #include "polylib.h"
 #include "threads.h"
@@ -76,6 +52,8 @@
 //#define SAMPLEHASH_USE_AREA_PATCHES	// Add patches to sample hash based on their AABB instead of as a single point.
 #define SAMPLEHASH_QUERY_ONCE		// Big optimization - causes way less sample hash queries.
 
+extern float dispchop; // "-dispchop" tightest number of luxel widths for a patch, used on edges
+extern float g_MaxDispPatchRadius;
 
 //-----------------------------------------------------------------------------
 // forward declarations
@@ -105,6 +83,21 @@ struct directlight_t
 
 	int		dorecalc; // position, vector, spot angle, etc.
 	IncrementalLightID	m_IncrementalID;
+
+	// hard-falloff lights (lights that fade to an actual zero). between m_flStartFadeDistance and
+	// m_flEndFadeDistance, a smoothstep to zero will be done, so that the light goes to zero at
+	// the end.
+	float m_flStartFadeDistance;
+	float m_flEndFadeDistance;
+	float m_flCapDist;										// max distance to feed in
+
+	directlight_t(void)
+	{
+		m_flEndFadeDistance = -1.0;							// end<start indicates not set
+		m_flStartFadeDistance= 0.0;
+		m_flCapDist = 1.0e22;
+
+	}
 };
 
 struct bumplights_t
@@ -120,9 +113,77 @@ struct transfer_t
 };
 
 
+struct LightingValue_t
+{
+	Vector m_vecLighting;
+	float m_flDirectSunAmount;
+
+	FORCEINLINE bool IsValid( void ) const
+	{
+		return ( m_vecLighting.x >= 0 && 
+				 m_vecLighting.y >= 0 && 
+				 m_vecLighting.z >= 0 &&
+				 m_vecLighting.x < 1e10 && 
+				 m_vecLighting.y < 1e10 && 
+				 m_vecLighting.z < 1e10 );
+	}
+
+	FORCEINLINE void Zero( void )
+	{
+		m_vecLighting.Init( 0, 0, 0 );
+		m_flDirectSunAmount = 0.0;
+	}
+	
+	FORCEINLINE void Scale( float m_flScale )
+	{
+		m_vecLighting *= m_flScale;
+		m_flDirectSunAmount *= m_flScale;
+	}
+
+	FORCEINLINE void AddWeighted( LightingValue_t const &src, float flWeight )
+	{
+		m_vecLighting += flWeight * src.m_vecLighting;
+		m_flDirectSunAmount += flWeight * src.m_flDirectSunAmount;
+	}
+
+	FORCEINLINE void AddWeighted( Vector const &src, float flWeight )
+	{
+		m_vecLighting += flWeight * src;
+	}
+
+	FORCEINLINE float Intensity( void ) const
+	{
+		return m_vecLighting.x + m_vecLighting.y + m_vecLighting.z;
+	}
+
+	FORCEINLINE void AddLight( float flAmount, Vector const &vecColor, float flSunAmount = 0.0 )
+	{
+		VectorMA( m_vecLighting, flAmount, vecColor, m_vecLighting );
+		m_flDirectSunAmount += flSunAmount;
+		Assert( this->IsValid() );
+	}
+
+
+	FORCEINLINE void AddLight( LightingValue_t const &src )
+	{
+		m_vecLighting += src.m_vecLighting;
+		m_flDirectSunAmount += src.m_flDirectSunAmount;
+		Assert( this->IsValid() );
+	}
+	
+	FORCEINLINE void Init( float x, float y, float z )
+	{
+		m_vecLighting.Init( x, y, z );
+		m_flDirectSunAmount = 0.0;
+	}
+
+
+};
+
+
 #define	MAX_PATCHES	(4*65536)
 
-struct patch_t
+struct CPatch
 {
 	winding_t	*winding;
 	Vector		mins, maxs, face_mins, face_maxs;
@@ -177,11 +238,13 @@ struct patch_t
 
 	int			numtransfers;
 	transfer_t	*transfers;
+
+	short		indices[3];				// displacement use these for subdivision
 };
 
 
-extern CUtlVector<patch_t>	patches;
-extern CUtlVector<int>		facePatches;		// constains all patches, children first
+extern CUtlVector<CPatch>	g_Patches;
+extern CUtlVector<int>		g_FacePatches;		// constains all patches, children first
 extern CUtlVector<int>		faceParents;		// contains only root patches, use next parent to iterate
 extern CUtlVector<int>		clusterChildren;
 
@@ -207,22 +270,35 @@ extern int			nodeparents[MAX_MAP_NODES];
 extern float		lightscale;
 extern float		dlight_threshold;
 extern float		coring;
-extern qboolean		dumppatches;
+extern qboolean		g_bDumpPatches;
 extern bool			bRed2Black;
+extern bool         g_bNoSkyRecurse;
 extern bool			bDumpNormals;
+extern bool			g_bFastAmbient;
 extern float		maxchop;
-extern bool			g_bXBox;
-extern bool			g_bExportLightmaps;
-extern FileHandle_t	pFileSamples[4];
+extern FileHandle_t	pFileSamples[4][4];
 extern qboolean		g_bLowPriority;
 extern qboolean		do_fast;
 extern bool			g_bInterrupt;		// Was used with background lighting in WC. Tells VRAD to stop lighting.
 extern IIncremental *g_pIncremental;	// null if not doing incremental lighting
-extern bool g_dofinal;										// highest quality
+
+extern float g_flSkySampleScale;								// extra sampling factor for indirect light
+
 extern bool g_bLargeDispSampleRadius;
 extern bool g_bStaticPropPolys;
+extern bool g_bTextureShadows;
 extern bool g_bShowStaticPropNormals;
+extern bool g_bDisablePropSelfShadowing;
 
+extern CUtlVector<char const *> g_NonShadowCastingMaterialStrings;
+extern void ForceTextureShadowsOnModel( const char *pModelName );
+extern bool IsModelTextureShadowsForced( const char *pModelName );
+
+// Raytracing
+
+#define TRACE_ID_SKY           0x01000000  // sky face ray blocker
+#define TRACE_ID_OPAQUE        0x02000000  // everyday light blocking face
+#define TRACE_ID_STATICPROP    0x04000000  // static prop - lower bits are prop ID
 extern RayTracingEnvironment g_RtEnv;
 
 #include "mpivrad.h"
@@ -287,8 +363,6 @@ void BuildFacelights (int facenum, int threadnum);
 void PrecompLightmapOffsets();
 void FinalLightFace (int threadnum, int facenum);
 void PvsForOrigin (Vector& org, byte *pvs);
-void BuildPalettedLightmaps();
-void CompressConstantLightmaps( int constantThreshold );
 void ConvertRGBExp32ToRGBA8888( const ColorRGBExp32 *pSrc, unsigned char *pDst );
 
 inline byte PVSCheck( const byte *pvs, int iCluster )
@@ -305,13 +379,16 @@ inline byte PVSCheck( const byte *pvs, int iCluster )
 	}
 }
 
-// returns contents at intersection point (or CONTENTS_EMPTY if no intersection)
-int TestLine (Vector const& start, Vector const& stop, int node, int iThread,
-			  int static_prop_index_to_ignore=-1 );
+// outputs 1 in fractionVisible if no occlusion, 0 if full occlusion, and in-between values
+void TestLine( FourVectors const& start, FourVectors const& stop, fltx4 *pFractionVisible, int static_prop_index_to_ignore=-1);
 
-// returns surface flags at intersection (zero if no intersection or no surface properties)
-texinfo_t *TestLine_Surface( int node, Vector const& start, Vector const& stop, int iThread, 
-							 bool canRecurse = true, int static_prop_to_skip=-1 );
+// returns 1 if the ray sees the sky, 0 if it doesn't, and in-between values for partial coverage
+void TestLine_DoesHitSky( FourVectors const& start, FourVectors const& stop,
+                          fltx4 *pFractionVisible, bool canRecurse = true, int static_prop_to_skip=-1, bool bDoDebug = false );
+
+// converts any marked brush entities to triangles for shadow casting
+void ExtractBrushEntityShadowCasters ( void );
+void AddBrushesForRayTrace ( void );
 
 void BaseLightForFace( dface_t *f, Vector& light, float *parea, Vector& reflectivity );
 void CreateDirectLights (void);
@@ -340,6 +417,8 @@ winding_t	*WindingFromFace (dface_t *f, Vector& origin );
 void WriteWinding (FileHandle_t out, winding_t *w, Vector& color );
 void WriteNormal( FileHandle_t out, Vector const &nPos, Vector const &nDir, 
 				  float length, Vector const &color );
+void WriteLine( FileHandle_t out, const Vector &vecPos1, const Vector &vecPos2, const Vector &color );
+void WriteTrace( const char *pFileName, const FourRays &rays, const RayTracingResult& result );
 
 #ifdef STATIC_FOG
 qboolean IsFog( dface_t * f );
@@ -354,20 +433,43 @@ qboolean IsFog( dface_t * f );
 
 bool AddDispCollTreesToWorld( void );
 int PointLeafnum( Vector const &point );
+float TraceLeafBrushes( int leafIndex, const Vector &start, const Vector &end, CBaseTrace &traceOut );
 
 //=============================================================================
 
 // dispinfo.cpp
 
-struct sampleLightOutput_t
+struct SSE_sampleLightOutput_t
 {
-	float		dot[NUM_BUMP_VECTS+1];
-	float		falloff;
+	fltx4 m_flDot[NUM_BUMP_VECTS+1];
+	fltx4 m_flFalloff;
+	fltx4 m_flSunAmount;
 };
 
-bool GatherSampleLight( sampleLightOutput_t &out, directlight_t *dl, int facenum, 
-						Vector const& pos, Vector *pNormals, int normalCount, int iThread,
-						bool force_fast = false, int static_prop_to_skip=-1 );
+#define GATHERLFLAGS_FORCE_FAST 1
+#define GATHERLFLAGS_IGNORE_NORMALS 2
+
+// SSE Gather light stuff
+void GatherSampleLightSSE( SSE_sampleLightOutput_t &out, directlight_t *dl, int facenum, 
+					   FourVectors const& pos, FourVectors *pNormals, int normalCount, int iThread,
+					   int nLFlags = 0,					// GATHERLFLAGS_xxx
+					   int static_prop_to_skip=-1,
+					   float flEpsilon = 0.0 );
+//void GatherSampleSkyLightSSE( SSE_sampleLightOutput_t &out, directlight_t *dl, int facenum, 
+//							 FourVectors const& pos, FourVectors *pNormals, int normalCount, int iThread,
+//							 int nLFlags = 0,
+//							 int static_prop_to_skip=-1,
+//							 float flEpsilon = 0.0 );
+//void GatherSampleAmbientSkySSE( SSE_sampleLightOutput_t &out, directlight_t *dl, int facenum, 
+//						  FourVectors const& pos, FourVectors *pNormals, int normalCount, int iThread,
+//						  int nLFlags = 0,					// GATHERLFLAGS_xxx
+//						  int static_prop_to_skip=-1,
+//						  float flEpsilon = 0.0 );
+//void GatherSampleStandardLightSSE( SSE_sampleLightOutput_t &out, directlight_t *dl, int facenum, 
+//						  FourVectors const& pos, FourVectors *pNormals, int normalCount, int iThread,
+//						  int nLFlags = 0,					// GATHERLFLAGS_xxx
+//						  int static_prop_to_skip=-1,
+//						  float flEpsilon = 0.0 );
 
 //-----------------------------------------------------------------------------
 // VRad Displacements
@@ -399,7 +501,7 @@ public:
 
 	// patching functions
 	virtual void MakePatches( void ) = 0;
-	virtual void SubdividePatch( int ndxPatch ) = 0;
+	virtual void SubdividePatch( int iPatch ) = 0;
 
 	// pre "FinalLightFace"
 	virtual void InsertSamplesDataIntoHashTable( void ) = 0;
@@ -407,7 +509,7 @@ public:
 
 	// "FinalLightFace"
 	virtual radial_t *BuildLuxelRadial( int ndxFace, int ndxStyle, bool bBump ) = 0;
-	virtual bool SampleRadial( int ndxFace, radial_t *pRadial, Vector const &vPos, int ndxLxl, Vector *pLightSample, int sampleCount, bool bPatch ) = 0;
+	virtual bool SampleRadial( int ndxFace, radial_t *pRadial, Vector const &vPos, int ndxLxl, LightingValue_t *pLightSample, int sampleCount, bool bPatch ) = 0;
 	virtual radial_t *BuildPatchRadial( int ndxFace, bool bBump ) = 0;
 
 	// utility
@@ -419,7 +521,10 @@ public:
 	virtual bool ClipRayToDispInLeaf( DispTested_t &dispTested, Ray_t const &ray, int ndxLeaf ) = 0;
 	virtual void ClipRayToDispInLeaf( DispTested_t &dispTested, Ray_t const &ray, 
 				int ndxLeaf, float& dist, dface_t*& pFace, Vector2D& luxelCoord ) = 0;
+	virtual void ClipRayToDispInLeaf( DispTested_t &dispTested, Ray_t const &ray, 
+		int ndxLeaf, float& dist, Vector *pNormal ) = 0;
 	virtual void StartRayTest( DispTested_t &dispTested ) = 0;
+	virtual void AddPolysForRayTrace() = 0;
 
 	// general timing -- should be moved!!
 	virtual void StartTimer( const char *name ) = 0;
@@ -456,7 +561,7 @@ struct PatchSampleData_t
 };
 
 UtlHashHandle_t SampleData_AddSample( sample_t *pSample, SampleHandle_t sampleHandle );
-void PatchSampleData_AddSample( patch_t *pPatch, int ndxPatch );
+void PatchSampleData_AddSample( CPatch *pPatch, int ndxPatch );
 unsigned short IncrementPatchIterationKey();
 void SampleData_Log( void );
 
@@ -472,7 +577,7 @@ extern int patchSamplesAdded;
 
 void ComputeDetailPropLighting( int iThread );
 void ComputeIndirectLightingAtPoint( Vector &position, Vector &normal, Vector &outColor, 
-									 int iThread, bool force_fast = false );
+									 int iThread, bool force_fast = false, bool bIgnoreNormals = false );
 
 //-----------------------------------------------------------------------------
 // VRad static props
@@ -491,13 +596,15 @@ public:
 	// methods of IStaticPropMgr
 	virtual void Init() = 0;
 	virtual void Shutdown() = 0;
-	virtual bool ClipRayToStaticProps( PropTested_t& propTested, Ray_t const& ray ) = 0;
-	virtual bool ClipRayToStaticPropsInLeaf( PropTested_t& propTested, Ray_t const& ray, int leaf ) = 0;
-	virtual void StartRayTest( PropTested_t& propTested ) = 0;
 	virtual void ComputeLighting( int iThread ) = 0;
 	virtual void AddPolysForRayTrace() = 0;
 };
 
+//extern PropTested_t s_PropTested[MAX_TOOL_THREADS+1];
+extern DispTested_t s_DispTested[MAX_TOOL_THREADS+1];
+
 IVradStaticPropMgr* StaticPropMgr();
+
+extern float ComputeCoverageFromTexture( float b0, float b1, float b2, int32 hitID );
 
 #endif // VRAD_H

@@ -18,13 +18,15 @@ struct virtualmeshlist_t
 	int				indexCount;
 	int				triangleCount;
 	int				vertexCount;
+	int				surfacePropsIndex;
+	byte			*pHull;
 	unsigned short	indices[MAX_VIRTUAL_TRIANGLES*3];
 };
 
 struct virtualmeshtrianglelist_t
 {
 	int				triangleCount;
-	unsigned short	triangleIndices[MAX_VIRTUAL_TRIANGLES];
+	unsigned short	triangleIndices[MAX_VIRTUAL_TRIANGLES*3];
 };
 
 class IVirtualMeshEvent
@@ -38,7 +40,7 @@ struct virtualmeshparams_t
 {
 	IVirtualMeshEvent	*pMeshEventHandler;
 	void				*userData;
+	bool				buildOuterHull;
 };
-
 
 #endif // VIRTUALMESH_H

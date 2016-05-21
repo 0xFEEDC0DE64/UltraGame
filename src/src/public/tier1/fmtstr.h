@@ -12,6 +12,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include "tier0/platform.h"
+#include "tier1/strtools.h"
 
 #if defined( _WIN32 )
 #pragma once

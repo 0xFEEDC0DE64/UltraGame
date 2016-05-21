@@ -2,7 +2,7 @@
 <VisualStudioProject
 	ProjectType="Visual C++"
 	Version="8.00"
-	Name="glview"
+	Name="Glview"
 	ProjectGUID="{BD1604CA-F401-4C4B-821C-251F5AE157FE}"
 	>
 	<Platforms>
@@ -18,18 +18,15 @@
 			OutputDirectory=".\Debug"
 			IntermediateDirectory=".\Debug"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="Copy to ..\..\..\bin"
-				CommandLine="if exist ..\..\..\bin\&quot;$(TargetName)&quot;.exe attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;if exist ..\..\..\bin\&quot;$(TargetName)&quot;.pdb attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\glview.exe;..\..\..\bin\glview.pdb"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -39,63 +36,86 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				PreprocessorDefinitions="_DEBUG"
-				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
-				TargetEnvironment="1"
-				TypeLibraryName=".\Debug/glview.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
+				UseUnicodeResponseFiles="false"
 				Optimization="0"
-				AdditionalIncludeDirectories="..\common,..\..\public,..\..\public\tier1"
-				PreprocessorDefinitions="WIN32;_DEBUG;_WINDOWS;PROTECTED_THINGS_DISABLE"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1,..\common"
+				PreprocessorDefinitions="WIN32;_WIN32;_DEBUG;DEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;PROTECTED_THINGS_DISABLE"
+				StringPooling="true"
+				MinimalRebuild="true"
+				ExceptionHandling="0"
+				BasicRuntimeChecks="3"
 				RuntimeLibrary="1"
+				BufferSecurityCheck="false"
+				FloatingPointModel="2"
+				DefaultCharIsUnsigned="false"
+				TreatWChar_tAsBuiltInType="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
+				OpenMP="false"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile=".\Debug/glview.pch"
-				AssemblerListingLocation=".\Debug/"
-				ObjectFile=".\Debug/"
-				ProgramDataBaseFileName=".\Debug/"
-				BrowseInformation="1"
-				SuppressStartupBanner="true"
+				ExpandAttributedSource="false"
+				AssemblerOutput="0"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
+				WarningLevel="4"
+				WarnAsError="false"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="4"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="_DEBUG"
+				PreprocessorDefinitions="_DEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="glu32.lib opengl32.lib glaux.lib odbc32.lib odbccp32.lib winmm.lib"
-				OutputFile=".\Debug/glview.exe"
+				UseUnicodeResponseFiles="false"
+				AdditionalDependencies=" glu32.lib opengl32.lib glaux.lib odbc32.lib odbccp32.lib winmm.lib"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/glview.exe"
 				LinkIncremental="2"
 				SuppressStartupBanner="true"
-				IgnoreDefaultLibraryNames="libcmt.lib"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmt"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Debug/glview.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
+				GenerateMapFile="true"
+				MapFileName="$(IntDir)/$(TargetName).map"
 				SubSystem="2"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/glview.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -108,6 +128,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 		<Configuration
@@ -115,18 +138,15 @@
 			OutputDirectory=".\Release"
 			IntermediateDirectory=".\Release"
 			ConfigurationType="1"
-			InheritedPropertySheets="$(VCInstallDir)VCProjectDefaults\UpgradeFromVC71.vsprops"
-			UseOfMFC="0"
-			ATLMinimizesCRunTimeLibraryUsage="false"
+			CharacterSet="2"
 			>
 			<Tool
 				Name="VCPreBuildEventTool"
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCCustomBuildTool"
-				Description="Copy to ..\..\..\bin"
-				CommandLine="if exist ..\..\..\bin\&quot;$(TargetName)&quot;.exe attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\&quot;$(TargetName)&quot;.exe&#x0D;&#x0A;if exist ..\..\..\bin\&quot;$(TargetName)&quot;.pdb attrib -r ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;copy &quot;$(TargetPath)&quot; ..\..\..\bin\&quot;$(TargetName)&quot;.pdb&#x0D;&#x0A;&#x0D;&#x0A;"
-				Outputs="..\..\..\bin\glview.exe;..\..\..\bin\glview.pdb"
 			/>
 			<Tool
 				Name="VCXMLDataGeneratorTool"
@@ -136,12 +156,6 @@
 			/>
 			<Tool
 				Name="VCMIDLTool"
-				PreprocessorDefinitions="NDEBUG"
-				MkTypLibCompatible="true"
-				SuppressStartupBanner="true"
-				TargetEnvironment="1"
-				TypeLibraryName=".\Release/glview.tlb"
-				HeaderFileName=""
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
@@ -149,56 +163,81 @@
 				InlineFunctionExpansion="2"
 				EnableIntrinsicFunctions="true"
 				FavorSizeOrSpeed="1"
-				AdditionalIncludeDirectories="..\common,..\..\public,..\..\public\tier1"
-				PreprocessorDefinitions="WIN32;NDEBUG;_WINDOWS;PROTECTED_THINGS_DISABLE"
+				AdditionalIncludeDirectories="..\..\common;..\..\public;..\..\public\tier0;..\..\public\tier1,..\common"
+				PreprocessorDefinitions="WIN32;_WIN32;NDEBUG;_WINDOWS;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;PROTECTED_THINGS_DISABLE"
 				StringPooling="true"
+				ExceptionHandling="0"
 				RuntimeLibrary="0"
+				BufferSecurityCheck="false"
 				EnableFunctionLevelLinking="true"
+				FloatingPointModel="2"
+				DefaultCharIsUnsigned="false"
+				TreatWChar_tAsBuiltInType="true"
+				ForceConformanceInForLoopScope="true"
+				RuntimeTypeInfo="true"
+				OpenMP="false"
 				UsePrecompiledHeader="0"
-				PrecompiledHeaderFile=".\Release/glview.pch"
-				AssemblerListingLocation=".\Release/"
-				ObjectFile=".\Release/"
-				ProgramDataBaseFileName=".\Release/"
-				SuppressStartupBanner="true"
+				ExpandAttributedSource="false"
+				AssemblerOutput="0"
+				AssemblerListingLocation="$(IntDir)/"
+				ObjectFile="$(IntDir)/"
+				ProgramDataBaseFileName="$(IntDir)/"
+				BrowseInformation="0"
+				BrowseInformationFile="$(IntDir)/"
+				WarningLevel="4"
+				Detect64BitPortabilityProblems="true"
 				DebugInformationFormat="3"
-				CompileAs="0"
+				CompileAs="2"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCManagedResourceCompilerTool"
 			/>
 			<Tool
 				Name="VCResourceCompilerTool"
-				PreprocessorDefinitions="NDEBUG"
+				PreprocessorDefinitions="NDEBUG;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE"
 				Culture="1033"
 			/>
 			<Tool
 				Name="VCPreLinkEventTool"
+				ExcludedFromBuild="false"
 			/>
 			<Tool
 				Name="VCLinkerTool"
-				AdditionalDependencies="glu32.lib opengl32.lib glaux.lib odbc32.lib odbccp32.lib winmm.lib"
-				OutputFile=".\Release/glview.exe"
+				UseUnicodeResponseFiles="false"
+				AdditionalDependencies=" glu32.lib opengl32.lib glaux.lib odbc32.lib odbccp32.lib winmm.lib"
+				ShowProgress="0"
+				OutputFile="$(OutDir)/glview.exe"
 				LinkIncremental="1"
 				SuppressStartupBanner="true"
-				IgnoreDefaultLibraryNames="libcmtd.lib"
+				GenerateManifest="false"
+				IgnoreDefaultLibraryNames="libc;libcd;libcmtd"
 				GenerateDebugInformation="true"
-				ProgramDatabaseFile=".\Release/glview.pdb"
+				ProgramDatabaseFile="$(IntDir)/$(TargetName).pdb"
 				GenerateMapFile="true"
-				MapFileName=".\Release/glview.map"
+				MapFileName="$(IntDir)/$(TargetName).map"
 				SubSystem="2"
+				OptimizeReferences="2"
+				EnableCOMDATFolding="2"
+				BaseAddress=" "
 				TargetMachine="1"
+				ErrorReporting="1"
 			/>
 			<Tool
 				Name="VCALinkTool"
 			/>
 			<Tool
 				Name="VCManifestTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCXDCMakeTool"
+				SuppressStartupBanner="true"
 			/>
 			<Tool
 				Name="VCBscMakeTool"
+				SuppressStartupBanner="true"
+				OutputFile="$(OutDir)/glview.bsc"
 			/>
 			<Tool
 				Name="VCFxCopTool"
@@ -211,6 +250,9 @@
 			/>
 			<Tool
 				Name="VCPostBuildEventTool"
+				Description=""
+				CommandLine=""
+				ExcludedFromBuild="false"
 			/>
 		</Configuration>
 	</Configurations>
@@ -219,15 +261,33 @@
 	<Files>
 		<Filter
 			Name="Source Files"
-			Filter="cpp;c;cxx;rc;def;r;odl;idl;hpj;bat;for;f90"
 			>
 			<File
-				RelativePath="glview.cpp"
+				RelativePath=".\glview.cpp"
 				>
+			</File>
+			<File
+				RelativePath="..\..\public\tier0\memoverride.cpp"
+				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="0"
+					/>
+				</FileConfiguration>
 			</File>
 			<Filter
 				Name="common files"
-				Filter="cpp,h"
 				>
 				<File
 					RelativePath="..\common\cmdlib.cpp"
@@ -246,56 +306,10 @@
 					>
 				</File>
 				<File
-					RelativePath="..\..\public\tier0\memoverride.cpp"
-					>
-					<FileConfiguration
-						Name="Debug|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="0"
-						/>
-					</FileConfiguration>
-					<FileConfiguration
-						Name="Release|Win32"
-						>
-						<Tool
-							Name="VCCLCompilerTool"
-							UsePrecompiledHeader="0"
-						/>
-					</FileConfiguration>
-				</File>
-				<File
 					RelativePath="..\common\physdll.cpp"
 					>
 				</File>
 			</Filter>
-		</Filter>
-		<Filter
-			Name="Header Files"
-			Filter="h;hpp;hxx;hm;inl;fi;fd"
-			>
-			<File
-				RelativePath="..\common\cmdlib.h"
-				>
-			</File>
-			<File
-				RelativePath="glos.h"
-				>
-			</File>
-			<File
-				RelativePath="..\..\Public\MATHLIB.H"
-				>
-			</File>
-		</Filter>
-		<Filter
-			Name="Resource Files"
-			Filter="ico;cur;bmp;dlg;rc2;rct;bin;cnt;rtf;gif;jpg;jpeg;jpe"
-			>
-			<File
-				RelativePath="C:\Program Files\Microsoft Visual Studio\VC98\Include\BASETSD.H"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="Link Libraries"
@@ -307,24 +321,6 @@
 			<File
 				RelativePath="..\..\lib\public\tier0.lib"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\..\lib\public\tier1.lib"
@@ -337,24 +333,30 @@
 			<File
 				RelativePath="..\..\lib\public\vstdlib.lib"
 				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					>
-					<Tool
-						Name="VCCustomBuildTool"
-						Description=""
-						CommandLine=""
-					/>
-				</FileConfiguration>
+			</File>
+		</Filter>
+		<Filter
+			Name="Header Files"
+			>
+			<File
+				RelativePath="..\common\cmdlib.h"
+				>
+			</File>
+			<File
+				RelativePath=".\glos.h"
+				>
+			</File>
+			<File
+				RelativePath="..\..\public\mathlib\mathlib.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="Resource Files"
+			>
+			<File
+				RelativePath="C:\Program Files\Microsoft Visual Studio\VC98\Include\BASETSD.H"
+				>
 			</File>
 		</Filter>
 	</Files>

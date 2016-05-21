@@ -21,6 +21,7 @@
 #define INTERFACEVERSION_GAMEEVENTSMANAGER	"GAMEEVENTSMANAGER001"	// old game event manager, don't use it!
 #define INTERFACEVERSION_GAMEEVENTSMANAGER2	"GAMEEVENTSMANAGER002"	// new game event manager,
 
+#include "tier1/bitbuf.h"
 //-----------------------------------------------------------------------------
 // Purpose: Engine interface into global game event management
 //-----------------------------------------------------------------------------
@@ -59,8 +60,6 @@ data field should not be broadcasted to clients, use the type "local".
 #define MAX_EVENT_BYTES			1024	// max size in bytes for a serialized event
 
 class KeyValues;
-class bf_read;
-class bf_write;
 class CGameEvent;
 
 abstract_class IGameEvent

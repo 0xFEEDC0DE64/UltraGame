@@ -27,6 +27,11 @@
 //   into the constructor of the vector to determine the sort order.
 //-----------------------------------------------------------------------------
 
+#ifndef _WIN32
+// gcc has no qsort_s, so i need to use a static var to hold the sort context. this makes cutlsortvector _not_ thread sfae under linux
+extern void *g_pUtlSortVectorQSortContext;
+#endif
+
 template <class T, class LessFunc>
 class CUtlSortVector : public CUtlVector<T>
 {
@@ -42,6 +47,7 @@ public:
 	// Finds an element within the list using a binary search
 	int		Find( const T& search ) const;
 	int		FindLessOrEqual( const T& search ) const;
+	int		FindLess( const T& search ) const;
 	
 	// Removes a particular element
 	void	Remove( const T& search );
@@ -63,29 +69,49 @@ protected:
 	int AddToTail();
 	int InsertBefore( int elem );
 	int InsertAfter( int elem );
-
-	// Adds an element, uses copy constructor
 	int AddToHead( const T& src );
 	int AddToTail( const T& src );
 	int InsertBefore( int elem, const T& src );
 	int InsertAfter( int elem, const T& src );
-
-	// Adds multiple elements, uses defaulconst Tructor
 	int AddMultipleToHead( int num );
 	int AddMultipleToTail( int num, const T *pToCopy=NULL );	   
 	int InsertMultipleBefore( int elem, int num, const T *pToCopy=NULL );
 	int InsertMultipleAfter( int elem, int num );
-	
-	// Add the specified array to the tail.
 	int AddVectorToTail( CUtlVector<T> const &src );
+
+	struct QSortContext_t
+	{
+		void		*m_pLessContext;
+		LessFunc	*m_pLessFunc;
+	};
+
+#ifdef _WIN32
+	static int CompareHelper( void *context, const T *lhs, const T *rhs )
+	{
+		QSortContext_t *ctx = reinterpret_cast< QSortContext_t * >( context );
+		if ( ctx->m_pLessFunc->Less( *lhs, *rhs, ctx->m_pLessContext ) )
+			return -1;
+		if ( ctx->m_pLessFunc->Less( *rhs, *lhs, ctx->m_pLessContext ) )
+			return 1;
+		return 0;
+	}
+#else
+	static int CompareHelper( const T *lhs, const T *rhs )
+	{
+		QSortContext_t *ctx = reinterpret_cast< QSortContext_t * >( g_pUtlSortVectorQSortContext );
+		if ( ctx->m_pLessFunc->Less( *lhs, *rhs, ctx->m_pLessContext ) )
+			return -1;
+		if ( ctx->m_pLessFunc->Less( *rhs, *lhs, ctx->m_pLessContext ) )
+			return 1;
+		return 0;
+	}
+#endif
 
 	void *m_pLessContext;
 	bool	m_bNeedsSort;
 
 private:
-    void Swap( int L, int R );
 	void QuickSort( LessFunc& less, int X, int I );
-	int SplitList( LessFunc& less, int nLower, int nUpper );
 };
 
 
@@ -141,49 +167,30 @@ int CUtlSortVector<T, LessFunc>::InsertNoSort( const T& src )
 }
 
 template <class T, class LessFunc> 
-void CUtlSortVector<T, LessFunc>::Swap( int L, int R )
-{
-	T temp = Element( L );
-	Element( L ) = Element( R );
-	Element( R ) = temp;
-}
-
-template <class T, class LessFunc> 
 void CUtlSortVector<T, LessFunc>::QuickSort( LessFunc& less, int nLower, int nUpper )
 {
-    if ( nLower < nUpper )
-    {
-        int nSplit = SplitList( less, nLower, nUpper );
-        QuickSort( less, nLower, nSplit - 1 );
-        QuickSort( less, nSplit + 1, nUpper );
-    }
-}
+#ifdef _WIN32
+	typedef int (__cdecl *QSortCompareFunc_t)(void *context, const void *, const void *);
+	if ( Count() > 1 )
+	{
+		QSortContext_t ctx;
+		ctx.m_pLessContext = m_pLessContext;
+		ctx.m_pLessFunc = &less;
 
-template <class T, class LessFunc> 
-int CUtlSortVector<T, LessFunc>::SplitList( LessFunc& less, int nLower, int nUpper )
-{
-    int nLeft = nLower + 1;
-    int nRight = nUpper;
+		qsort_s( Base(), Count(), sizeof(T), (QSortCompareFunc_t)&CUtlSortVector<T, LessFunc>::CompareHelper, &ctx );
+	}
+#else
+	typedef int (__cdecl *QSortCompareFunc_t)( const void *, const void *);
+	if ( Count() > 1 )
+	{
+		QSortContext_t ctx;
+		ctx.m_pLessContext = m_pLessContext;
+		ctx.m_pLessFunc = &less;
+		g_pUtlSortVectorQSortContext = &ctx;
 
-	const T& val = Element( nLower );
-
-	while ( nLeft <= nRight )
-    {
-        while ( nLeft <= nRight && !less.Less( val, Element( nLeft ), m_pLessContext ) )
-            ++nLeft;
-        while ( nLeft <= nRight && !less.Less( Element( nRight ), val, m_pLessContext ) )
-            --nRight;
-
-        if ( nLeft < nRight )
-        {
-			Swap( nLeft, nRight );
-            ++nLeft;
-            --nRight;
-        }
-    }
-
-	Swap( nLower, nRight );
-    return nRight;
+		qsort( Base(), Count(), sizeof(T), (QSortCompareFunc_t)&CUtlSortVector<T, LessFunc>::CompareHelper );
+	}
+#endif
 }
 
 template <class T, class LessFunc> 
@@ -252,6 +259,28 @@ int CUtlSortVector<T, LessFunc>::FindLessOrEqual( const T& src ) const
 		else
 		{
 			return mid;
+		}
+	}
+	return end;
+}
+
+template <class T, class LessFunc> 
+int CUtlSortVector<T, LessFunc>::FindLess( const T& src ) const
+{
+	AssertFatal( !m_bNeedsSort );
+
+	LessFunc less;
+	int start = 0, end = Count() - 1;
+	while (start <= end)
+	{
+		int mid = (start + end) >> 1;
+		if ( less.Less( Element(mid), src, m_pLessContext ) )
+		{
+			start = mid + 1;
+		}
+		else
+		{
+			end = mid - 1;
 		}
 	}
 	return end;

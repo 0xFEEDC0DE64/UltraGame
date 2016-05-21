@@ -12,7 +12,8 @@
 
 
 #include "tier0/dbg.h"
-#include "vector.h"
+#include "tier0/threadtools.h"
+#include "mathlib/vector.h"
 #include <float.h>
 
 
@@ -30,7 +31,7 @@ inline void RangeCheck( const T &value, int minValue, int maxValue )
 {
 #ifdef _DEBUG
 	extern bool g_bDoRangeChecks;
-	if ( g_bDoRangeChecks )
+	if ( ThreadInMainThread() && g_bDoRangeChecks )
 	{
 		// Ignore the min/max stuff for now.. just make sure it's not a NAN.
 		Assert( _finite( value ) );

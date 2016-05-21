@@ -28,14 +28,24 @@ class IMaterial;
 //-----------------------------------------------------------------------------
 struct AVIParams_t
 {
-	AVIParams_t() : m_flFrameRate( 0.0f ), m_nWidth( 0 ), m_nHeight( 0 ), m_nSampleRate( 0 ), m_nSampleBits( 0 ), m_nNumChannels( 0 )
+	AVIParams_t() :
+		m_nFrameRate( 0 ), m_nFrameScale( 1 ), m_nWidth( 0 ), m_nHeight( 0 ),
+		m_nSampleRate( 0 ), m_nSampleBits( 0 ), m_nNumChannels( 0 )
 	{
 		m_pFileName[ 0 ] = 0;
 	}
 
 	char		m_pFileName[ 256 ];
 	char		m_pPathID[ 256 ];
-	float		m_flFrameRate;
+
+	// fps = m_nFrameRate / m_nFrameScale
+	// for integer framerates, set framerate to the fps, and framescale to 1
+	// for ntsc-style framerates like 29.97 (or 23.976 or 59.94),
+	// set framerate to 30,000 (or 24,000 or 60,000) and framescale to 1001
+	// yes, framescale is an odd naming choice, but it matching MS's AVI api
+	int			m_nFrameRate;
+	int			m_nFrameScale;
+
 	int			m_nWidth;
 	int			m_nHeight;
 

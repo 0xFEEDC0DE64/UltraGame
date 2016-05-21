@@ -40,12 +40,13 @@ public:
 	virtual bool IsDraggableTabContainer() const;
 
 	// returns a pointer to the PropertySheet this dialog encapsulates 
-	virtual PropertySheet *GetPropertySheet();
+	PropertySheet *GetPropertySheet();
 
 	// wrapper for PropertySheet interface
-	virtual void AddPage(Panel *page, const char *title, bool contextMenu );
-	virtual void RemovePage( Panel *page );
-	virtual Panel *GetActivePage();
+	void AddPage(Panel *page, const char *title, bool contextMenu );
+	void RemovePage( Panel *page );
+	Panel *GetActivePage();
+	void SetActivePage( Panel *page );
 
 	void SetToolWindowFactory( IToolWindowFactory *factory );
 	IToolWindowFactory *GetToolWindowFactory();

@@ -14,7 +14,7 @@
 
 #include <vgui/VGUI.h>
 #include <vgui_controls/Controls.h>
-#include <UtlVector.h>
+#include <utlvector.h>
 
 namespace vgui
 {
@@ -46,8 +46,9 @@ private:
 	CUtlVector<char> m_Text;
 	int _delay;			// delay that counts down
 	int _tooltipDelay;	// delay before tooltip comes up.
-	bool _makeVisible;
-	bool _displayOnOneLine;
+	bool _makeVisible : 1;
+	bool _displayOnOneLine : 1;
+	bool _isDirty : 1;
 };
 
 };

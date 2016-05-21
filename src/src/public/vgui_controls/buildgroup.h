@@ -12,8 +12,8 @@
 #pragma once
 #endif
 
-#include "UtlVector.h"
-#include "UtlSymbol.h"
+#include "tier1/utlvector.h"
+#include "tier1/utlsymbol.h"
 #include <vgui/VGUI.h>
 #include <vgui/Dar.h>
 #include <vgui/Cursor.h>

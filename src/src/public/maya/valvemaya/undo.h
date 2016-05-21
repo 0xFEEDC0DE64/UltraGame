@@ -131,12 +131,14 @@ public:
 		MPlug &mPlug,
 		bool lock );
 
+	void NodeCreated( MObject &nodeObject );
+
 	void Push(
 		CUndoOp *pUndoOp );
 
 	bool IsUndoable() const;
 
-	void Undo();
+	MStatus Undo();
 
 protected:
 	MArgDatabase *m_pArgDatabase;
@@ -298,6 +300,26 @@ public:
 protected:
 	const MDagPath m_mDagPath;
 	MTransformationMatrix m_matrix;
+};
+
+
+//=============================================================================
+// For node creation via something like MFnMesh::create, etc..
+//=============================================================================
+class CUndoOpNodeCreated : public CUndoOp
+{
+public:
+	CUndoOpNodeCreated(
+		MObject &mObject );
+
+	virtual ~CUndoOpNodeCreated()
+	{
+	}
+
+	virtual void Undo();
+
+protected:
+	MObject m_nodeObject;
 };
 
 

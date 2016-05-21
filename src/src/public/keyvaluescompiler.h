@@ -10,9 +10,10 @@
 #pragma once
 #endif
 
-#include "tier1/UtlBuffer.h"
-#include "tier1/UtlSymbol.h"
-#include "tier1/UtlDict.h"
+#include "tier0/platform.h"
+#include "tier1/utlbuffer.h"
+#include "tier1/utlsymbol.h"
+#include "tier1/utldict.h"
 
 class KeyValues;
 
