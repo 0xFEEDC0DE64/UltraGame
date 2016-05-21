@@ -56,7 +56,7 @@
 //
 // If you're allowing sprinting, do you want to be able to shoot while sprinting?
 // define SDK_SHOOT_WHILE_SPRINTING
-//#define SDK_SHOOT_WHILE_SPRINTING
+#define SDK_SHOOT_WHILE_SPRINTING
 
 //
 // Do you want your players to be able to shoot while climing ladders?
