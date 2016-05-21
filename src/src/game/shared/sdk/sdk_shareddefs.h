@@ -61,7 +61,7 @@
 //
 // Do you want your players to be able to shoot while climing ladders?
 // define SDK_SHOOT_ON_LADDERS
-//#define SDK_SHOOT_ON_LADDERS
+#define SDK_SHOOT_ON_LADDERS
 
 //
 // Do you want your players to be able to shoot while jumping?
