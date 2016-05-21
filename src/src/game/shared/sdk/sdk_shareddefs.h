@@ -22,7 +22,7 @@
 //
 // Do you use player classes?
 // define SDK_USE_PLAYERCLASSES
-//#define SDK_USE_PLAYERCLASSES
+#define SDK_USE_PLAYERCLASSES
 
 //================================
 // PLAYER MOVEMENT RELATED OPTIONS
